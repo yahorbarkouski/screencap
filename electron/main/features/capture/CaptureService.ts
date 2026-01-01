@@ -31,16 +31,19 @@ function bestThumbnailSize(): { width: number; height: number } {
 	return { width: maxWidth, height: maxHeight };
 }
 
-function highResPathForId(id: string): string {
-	return join(getOriginalsDir(), `${id}${HIGH_RES_SUFFIX}`);
+function highResPathForId(id: string, originalsDir: string): string {
+	return join(originalsDir, `${id}${HIGH_RES_SUFFIX}`);
 }
 
 export async function captureAllDisplays(options?: {
 	highResDisplayId?: string | null;
+	dirs?: { thumbnailsDir: string; originalsDir: string };
 }): Promise<CaptureResult[]> {
 	logger.info("Capturing all displays...");
 
 	const highResDisplayId = options?.highResDisplayId ?? null;
+	const thumbnailsDir = options?.dirs?.thumbnailsDir ?? getThumbnailsDir();
+	const originalsDir = options?.dirs?.originalsDir ?? getOriginalsDir();
 	const displays = screen.getAllDisplays();
 	logger.debug(`Found ${displays.length} displays`);
 
@@ -62,9 +65,9 @@ export async function captureAllDisplays(options?: {
 		const display = displays.find((d) => source.display_id === String(d.id));
 
 		const id = uuid();
-		const thumbnailPath = join(getThumbnailsDir(), `${id}.webp`);
-		const originalPath = join(getOriginalsDir(), `${id}.webp`);
-		const highResPath = highResPathForId(id);
+		const thumbnailPath = join(thumbnailsDir, `${id}.webp`);
+		const originalPath = join(originalsDir, `${id}.webp`);
+		const highResPath = highResPathForId(id, originalsDir);
 
 		const nativeImage = source.thumbnail;
 		if (nativeImage.isEmpty()) {

@@ -11,6 +11,12 @@ import {
 	broadcastEventUpdated,
 	broadcastPermissionRequired,
 } from "../../infra/windows";
+import {
+	discardActivityWindow,
+	finalizeActivityWindow,
+	startActivityWindowTracking,
+	stopActivityWindowTracking,
+} from "../activityWindow";
 import { evaluateAutomationPolicy } from "../automationRules";
 import { captureAllDisplays } from "../capture";
 import { collectActivityContext } from "../context";
@@ -35,6 +41,71 @@ let captureLock: Promise<void> | null = null;
 
 function getIntervalMs(): number {
 	return currentIntervalMinutes * 60 * 1000;
+}
+
+async function runWindowedCaptureCycle(): Promise<CaptureTriggerResult> {
+	if (captureLock) {
+		logger.debug("Capture already in progress, skipping");
+		return { merged: false, eventId: null };
+	}
+
+	let releaseLock!: () => void;
+	captureLock = new Promise<void>((resolve) => {
+		releaseLock = resolve;
+	});
+
+	try {
+		const hasPermission = checkScreenCapturePermission();
+		const idleTime = powerMonitor.getSystemIdleTime();
+		const windowEnd = Date.now();
+
+		logger.debug("Windowed capture cycle", {
+			hasPermission,
+			idleTimeSeconds: idleTime,
+		});
+
+		if (!hasPermission) {
+			logger.warn("No screen capture permission");
+			broadcastPermissionRequired();
+			await discardActivityWindow(windowEnd);
+			return { merged: false, eventId: null };
+		}
+
+		if (idleTime > IDLE_SKIP_SECONDS) {
+			logger.debug(`System idle for ${idleTime}s, skipping scheduled capture`);
+			await discardActivityWindow(windowEnd);
+			return { merged: false, eventId: null };
+		}
+
+		const windowed = await finalizeActivityWindow(windowEnd);
+		if (windowed.kind !== "capture") {
+			return { merged: false, eventId: null };
+		}
+
+		const intervalMs = getIntervalMs();
+		const primaryDisplayId =
+			windowed.primaryDisplayId ?? String(screen.getPrimaryDisplay().id);
+
+		const result = await processCaptureGroup({
+			captures: windowed.captures,
+			intervalMs,
+			primaryDisplayId,
+			context: windowed.context,
+		});
+
+		if (!result.merged && result.eventId) {
+			updateEvent(result.eventId, {
+				timestamp: windowed.windowStart,
+				endTimestamp: windowed.windowEnd,
+			});
+			broadcastEventUpdated(result.eventId);
+		}
+
+		return result;
+	} finally {
+		releaseLock();
+		captureLock = null;
+	}
 }
 
 async function runCaptureCycle(
@@ -166,7 +237,7 @@ async function tick(): Promise<void> {
 		return;
 	}
 
-	await runCaptureCycle("scheduled");
+	await runWindowedCaptureCycle();
 }
 
 export function startScheduler(intervalMinutes?: number): void {
@@ -180,6 +251,9 @@ export function startScheduler(intervalMinutes?: number): void {
 		clearInterval(captureInterval);
 	}
 
+	stopActivityWindowTracking();
+	startActivityWindowTracking();
+
 	state = "running";
 	const intervalMs = getIntervalMs();
 
@@ -189,7 +263,6 @@ export function startScheduler(intervalMinutes?: number): void {
 		idleSkipSeconds: IDLE_SKIP_SECONDS,
 	});
 
-	tick();
 	captureInterval = setInterval(() => {
 		tick();
 	}, intervalMs);
@@ -200,18 +273,21 @@ export function stopScheduler(): void {
 		clearInterval(captureInterval);
 		captureInterval = null;
 	}
+	stopActivityWindowTracking();
 	state = "stopped";
 	logger.info("Scheduler stopped");
 }
 
 export function pauseScheduler(): void {
 	state = "paused";
+	stopActivityWindowTracking();
 	logger.info("Scheduler paused");
 }
 
 export function resumeScheduler(): void {
 	if (captureInterval) {
 		state = "running";
+		startActivityWindowTracking();
 		logger.info("Scheduler resumed");
 	} else {
 		startScheduler();

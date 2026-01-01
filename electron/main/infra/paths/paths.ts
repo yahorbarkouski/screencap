@@ -41,3 +41,7 @@ export function getOriginalsDir(): string {
 export function getFaviconsDir(): string {
 	return ensureDir(join(getScreenshotsDir(), "favicons"));
 }
+
+export function getTempCapturesDir(): string {
+	return ensureDir(join(getScreenshotsDir(), "tmp"));
+}

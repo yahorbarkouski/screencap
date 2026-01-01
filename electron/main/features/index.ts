@@ -1,3 +1,4 @@
+export * from "./activityWindow";
 export * from "./capture";
 export * from "./context";
 export * from "./events";

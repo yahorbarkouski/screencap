@@ -30,6 +30,6 @@ dmg:
   artifactName: ${name}-${version}-${arch}.${ext}
 publish:
   provider: github
-  owner: ${GH_OWNER:-yahorbarkouski}
-  repo: ${GH_REPO:-screencap}
+  owner: yahorbarkouski
+  repo: screencap
   releaseType: release
