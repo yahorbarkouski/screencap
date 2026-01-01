@@ -46,9 +46,7 @@ jobs:
       - name: Package Electron app (dry run)
         run: npx electron-builder --config electron-builder.yml --publish never
         env:
-          CSC_LINK: ${{ secrets.APPLE_CERT_P12_BASE64 && format('base64:{0}', secrets.APPLE_CERT_P12_BASE64) || '' }}
-          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERT_P12_PASSWORD }}
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.APPLE_CERT_P12_BASE64 && 'true' || 'false' }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: Semantic Release
         id: semantic
@@ -80,6 +78,4 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          CSC_LINK: ${{ secrets.APPLE_CERT_P12_BASE64 && format('base64:{0}', secrets.APPLE_CERT_P12_BASE64) || '' }}
-          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERT_P12_PASSWORD }}
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.APPLE_CERT_P12_BASE64 && 'true' || 'false' }}
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ env.HAS_SIGNING_CERT }}
