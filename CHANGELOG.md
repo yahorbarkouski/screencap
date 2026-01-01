@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/yahorbarkouski/screencap/compare/v1.0.1...v1.0.2) (2026-01-01)
+
+
+### Bug Fixes
+
+* ci ([7530da0](https://github.com/yahorbarkouski/screencap/commit/7530da06f198adee13cf969df069b53694fd9417))
+
 ## [1.0.1](https://github.com/yahorbarkouski/screencap/compare/v1.0.0...v1.0.1) (2026-01-01)
 
 
