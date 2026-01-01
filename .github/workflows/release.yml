@@ -12,6 +12,8 @@ permissions:
 jobs:
   build-and-release:
     runs-on: macos-latest
+    env:
+      HAS_SIGNING_CERT: ${{ secrets.APPLE_CERT_P12_BASE64 != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,7 +37,7 @@ jobs:
         run: npm run build
 
       - name: Import Code Signing Certificates
-        if: ${{ secrets.APPLE_CERT_P12_BASE64 != '' }}
+        if: env.HAS_SIGNING_CERT == 'true'
         uses: apple-actions/import-codesign-certs@v3
         with:
           p12-file-base64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
