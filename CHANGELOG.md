@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/yahorbarkouski/screencap/compare/v1.0.2...v1.1.0) (2026-01-01)
+
+
+### Features
+
+* selective screenshots ([b525cd1](https://github.com/yahorbarkouski/screencap/commit/b525cd12dcc2be086d740cda29c5328a47a5cc23))
+
 ## [1.0.2](https://github.com/yahorbarkouski/screencap/compare/v1.0.1...v1.0.2) (2026-01-01)
 
 
