@@ -7,6 +7,7 @@ import {
 	ExternalLink,
 	Eye,
 	EyeOff,
+	FolderKanban,
 	Gamepad2,
 	Globe,
 	HelpCircle,
@@ -18,6 +19,7 @@ import {
 	Tag,
 	Trash2,
 	Users,
+	X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -132,6 +134,7 @@ export function EventPreview({ event, open, onOpenChange }: EventPreviewProps) {
 	const [automationRules, setAutomationRules] = useState<
 		Settings["automationRules"] | null
 	>(null);
+	const [projects, setProjects] = useState<string[]>([]);
 	const removeEvent = useAppStore((s) => s.removeEvent);
 	const updateEvent = useAppStore((s) => s.updateEvent);
 
@@ -232,8 +235,14 @@ export function EventPreview({ event, open, onOpenChange }: EventPreviewProps) {
 		if (!open) return;
 		let cancelled = false;
 		const load = async () => {
-			const settings = await window.api.settings.get();
-			if (!cancelled) setAutomationRules(settings.automationRules);
+			const [settings, projectList] = await Promise.all([
+				window.api.settings.get(),
+				window.api.storage.getProjects(),
+			]);
+			if (!cancelled) {
+				setAutomationRules(settings.automationRules);
+				setProjects(projectList);
+			}
 		};
 		void load();
 		return () => {
@@ -274,6 +283,14 @@ export function EventPreview({ event, open, onOpenChange }: EventPreviewProps) {
 		async (label: string) => {
 			await window.api.storage.relabelEvents([event.id], label);
 			updateEvent(event.id, { userLabel: label, confidence: 1 });
+		},
+		[event.id, updateEvent],
+	);
+
+	const handleSetProject = useCallback(
+		async (project: string | null) => {
+			await window.api.storage.setEventProject(event.id, project);
+			updateEvent(event.id, { project });
 		},
 		[event.id, updateEvent],
 	);
@@ -534,12 +551,43 @@ export function EventPreview({ event, open, onOpenChange }: EventPreviewProps) {
 								<span className="text-muted-foreground">Time:</span>
 								<p className="font-medium">{timeLabel}</p>
 							</div>
-							{event.project && (
-								<div>
-									<span className="text-muted-foreground">Project:</span>
-									<p className="font-medium">{event.project}</p>
+							<div>
+								<span className="text-muted-foreground">Project:</span>
+								<div className="flex items-center gap-2 mt-1">
+									<DropdownMenu>
+										<DropdownMenuTrigger asChild>
+											<Button
+												variant="outline"
+												size="sm"
+												className="justify-start font-medium"
+											>
+												<FolderKanban className="h-4 w-4" />
+												{event.project || "No project"}
+											</Button>
+										</DropdownMenuTrigger>
+										<DropdownMenuContent align="start" className="w-[200px]">
+											<DropdownMenuLabel>Select Project</DropdownMenuLabel>
+											<DropdownMenuSeparator />
+											<DropdownMenuRadioGroup
+												value={event.project || ""}
+												onValueChange={(value) =>
+													void handleSetProject(value || null)
+												}
+											>
+												<DropdownMenuRadioItem value="">
+													<X className="h-4 w-4 mr-2 text-muted-foreground" />
+													No project
+												</DropdownMenuRadioItem>
+												{projects.map((proj) => (
+													<DropdownMenuRadioItem key={proj} value={proj}>
+														{proj}
+													</DropdownMenuRadioItem>
+												))}
+											</DropdownMenuRadioGroup>
+										</DropdownMenuContent>
+									</DropdownMenu>
 								</div>
-							)}
+							</div>
 							{event.confidence !== null && (
 								<div>
 									<span className="text-muted-foreground">Confidence:</span>

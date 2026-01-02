@@ -19,10 +19,10 @@ asarUnpack:
   - node_modules/sharp/**/*
   - node_modules/better-sqlite3/**/*
 mac:
+  identity: null
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     NSScreenCaptureUsageDescription: Screencap needs screen recording permission to capture screenshots for activity tracking.
-  notarize: false
   target:
     - target: dmg
       arch:

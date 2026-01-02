@@ -148,6 +148,8 @@ const api = {
 			ipcRenderer.invoke(IpcChannels.Storage.RejectAddiction, ids),
 		setEventCaption: (id: string, caption: string) =>
 			ipcRenderer.invoke(IpcChannels.Storage.SetEventCaption, id, caption),
+		setEventProject: (id: string, project: string | null): Promise<void> =>
+			ipcRenderer.invoke(IpcChannels.Storage.SetEventProject, id, project),
 		submitProjectProgressCapture: (input: {
 			id: string;
 			caption: string;

@@ -82,6 +82,7 @@ import {
 	ipcRelabelEventsArgs,
 	ipcRevealStorageCategoryArgs,
 	ipcSetEventCaptionArgs,
+	ipcSetEventProjectArgs,
 	ipcSubmitProjectProgressCaptureArgs,
 	ipcUpdateMemoryArgs,
 } from "../validation";
@@ -193,6 +194,16 @@ export function registerStorageHandlers(): void {
 			const next = caption.trim();
 			if (!next) return;
 			updateEvent(id, { caption: next });
+			broadcastEventUpdated(id);
+		},
+	);
+
+	secureHandle(
+		IpcChannels.Storage.SetEventProject,
+		ipcSetEventProjectArgs,
+		(id: string, project: string | null) => {
+			const next = project?.trim() || null;
+			updateEvent(id, { project: next });
 			broadcastEventUpdated(id);
 		},
 	);

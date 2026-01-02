@@ -88,6 +88,11 @@ export const ipcSetEventCaptionArgs = z.tuple([
 	zLimitedString(5000),
 ]);
 
+export const ipcSetEventProjectArgs = z.tuple([
+	zLimitedString(256),
+	zLimitedString(200).nullable(),
+]);
+
 export const ipcSubmitProjectProgressCaptureArgs = z.tuple([
 	z
 		.object({

@@ -95,6 +95,7 @@ export const IpcChannels = {
 		ConfirmAddiction: "storage:confirm-addiction",
 		RejectAddiction: "storage:reject-addiction",
 		SetEventCaption: "storage:set-event-caption",
+		SetEventProject: "storage:set-event-project",
 		SubmitProjectProgressCapture: "storage:submit-project-progress-capture",
 		UnmarkProjectProgress: "storage:unmark-project-progress",
 		DeleteEvent: "storage:delete-event",
@@ -207,6 +208,10 @@ export interface IpcInvokeHandlers {
 	[IpcChannels.Storage.ConfirmAddiction]: (ids: string[]) => void;
 	[IpcChannels.Storage.RejectAddiction]: (ids: string[]) => void;
 	[IpcChannels.Storage.SetEventCaption]: (id: string, caption: string) => void;
+	[IpcChannels.Storage.SetEventProject]: (
+		id: string,
+		project: string | null,
+	) => void;
 	[IpcChannels.Storage.SubmitProjectProgressCapture]: (input: {
 		id: string;
 		caption: string;

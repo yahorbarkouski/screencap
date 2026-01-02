@@ -445,8 +445,9 @@ declare global {
 				relabelEvents: (ids: string[], label: string) => Promise<void>;
 				confirmAddiction: (ids: string[]) => Promise<void>;
 				rejectAddiction: (ids: string[]) => Promise<void>;
-				setEventCaption: (id: string, caption: string) => Promise<void>;
-				submitProjectProgressCapture: (input: {
+			setEventCaption: (id: string, caption: string) => Promise<void>;
+			setEventProject: (id: string, project: string | null) => Promise<void>;
+			submitProjectProgressCapture: (input: {
 					id: string;
 					caption: string;
 					project: string | null;

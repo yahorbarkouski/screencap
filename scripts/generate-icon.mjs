@@ -23,12 +23,35 @@ const S_PATTERN = [
 	"    ######    ",
 ];
 
+function drawSquircle(ctx, x, y, width, height, radius) {
+	const r = Math.min(radius, width / 2, height / 2);
+	const k = 0.5522847498;
+	
+	ctx.beginPath();
+	ctx.moveTo(x + r, y);
+	ctx.lineTo(x + width - r, y);
+	ctx.bezierCurveTo(x + width - r * (1 - k), y, x + width, y + r * (1 - k), x + width, y + r);
+	ctx.lineTo(x + width, y + height - r);
+	ctx.bezierCurveTo(x + width, y + height - r * (1 - k), x + width - r * (1 - k), y + height, x + width - r, y + height);
+	ctx.lineTo(x + r, y + height);
+	ctx.bezierCurveTo(x + r * (1 - k), y + height, x, y + height - r * (1 - k), x, y + height - r);
+	ctx.lineTo(x, y + r);
+	ctx.bezierCurveTo(x, y + r * (1 - k), x + r * (1 - k), y, x + r, y);
+	ctx.closePath();
+}
+
+function fillRoundedBackground(ctx, size) {
+	const radius = size * 0.225;
+	ctx.fillStyle = "#0a0a0a";
+	drawSquircle(ctx, 0, 0, size, size, radius);
+	ctx.fill();
+}
+
 function generateSmallIcon(size) {
 	const canvas = createCanvas(size, size);
 	const ctx = canvas.getContext("2d");
 
-	ctx.fillStyle = "#0a0a0a";
-	ctx.fillRect(0, 0, size, size);
+	fillRoundedBackground(ctx, size);
 
 	const pixelGrid = [
 		"████████",
@@ -44,7 +67,7 @@ function generateSmallIcon(size) {
 	const rows = pixelGrid.length;
 	const cols = pixelGrid[0].length;
 
-	const padding = size * 0.12;
+	const padding = size * 0.18;
 	const cellSize = (size - padding * 2) / Math.max(rows, cols);
 	const offsetX = padding + (size - padding * 2 - cols * cellSize) / 2;
 	const offsetY = padding + (size - padding * 2 - rows * cellSize) / 2;
@@ -79,8 +102,7 @@ function generateMediumIcon(size) {
 	const canvas = createCanvas(size, size);
 	const ctx = canvas.getContext("2d");
 
-	ctx.fillStyle = "#0a0a0a";
-	ctx.fillRect(0, 0, size, size);
+	fillRoundedBackground(ctx, size);
 
 	const pattern = [
 		" @@@ ",
@@ -95,12 +117,12 @@ function generateMediumIcon(size) {
 	const rows = pattern.length;
 	const cols = Math.max(...pattern.map((r) => r.length));
 
-	const padding = size * 0.12;
+	const padding = size * 0.18;
 	const availableSize = size - padding * 2;
 
 	const charWidth = availableSize / cols;
 	const charHeight = availableSize / rows;
-	const fontSize = Math.min(charWidth, charHeight) * 1.5;
+	const fontSize = Math.min(charWidth, charHeight) * 1.4;
 
 	ctx.font = `bold ${fontSize}px "SF Mono", "Monaco", monospace`;
 	ctx.textAlign = "center";
@@ -129,19 +151,18 @@ function generateLargeIcon(size) {
 	const canvas = createCanvas(size, size);
 	const ctx = canvas.getContext("2d");
 
-	ctx.fillStyle = "#0a0a0a";
-	ctx.fillRect(0, 0, size, size);
+	fillRoundedBackground(ctx, size);
 
 	const pattern = S_PATTERN;
 	const rows = pattern.length;
 	const cols = Math.max(...pattern.map((r) => r.length));
 
-	const padding = size * 0.12;
+	const padding = size * 0.17;
 	const availableSize = size - padding * 2;
 
 	const charWidth = availableSize / cols;
 	const charHeight = availableSize / rows;
-	const fontSize = Math.min(charWidth, charHeight) * 1.3;
+	const fontSize = Math.min(charWidth, charHeight) * 1.2;
 
 	ctx.font = `bold ${fontSize}px "SF Mono", "Monaco", "Menlo", monospace`;
 	ctx.textAlign = "center";

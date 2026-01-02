@@ -1,5 +1,6 @@
 import { app } from "electron";
 import { createLogger } from "../infra/log";
+import { getSettings } from "../infra/settings";
 
 const logger = createLogger({ scope: "LoginItem" });
 
@@ -10,6 +11,12 @@ function isSupportedPlatform(platform: NodeJS.Platform): boolean {
 }
 
 export function shouldStartHiddenFromLaunchContext(): boolean {
+	const settings = getSettings();
+	if (!settings.onboarding?.completedAt) {
+		logger.info("First launch detected, showing window");
+		return false;
+	}
+
 	if (
 		process.argv.includes("--hidden") ||
 		process.argv.includes("--autostart")
