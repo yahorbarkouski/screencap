@@ -38,7 +38,7 @@ Screencap is **local-first**: captures and metadata are stored on your machine i
   - **Relabeling** an event (stored as `user_label`)
   - **Dismissing** or **deleting** events
   - **Copy image to clipboard** (safe allowlisted IPC)
-  - **NSFW blur** for events tagged `nsfw` / `porn` (manual reveal in preview)
+  - **NSFW blur**
 
 ### Project progress
 
