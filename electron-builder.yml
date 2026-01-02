@@ -1,6 +1,7 @@
 appId: com.screencap.app
 productName: Screencap
 beforePack: electron/builderHooks/beforePack.cjs
+afterPack: electron/builderHooks/afterPack.cjs
 directories:
   buildResources: build
   output: dist
@@ -11,7 +12,7 @@ files:
   - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
 extraResources:
-  - from: build/ocr
+  - from: build/ocr/${arch}
     to: ocr
     filter:
       - screencap-ocr
@@ -34,6 +35,17 @@ mac:
         - x64
 dmg:
   artifactName: ${name}-${version}-${arch}.${ext}
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+    - x: 130
+      y: 420
+      type: file
+      path: build/install.command
 publish:
   provider: github
   owner: yahorbarkouski

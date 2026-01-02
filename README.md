@@ -71,17 +71,18 @@ Progress is a dedicated timeline for “things that moved”:
 
 ## Install (macOS)
 
-1. Download the latest DMG from [Releases](https://github.com/yahorbarkouski/screencap/releases) and drag `Screencap.app` to Applications.
+1. Download the latest DMG from [Releases](https://github.com/yahorbarkouski/screencap/releases).
+2. Open the DMG and run `install.command` (recommended) or drag `Screencap.app` to Applications.
 2. Open the app (it has a main window and a tray icon; closing the window keeps it running in the background).
 3. Grant Screen Recording permission when prompted.
 
-**Note**: If macOS shows "Screencap is damaged and can't be opened", run this in Terminal:
+**Note**: If macOS shows "Screencap is damaged and can't be opened", it's quarantine. `install.command` removes it for you. If you drag manually, you can remove it with:
 
 ```bash
-xattr -cr /Applications/Screencap.app
+xattr -dr com.apple.quarantine /Applications/Screencap.app
 ```
 
-This removes the quarantine attribute that macOS applies to downloaded apps. The app is not notarized (requires Apple Developer subscription), so Gatekeeper blocks it by default.
+If the app is already in `/Applications`, this may require admin rights on some machines.
 
 Recommended for better context:
 
