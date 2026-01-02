@@ -1,4 +1,4 @@
-import { Command } from "lucide-react";
+import { Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	Tooltip,
@@ -12,11 +12,10 @@ import { appNavItems } from "./navigation";
 export function Sidebar() {
 	const view = useAppStore((s) => s.view);
 	const setView = useAppStore((s) => s.setView);
-	const setCommandPaletteOpen = useAppStore((s) => s.setCommandPaletteOpen);
 
 	return (
-		<aside className="relative px-2 shrink-0 flex flex-col items-center bg-card/50">
-			<nav className="flex flex-col gap-1 pt-1">
+		<aside className="relative shrink-0 flex flex-col items-center bg-card/50 px-2 py-1">
+			<nav className="flex flex-col gap-1">
 				{appNavItems.map((item) => (
 					<Tooltip key={item.id} delayDuration={100}>
 						<TooltipTrigger asChild>
@@ -38,23 +37,25 @@ export function Sidebar() {
 				))}
 			</nav>
 
-			<div className="flex-1" />
-
-			<div className="flex flex-col gap-1 pb-3">
+			<nav className="mt-auto flex flex-col gap-1 pb-1">
 				<Tooltip delayDuration={100}>
 					<TooltipTrigger asChild>
 						<Button
 							variant="ghost"
 							size="icon"
-							className="w-8 h-8"
-							onClick={() => setCommandPaletteOpen(true)}
+							className={cn(
+								"w-8 h-8 transition-all duration-200",
+								view === "settings" &&
+									"bg-accent/10 text-primary hover:bg-accent/10",
+							)}
+							onClick={() => setView("settings")}
 						>
-							<Command className="h-5 w-5" />
+							<Settings className="h-5 w-5" />
 						</Button>
 					</TooltipTrigger>
-					<TooltipContent side="right">Command Palette (⌘K)</TooltipContent>
+					<TooltipContent side="right">Settings</TooltipContent>
 				</Tooltip>
-			</div>
+			</nav>
 		</aside>
 	);
 }

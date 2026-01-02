@@ -1,4 +1,4 @@
-import { BrowserWindow, screen } from "electron";
+import { BrowserWindow } from "electron";
 import { IpcChannels } from "../../../shared/ipc";
 import type {
 	CaptureTriggerOptions,
@@ -14,15 +14,6 @@ import { secureHandle, secureHandleWithEvent } from "../secure";
 import { ipcCaptureTriggerArgs, ipcNoArgs } from "../validation";
 
 const logger = createLogger({ scope: "CaptureIPC" });
-
-function getDisplayIdForWindow(win: BrowserWindow): string {
-	const bounds = win.getBounds();
-	const point = {
-		x: Math.round(bounds.x + bounds.width / 2),
-		y: Math.round(bounds.y + bounds.height / 2),
-	};
-	return String(screen.getDisplayNearestPoint(point).id);
-}
 
 function isPopupWindow(win: BrowserWindow): boolean {
 	const url = win.webContents.getURL();
@@ -56,9 +47,6 @@ export function registerCaptureHandlers(): void {
 			logger.info("Manual capture triggered via IPC", { intent });
 
 			const senderWindow = BrowserWindow.fromWebContents(event.sender);
-			const primaryDisplayId = senderWindow
-				? getDisplayIdForWindow(senderWindow)
-				: null;
 			const senderIsPopup = senderWindow ? isPopupWindow(senderWindow) : false;
 			const shouldRestoreSender =
 				!!senderWindow && (!senderIsPopup || intent === "project_progress");
@@ -76,10 +64,7 @@ export function registerCaptureHandlers(): void {
 			}
 
 			try {
-				return await triggerManualCaptureWithPrimaryDisplay({
-					primaryDisplayId: primaryDisplayId ?? undefined,
-					intent,
-				});
+				return await triggerManualCaptureWithPrimaryDisplay({ intent });
 			} finally {
 				if (
 					!includeSenderWindow &&

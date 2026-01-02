@@ -137,6 +137,7 @@ export interface Settings {
 	localLlmEnabled: boolean;
 	localLlmBaseUrl: string;
 	localLlmModel: string;
+	sessionSummaryEnabled: boolean;
 }
 
 export interface ProjectRepo {
@@ -162,6 +163,7 @@ export interface RepoWorkSession {
 	maxDeletions: number;
 	files: string[];
 	updatedAt: number;
+	summary: string | null;
 }
 
 export interface GitCommit {
@@ -445,9 +447,9 @@ declare global {
 				relabelEvents: (ids: string[], label: string) => Promise<void>;
 				confirmAddiction: (ids: string[]) => Promise<void>;
 				rejectAddiction: (ids: string[]) => Promise<void>;
-			setEventCaption: (id: string, caption: string) => Promise<void>;
-			setEventProject: (id: string, project: string | null) => Promise<void>;
-			submitProjectProgressCapture: (input: {
+				setEventCaption: (id: string, caption: string) => Promise<void>;
+				setEventProject: (id: string, project: string | null) => Promise<void>;
+				submitProjectProgressCapture: (input: {
 					id: string;
 					caption: string;
 					project: string | null;
@@ -519,6 +521,10 @@ declare global {
 					startAt: number;
 					endAt: number;
 				}) => Promise<string>;
+				generateSessionSummary: (options: {
+					sessionId: string;
+					projectName: string;
+				}) => Promise<string | null>;
 			};
 			llm: {
 				classify: (imageBase64: string) => Promise<unknown>;

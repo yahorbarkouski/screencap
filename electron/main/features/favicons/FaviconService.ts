@@ -111,16 +111,20 @@ async function tryDownloadIcon(
 	const safeUrl = toSafeHttpUrl(url);
 	if (!safeUrl) return null;
 
-	const res = await fetchWithTimeout(safeUrl);
-	if (!res.ok) return null;
+	try {
+		const res = await fetchWithTimeout(safeUrl);
+		if (!res.ok) return null;
 
-	const contentType = res.headers.get("content-type");
-	if (!isValidIconResponse(contentType)) return null;
+		const contentType = res.headers.get("content-type");
+		if (!isValidIconResponse(contentType)) return null;
 
-	const ab = await res.arrayBuffer();
-	if (ab.byteLength === 0 || ab.byteLength > 1_500_000) return null;
+		const ab = await res.arrayBuffer();
+		if (ab.byteLength === 0 || ab.byteLength > 1_500_000) return null;
 
-	return { bytes: new Uint8Array(ab), contentType };
+		return { bytes: new Uint8Array(ab), contentType };
+	} catch {
+		return null;
+	}
 }
 
 async function discoverCandidateUrls(

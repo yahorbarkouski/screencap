@@ -203,6 +203,7 @@ export const ipcSetSettingsArgs = z.tuple([
 			localLlmEnabled: z.boolean(),
 			localLlmBaseUrl: zLimitedString(2000),
 			localLlmModel: zLimitedString(500),
+			sessionSummaryEnabled: z.boolean(),
 		})
 		.strict(),
 ]);
@@ -260,6 +261,15 @@ export const ipcProjectJournalGenerateSummaryArgs = z.tuple([
 			projectName: zLimitedString(200),
 			startAt: z.number().int().nonnegative(),
 			endAt: z.number().int().nonnegative(),
+		})
+		.strict(),
+]);
+
+export const ipcProjectJournalGenerateSessionSummaryArgs = z.tuple([
+	z
+		.object({
+			sessionId: zLimitedString(256),
+			projectName: zLimitedString(200),
 		})
 		.strict(),
 ]);

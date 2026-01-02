@@ -7,6 +7,7 @@ import { useProjectStats } from "@/hooks/useProjectStats";
 import { useAppStore } from "@/stores/app";
 import type { Memory } from "@/types";
 import { AddMemoryDialog } from "./AddMemoryDialog";
+import { CollectionEmptyState } from "./CollectionEmptyState";
 import { ProjectCard } from "./ProjectCard";
 import { ProjectDetailView } from "./ProjectDetailView.tsx";
 
@@ -91,17 +92,18 @@ export function ProjectsView() {
 			</div>
 
 			<ScrollArea className="flex-1">
-				<div className="p-6">
+				<div className="p-6 max-w-6xl mx-auto">
 					{projects.length === 0 ? (
-						<div className="text-center py-12 text-muted-foreground">
-							<Briefcase className="h-12 w-12 mx-auto mb-4 opacity-50" />
-							<p>No projects defined yet</p>
-							<p className="text-sm">
-								E.g., "Thesis: Overleaf, Zotero, Papers"
-							</p>
-						</div>
+						<CollectionEmptyState
+							icon={<Briefcase className="size-6" />}
+							title="Create your first project"
+							description="Projects group your captures and let you link git repos for activity."
+							hint='Example: "Screencap", "Thesis", "Client: ACME"'
+							actionLabel="Track a project"
+							onAction={() => setAddDialogOpen(true)}
+						/>
 					) : (
-						<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+						<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
 							{projects.map((project) => (
 								<ProjectCard
 									key={project.id}

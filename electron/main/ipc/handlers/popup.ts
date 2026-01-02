@@ -15,15 +15,6 @@ function cursorAnchor(): Rectangle {
 	return { x: p.x, y: p.y, width: 1, height: 1 };
 }
 
-function displayIdForWindow(win: BrowserWindow): string {
-	const bounds = win.getBounds();
-	const point = {
-		x: Math.round(bounds.x + bounds.width / 2),
-		y: Math.round(bounds.y + bounds.height / 2),
-	};
-	return String(screen.getDisplayNearestPoint(point).id);
-}
-
 async function sleep(ms: number): Promise<void> {
 	await new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
@@ -61,10 +52,6 @@ export function registerPopupHandlers(): void {
 		async (event) => {
 			const senderWindow = BrowserWindow.fromWebContents(event.sender);
 			const anchor = senderWindow?.getBounds() ?? cursorAnchor();
-			const primaryDisplayId =
-				senderWindow && !senderWindow.isDestroyed()
-					? displayIdForWindow(senderWindow)
-					: String(screen.getPrimaryDisplay().id);
 
 			if (
 				senderWindow &&
@@ -76,7 +63,6 @@ export function registerPopupHandlers(): void {
 			}
 
 			const result = await triggerManualCaptureWithPrimaryDisplay({
-				primaryDisplayId,
 				intent: "project_progress",
 			});
 

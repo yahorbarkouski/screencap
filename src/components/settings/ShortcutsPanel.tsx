@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Panel } from "@/components/wrapped/Panel";
+import { formatAccelerator, normalizeAccelerator } from "@/lib/accelerator";
 import type { ShortcutSettings } from "@/types";
 import { SettingsRow, SettingsRows } from "./SettingsPrimitives";
 
@@ -11,56 +12,6 @@ const DEFAULT_SHORTCUTS: ShortcutSettings = {
 	captureNow: "Command+Shift+O",
 	captureProjectProgress: "Command+Shift+P",
 };
-
-function normalizeAccelerator(value: string | null | undefined): string | null {
-	const v = value?.trim() ?? "";
-	return v.length > 0 ? v : null;
-}
-
-function isMac(): boolean {
-	return navigator.platform.toLowerCase().includes("mac");
-}
-
-function formatAccelerator(accelerator: string | null): string {
-	const a = normalizeAccelerator(accelerator);
-	if (!a) return "";
-	const parts = a
-		.split("+")
-		.map((p) => p.trim())
-		.filter(Boolean);
-
-	const mac = isMac();
-	const map: Record<string, string> = mac
-		? {
-				Command: "⌘",
-				Control: "⌃",
-				Alt: "⌥",
-				Option: "⌥",
-				Shift: "⇧",
-				CommandOrControl: "⌘",
-				Super: "⌘",
-				Esc: "⎋",
-				Space: "␠",
-				Enter: "↩",
-				Tab: "⇥",
-			}
-		: {
-				Command: "Cmd",
-				Control: "Ctrl",
-				Alt: "Alt",
-				Option: "Alt",
-				Shift: "Shift",
-				CommandOrControl: "Ctrl",
-				Super: "Win",
-				Esc: "Esc",
-				Space: "Space",
-				Enter: "Enter",
-				Tab: "Tab",
-			};
-
-	const rendered = parts.map((p) => map[p] ?? p);
-	return mac ? rendered.join("") : rendered.join("+");
-}
 
 function normalizeKey(key: string): string | null {
 	if (key === " ") return "Space";

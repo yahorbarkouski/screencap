@@ -564,10 +564,14 @@ export function startQueueProcessor(): void {
 	logger.info("Starting queue processor");
 
 	processingInterval = setInterval(() => {
-		processQueue();
+		processQueue().catch((error) => {
+			logger.error("Queue processing failed", { error: String(error) });
+		});
 	}, PROCESS_INTERVAL_MS);
 
-	processQueue();
+	processQueue().catch((error) => {
+		logger.error("Initial queue processing failed", { error: String(error) });
+	});
 }
 
 export function stopQueueProcessor(): void {
@@ -583,5 +587,7 @@ export function isQueueProcessorRunning(): boolean {
 }
 
 export function triggerQueueProcess(): void {
-	processQueue();
+	processQueue().catch((error) => {
+		logger.error("Triggered queue processing failed", { error: String(error) });
+	});
 }

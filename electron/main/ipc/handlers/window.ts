@@ -25,6 +25,6 @@ export function registerWindowHandlers(
 	});
 
 	secureHandle(IpcChannels.Window.Close, ipcNoArgs, () => {
-		hideMainWindow();
+		hideMainWindow({ hideFromDock: false });
 	});
 }

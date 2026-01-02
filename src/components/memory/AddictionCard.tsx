@@ -73,12 +73,7 @@ export function AddictionCard({
 						}}
 					/>
 				) : (
-					<>
-						<div className="absolute inset-0 bg-gradient-to-br from-destructive/20 via-muted/40 to-background/40" />
-						<div className="relative h-full w-full flex items-center justify-center">
-							<Flame className="h-12 w-12 text-destructive/80" />
-						</div>
-					</>
+					<div />
 				)}
 
 				<div className="absolute top-2 right-2 flex flex-col items-end gap-1.5">

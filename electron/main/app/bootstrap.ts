@@ -24,7 +24,12 @@ import {
 import { initPopupWindow } from "./popup";
 import { registerProtocols } from "./protocol";
 import { createTray } from "./tray";
-import { createWindow, getMainWindow, setupWindowCloseHandler } from "./window";
+import {
+	createWindow,
+	ensureMacDockVisible,
+	getMainWindow,
+	setupWindowCloseHandler,
+} from "./window";
 
 const logger = createLogger({ scope: "App" });
 
@@ -73,6 +78,7 @@ export async function bootstrap(): Promise<void> {
 
 	registerAllHandlers(getMainWindow);
 	applyLaunchAtLoginSetting(getSettings().launchAtLogin);
+	ensureMacDockVisible();
 
 	const hasPermission = checkScreenCapturePermission();
 	logger.info("Screen capture permission:", hasPermission);

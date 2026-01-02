@@ -7,10 +7,12 @@ import {
 	getProjectGitActivity,
 	listReposForProject,
 } from "../../features/projectJournal/ProjectJournalService";
+import { getOrGenerateSessionSummary } from "../../features/projectJournal/SessionSummaryService";
 import { secureHandle } from "../secure";
 import {
 	ipcProjectJournalAttachRepoArgs,
 	ipcProjectJournalDetachRepoArgs,
+	ipcProjectJournalGenerateSessionSummaryArgs,
 	ipcProjectJournalGenerateSummaryArgs,
 	ipcProjectJournalGetActivityArgs,
 	ipcProjectJournalListReposArgs,
@@ -66,6 +68,23 @@ export function registerProjectJournalHandlers(): void {
 			endAt: number;
 		}) => {
 			return await generateProjectSummary(options);
+		},
+	);
+
+	secureHandle(
+		IpcChannels.ProjectJournal.GenerateSessionSummary,
+		ipcProjectJournalGenerateSessionSummaryArgs,
+		async (options: { sessionId: string; projectName: string }) => {
+			const activity = await getProjectGitActivity({
+				projectName: options.projectName,
+				startAt: 0,
+				endAt: Date.now(),
+				limitPerRepo: 100,
+			});
+			return await getOrGenerateSessionSummary(
+				options.sessionId,
+				activity.commits,
+			);
 		},
 	);
 }

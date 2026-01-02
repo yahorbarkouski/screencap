@@ -11,26 +11,6 @@ interface ProjectCardProps {
 	onClick: () => void;
 }
 
-function FallbackPlaceholder({ name }: { name: string }) {
-	const initials = useMemo(() => {
-		const words = name.split(/\s+/).filter(Boolean);
-		if (words.length >= 2) {
-			return (words[0][0] + words[1][0]).toUpperCase();
-		}
-		return name.slice(0, 2).toUpperCase();
-	}, [name]);
-
-	return (
-		<div className="flex items-center justify-center w-full h-full">
-			<div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-background/30 backdrop-blur-sm border border-white/10 shadow-xl">
-				<span className="text-3xl font-semibold text-foreground/70">
-					{initials}
-				</span>
-			</div>
-		</div>
-	);
-}
-
 export function ProjectCard({ project, stats, onClick }: ProjectCardProps) {
 	const candidates = useMemo(
 		() => stats?.coverCandidates ?? [],
@@ -65,7 +45,7 @@ export function ProjectCard({ project, stats, onClick }: ProjectCardProps) {
 						}}
 					/>
 				) : (
-					<FallbackPlaceholder name={project.content} />
+					<div />
 				)}
 
 				{stats?.eventCount ? (

@@ -138,7 +138,9 @@ export async function captureForClassification(): Promise<Buffer | null> {
 		return null;
 	}
 
-	const primarySource = sources[0];
+	const primaryDisplayId = String(screen.getPrimaryDisplay().id);
+	const primarySource =
+		sources.find((s) => s.display_id === primaryDisplayId) ?? sources[0];
 	const nativeImage = primarySource.thumbnail;
 
 	if (nativeImage.isEmpty()) {

@@ -15,7 +15,7 @@ The classification router tries, in order:
 2. Local retrieval from your history (no LLM)
 3. Local HTTP LLM (this doc)
 4. Cloud text (OpenRouter)
-5. Cloud vision (only if enabled)
+5. Cloud vision (enabled by default; can be disabled)
 6. Fallback baseline
 
 For steps 3–4, Screencap always provides:
@@ -90,7 +90,7 @@ Local classification is driven mostly by OCR + context. Accuracy depends heavily
 - Window titles / URL hosts / content titles
 - Model capability
 
-If you need higher accuracy and you accept image upload, enable **Allow vision uploads** and cloud vision fallback (Settings → AI).
+If you need higher accuracy and you accept image upload, keep **Allow vision uploads** enabled (Settings → AI).
 
 ## Vision-capable local models
 

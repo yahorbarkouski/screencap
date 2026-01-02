@@ -239,6 +239,14 @@ const api = {
 			endAt: number;
 		}): Promise<string> =>
 			ipcRenderer.invoke(IpcChannels.ProjectJournal.GenerateSummary, options),
+		generateSessionSummary: (options: {
+			sessionId: string;
+			projectName: string;
+		}): Promise<string | null> =>
+			ipcRenderer.invoke(
+				IpcChannels.ProjectJournal.GenerateSessionSummary,
+				options,
+			),
 	},
 
 	llm: {

@@ -229,7 +229,7 @@ export const useAppStore = create<AppState>((set, _get) => ({
 			captureProjectProgress: "Command+Shift+P",
 		},
 		llmEnabled: true,
-		allowVisionUploads: false,
+		allowVisionUploads: true,
 		localLlmEnabled: false,
 		localLlmBaseUrl: "http://localhost:11434/v1",
 		localLlmModel: "llama3.2",

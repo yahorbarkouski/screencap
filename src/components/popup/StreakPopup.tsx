@@ -16,6 +16,8 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ShortcutKbd } from "@/components/ui/shortcut-kbd";
+import { useSettings } from "@/hooks/useSettings";
 import { DOT_ALPHA_BY_LEVEL, rgba } from "@/lib/color";
 import {
 	CATEGORY_RGB,
@@ -169,6 +171,7 @@ export function StreakPopup() {
 	const [isQuitConfirmOpen, setIsQuitConfirmOpen] = useState(false);
 	const [daylineMode, setDaylineMode] = useState<DaylineViewMode>("categories");
 	const [day, setDay] = useState(() => startOfDay(new Date()));
+	const { settings } = useSettings();
 	const todayStartMs = useMemo(() => startOfDay(new Date()).getTime(), []);
 	const dayStartMs = useMemo(() => startOfDay(day).getTime(), [day]);
 	const dayEndMs = useMemo(() => endOfDay(day).getTime(), [day]);
@@ -369,11 +372,11 @@ export function StreakPopup() {
 					<div className="flex w-full">
 						<Button
 							size="sm"
-							className="flex-1 rounded-r-none bg-accent/20 text-accent-foreground hover:bg-accent/30"
+							className="flex-1 justify-center rounded-r-none bg-accent/20 text-accent-foreground hover:bg-accent/30"
 							onClick={triggerCaptureNow}
 							disabled={!window.api}
 						>
-							Capture now
+							<span>Capture now</span>
 						</Button>
 						<DropdownMenuTrigger asChild>
 							<Button
@@ -387,8 +390,15 @@ export function StreakPopup() {
 						</DropdownMenuTrigger>
 					</div>
 					<DropdownMenuContent align="end" side="top" avoidCollisions={false}>
-						<DropdownMenuItem onSelect={triggerProjectProgressCapture}>
-							Capture project progress
+						<DropdownMenuItem
+							onSelect={triggerProjectProgressCapture}
+							className="flex items-center justify-between gap-3"
+						>
+							<span>Capture project progress</span>
+							<ShortcutKbd
+								accelerator={settings.shortcuts.captureProjectProgress}
+								className="h-4 px-1 text-[9px] rounded-sm"
+							/>
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>

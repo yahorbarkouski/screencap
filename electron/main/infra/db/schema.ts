@@ -126,6 +126,7 @@ export function createTables(db: Database.Database): void {
       max_deletions INTEGER NOT NULL DEFAULT 0,
       files_json TEXT NOT NULL DEFAULT '[]',
       updated_at INTEGER NOT NULL,
+      summary TEXT,
       FOREIGN KEY (project_repo_id) REFERENCES project_repos(id) ON DELETE CASCADE
     );
   `);

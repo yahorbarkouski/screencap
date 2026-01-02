@@ -127,6 +127,7 @@ export interface Settings {
 	localLlmEnabled: boolean;
 	localLlmBaseUrl: string;
 	localLlmModel: string;
+	sessionSummaryEnabled: boolean;
 }
 
 export interface ProjectRepo {
@@ -152,6 +153,7 @@ export interface RepoWorkSession {
 	maxDeletions: number;
 	files: string[];
 	updatedAt: number;
+	summary: string | null;
 }
 
 export interface GitCommit {

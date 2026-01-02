@@ -127,6 +127,7 @@ export const IpcChannels = {
 		DetachRepo: "project-journal:detach-repo",
 		GetActivity: "project-journal:get-activity",
 		GenerateSummary: "project-journal:generate-summary",
+		GenerateSessionSummary: "project-journal:generate-session-summary",
 	},
 	LLM: {
 		Classify: "llm:classify",
@@ -274,6 +275,10 @@ export interface IpcInvokeHandlers {
 		startAt: number;
 		endAt: number;
 	}) => Promise<string>;
+	[IpcChannels.ProjectJournal.GenerateSessionSummary]: (options: {
+		sessionId: string;
+		projectName: string;
+	}) => Promise<string | null>;
 
 	[IpcChannels.LLM.Classify]: (
 		imageBase64: string,

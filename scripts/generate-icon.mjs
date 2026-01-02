@@ -26,15 +26,36 @@ const S_PATTERN = [
 function drawSquircle(ctx, x, y, width, height, radius) {
 	const r = Math.min(radius, width / 2, height / 2);
 	const k = 0.5522847498;
-	
+
 	ctx.beginPath();
 	ctx.moveTo(x + r, y);
 	ctx.lineTo(x + width - r, y);
-	ctx.bezierCurveTo(x + width - r * (1 - k), y, x + width, y + r * (1 - k), x + width, y + r);
+	ctx.bezierCurveTo(
+		x + width - r * (1 - k),
+		y,
+		x + width,
+		y + r * (1 - k),
+		x + width,
+		y + r,
+	);
 	ctx.lineTo(x + width, y + height - r);
-	ctx.bezierCurveTo(x + width, y + height - r * (1 - k), x + width - r * (1 - k), y + height, x + width - r, y + height);
+	ctx.bezierCurveTo(
+		x + width,
+		y + height - r * (1 - k),
+		x + width - r * (1 - k),
+		y + height,
+		x + width - r,
+		y + height,
+	);
 	ctx.lineTo(x + r, y + height);
-	ctx.bezierCurveTo(x + r * (1 - k), y + height, x, y + height - r * (1 - k), x, y + height - r);
+	ctx.bezierCurveTo(
+		x + r * (1 - k),
+		y + height,
+		x,
+		y + height - r * (1 - k),
+		x,
+		y + height - r,
+	);
 	ctx.lineTo(x, y + r);
 	ctx.bezierCurveTo(x, y + r * (1 - k), x + r * (1 - k), y, x + r, y);
 	ctx.closePath();

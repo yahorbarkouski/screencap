@@ -179,6 +179,15 @@ export function runMigrations(db: Database.Database): void {
 	const memoryColumns = getExistingColumns(db, "memory");
 	addColumnIfMissing(db, "memory", "description", "TEXT", memoryColumns);
 
+	const sessionsColumns = getExistingColumns(db, "repo_work_sessions");
+	addColumnIfMissing(
+		db,
+		"repo_work_sessions",
+		"summary",
+		"TEXT",
+		sessionsColumns,
+	);
+
 	migrateQueue(db);
 
 	logger.info("Migrations complete");

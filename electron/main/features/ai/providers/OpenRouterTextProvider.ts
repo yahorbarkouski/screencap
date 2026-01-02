@@ -32,6 +32,10 @@ function shouldFallbackToVision(input: {
 	if (!input.allowVisionUploads) return false;
 	if (!input.imageBase64) return false;
 	if (input.stage1.confidence < FALLBACK_CONFIDENCE_THRESHOLD) return true;
+	const hasAddictionCandidates =
+		input.stage1.addiction_triage.tracking_enabled &&
+		input.stage1.addiction_triage.candidates.length > 0;
+	if (hasAddictionCandidates) return true;
 	return false;
 }
 

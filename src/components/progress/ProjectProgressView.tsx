@@ -230,15 +230,6 @@ export function ProjectProgressView() {
 							)}
 						</div>
 					) : null}
-					{selectedProject &&
-					!git.isLoading &&
-					!git.error &&
-					git.repoCount === 0 ? (
-						<div className="rounded-lg border border-border bg-muted/10 p-3 text-sm text-muted-foreground">
-							No git repo linked for this project. Link one in Projects to see
-							commits here.
-						</div>
-					) : null}
 					{isLoading ? (
 						<div className="h-[60vh] flex items-center justify-center">
 							<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

@@ -97,7 +97,7 @@ In development builds, macOS may show the app as **Electron** in permission dial
 - Open **Settings → Data** and set retention.
 - Optional AI:
   - **Settings → AI** → add an OpenRouter key (cloud) or enable a Local LLM.
-  - Keep **Allow vision uploads** OFF if you don’t want screenshots uploaded.
+  - **Allow vision uploads** is ON by default. Turn it OFF if you don’t want screenshots uploaded.
 
 ## Shortcuts
 
@@ -123,7 +123,7 @@ When classification is enabled, events go through:
 2. Local retrieval from your history
 3. Local LLM (optional, OpenAI-compatible HTTP)
 4. Cloud text (optional, OpenRouter)
-5. Cloud vision (optional, requires enabling “Allow vision uploads”)
+5. Cloud vision (optional, can be disabled via “Allow vision uploads”)
 6. Local baseline fallback
 
 OCR runs locally (macOS Vision). High-res PNG is only kept for progress events (storage minimization).
@@ -138,7 +138,7 @@ Local:
 
 Network:
 
-- OpenRouter (only if configured). Default is **text-only** (context + OCR). Screenshot uploads require enabling **Allow vision uploads**.
+- OpenRouter (only if configured). Default is **text-first** (context + OCR) with **vision fallback**. Screenshot uploads can be disabled via **Allow vision uploads**.
 - Favicons (bounded + blocks localhost/private ranges).
 - Auto-updates (packaged builds only; uses GitHub releases).
 

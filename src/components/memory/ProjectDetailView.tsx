@@ -9,6 +9,7 @@ import {
 	Loader2,
 	Pencil,
 	RefreshCcw,
+	Sparkles,
 	Trash2,
 	X,
 } from "lucide-react";
@@ -30,6 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ShortcutKbd } from "@/components/ui/shortcut-kbd";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import type { ProjectStats } from "@/hooks/useProjectStats";
@@ -132,6 +134,9 @@ export function ProjectDetailView({
 		error: null,
 	});
 	const [coverIdx, setCoverIdx] = useState(0);
+	const [sessionSummaries, setSessionSummaries] = useState<
+		Record<string, { loading: boolean; summary: string | null }>
+	>({});
 	const projectIdRef = useRef(project.id);
 	const nameInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -144,6 +149,7 @@ export function ProjectDetailView({
 		setCoverIdx(0);
 		setCaptureOpen(false);
 		setCapture({ kind: "idle" });
+		setSessionSummaries({});
 	}, [project.id]);
 
 	useEffect(() => {
@@ -284,6 +290,32 @@ export function ProjectDetailView({
 		});
 		return copy;
 	}, [git.sessions]);
+
+	const generateSessionSummary = useCallback(
+		async (sessionId: string) => {
+			if (!window.api) return;
+			setSessionSummaries((prev) => ({
+				...prev,
+				[sessionId]: { loading: true, summary: null },
+			}));
+			try {
+				const summary = await window.api.projectJournal.generateSessionSummary({
+					sessionId,
+					projectName: project.content,
+				});
+				setSessionSummaries((prev) => ({
+					...prev,
+					[sessionId]: { loading: false, summary },
+				}));
+			} catch {
+				setSessionSummaries((prev) => ({
+					...prev,
+					[sessionId]: { loading: false, summary: null },
+				}));
+			}
+		},
+		[project.content],
+	);
 
 	const commitItems = useMemo(() => {
 		const items: ProgressTimelineItem[] = [];
@@ -546,11 +578,7 @@ export function ProjectDetailView({
 									}}
 								/>
 								<div className="flex items-center justify-between text-[11px] text-muted-foreground">
-									<span>
-										{capture.kind === "saving"
-											? "Saving…"
-											: "Cmd+Enter to save"}
-									</span>
+									<span>{capture.kind === "saving" ? "Saving…" : ""}</span>
 									<span>{capture.caption.trim().length}/5000</span>
 								</div>
 							</div>
@@ -579,7 +607,11 @@ export function ProjectDetailView({
 								) : (
 									<Check className="h-4 w-4 mr-2" />
 								)}
-								Save
+								<span>Save</span>
+								<ShortcutKbd
+									accelerator="CommandOrControl+Enter"
+									className="h-4 px-1 text-[9px] rounded-sm"
+								/>
 							</Button>
 						</DialogFooter>
 					) : null}
@@ -994,12 +1026,23 @@ export function ProjectDetailView({
 											<div className="divide-y divide-border">
 												{sessions.slice(0, 25).map((s) => {
 													const endAt = s.isOpen ? Date.now() : s.endAt;
+													const summaryState = sessionSummaries[s.id];
+													const displaySummary =
+														s.summary ?? summaryState?.summary;
+													const isLoadingSummary = summaryState?.loading;
+													const canGenerateSummary =
+														!s.isOpen &&
+														!displaySummary &&
+														!isLoadingSummary &&
+														(s.files.length > 0 ||
+															s.maxInsertions > 0 ||
+															s.maxDeletions > 0);
 													return (
 														<div
 															key={s.id}
 															className="p-5 flex items-start justify-between gap-4"
 														>
-															<div className="min-w-0">
+															<div className="min-w-0 flex-1">
 																<div className="flex items-center gap-2">
 																	<div className="text-sm font-medium truncate">
 																		{repoLabel(s.repoRoot)}
@@ -1015,12 +1058,32 @@ export function ProjectDetailView({
 																	{sessionDurationLabel(s)}
 																	{s.branch ? ` · ${s.branch}` : ""}
 																</div>
-																{s.files.length > 0 ? (
+																{displaySummary ? (
+																	<div className="mt-2 text-sm text-foreground/80 italic">
+																		{displaySummary}
+																	</div>
+																) : s.files.length > 0 ? (
 																	<div className="mt-2 text-xs text-muted-foreground truncate">
 																		{s.files.slice(0, 6).join(", ")}
 																		{s.files.length > 6
 																			? ` +${s.files.length - 6}`
 																			: ""}
+																	</div>
+																) : null}
+																{canGenerateSummary ? (
+																	<button
+																		type="button"
+																		onClick={() => generateSessionSummary(s.id)}
+																		className="mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+																	>
+																		<Sparkles className="h-3 w-3" />
+																		Generate summary
+																	</button>
+																) : null}
+																{isLoadingSummary ? (
+																	<div className="mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground">
+																		<Loader2 className="h-3 w-3 animate-spin" />
+																		Generating…
 																	</div>
 																) : null}
 															</div>

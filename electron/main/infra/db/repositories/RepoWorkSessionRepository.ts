@@ -16,6 +16,7 @@ type RawRepoWorkSessionRow = {
 	max_deletions: number;
 	files_json: string;
 	updated_at: number;
+	summary: string | null;
 };
 
 function parseFilesJson(value: string): string[] {
@@ -46,6 +47,7 @@ function toRepoWorkSession(row: RawRepoWorkSessionRow): RepoWorkSession {
 		maxDeletions: row.max_deletions,
 		files: parseFilesJson(row.files_json),
 		updatedAt: row.updated_at,
+		summary: row.summary,
 	};
 }
 
@@ -144,6 +146,7 @@ export function updateWorkSessionById(
 			| "maxDeletions"
 			| "files"
 			| "updatedAt"
+			| "summary"
 		>
 	> & { isOpen?: boolean },
 ): void {
@@ -185,12 +188,25 @@ export function updateWorkSessionById(
 		parts.push("is_open = ?");
 		params.push(updates.isOpen ? 1 : 0);
 	}
+	if (updates.summary !== undefined) {
+		parts.push("summary = ?");
+		params.push(updates.summary);
+	}
 
 	if (parts.length === 0) return;
 
 	db.prepare(
 		`UPDATE repo_work_sessions SET ${parts.join(", ")} WHERE id = ?`,
 	).run(...params, id);
+}
+
+export function getWorkSessionById(id: string): RepoWorkSession | null {
+	const db = getDatabaseOrNull();
+	if (!db) return null;
+	const row = db
+		.prepare("SELECT * FROM repo_work_sessions WHERE id = ?")
+		.get(id) as RawRepoWorkSessionRow | undefined;
+	return row ? toRepoWorkSession(row) : null;
 }
 
 export function closeAllOpenWorkSessions(now: number): number {

@@ -1,21 +1,13 @@
-import { Search, Settings } from "lucide-react";
-import { useMemo } from "react";
+import { Github, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Kbd } from "@/components/ui/kbd";
+import { ShortcutKbd } from "@/components/ui/shortcut-kbd";
+import { isMac } from "@/lib/accelerator";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores/app";
 
-function isMac(): boolean {
-	return navigator.platform.toLowerCase().includes("mac");
-}
-
 export function Titlebar() {
-	const view = useAppStore((s) => s.view);
-	const setView = useAppStore((s) => s.setView);
 	const setCommandPaletteOpen = useAppStore((s) => s.setCommandPaletteOpen);
-
-	const mac = useMemo(isMac, []);
-	const shortcut = mac ? "K" : "Ctrl K";
+	const mac = isMac();
 
 	return (
 		<header
@@ -34,24 +26,25 @@ export function Titlebar() {
 				>
 					<Search className="size-3.5 text-muted-foreground" />
 					<span className="flex-1 text-left">Search</span>
-					<Kbd className="px-2 text-xs text-foreground/70 gap-0.5 items-center">
-						<span className="text-sm">{mac ? "⌘" : "Ctrl"}</span>
-						{shortcut}
-					</Kbd>
+					<ShortcutKbd
+						accelerator="CommandOrControl+K"
+						className="px-2 text-xs text-foreground/70"
+					/>
 				</button>
 
-				<div className="no-drag flex items-center justify-end gap-1">
+				<div className="flex items-center justify-end gap-1">
 					<Button
+						aria-label="Open GitHub"
 						variant="ghost"
 						size="icon"
-						className={cn(
-							"size-7",
-							view === "settings" &&
-								"bg-accent/10 text-primary hover:bg-accent/10",
-						)}
-						onClick={() => setView("settings")}
+						className="no-drag size-7"
+						onClick={() =>
+							void window.api.app.openExternal(
+								"https://github.com/yahorbarkouski/screencap",
+							)
+						}
 					>
-						<Settings className="h-4 w-4" />
+						<Github className="h-4 w-4" />
 					</Button>
 				</div>
 			</div>

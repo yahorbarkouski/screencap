@@ -114,6 +114,19 @@ export function AiSettingsTab({
 								/>
 							}
 						/>
+						<SettingsRow
+							title="Session summaries"
+							description="Generate AI descriptions of what changed during work sessions (uses gpt-5-nano)"
+							right={
+								<Switch
+									checked={settings.sessionSummaryEnabled}
+									disabled={!settings.llmEnabled}
+									onCheckedChange={(checked) =>
+										updateSetting("sessionSummaryEnabled", checked)
+									}
+								/>
+							}
+						/>
 					</SettingsRows>
 				</Panel>
 

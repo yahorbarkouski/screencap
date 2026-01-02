@@ -1,6 +1,6 @@
 const { execSync } = require("node:child_process");
 const { join } = require("node:path");
-const { readdirSync, statSync } = require("node:fs");
+const { readdirSync } = require("node:fs");
 
 function findBinaries(dir, binaries = []) {
 	const entries = readdirSync(dir, { withFileTypes: true });
@@ -24,7 +24,10 @@ function findBinaries(dir, binaries = []) {
 module.exports = async (context) => {
 	if (process.platform !== "darwin") return;
 
-	const appPath = join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`);
+	const appPath = join(
+		context.appOutDir,
+		`${context.packager.appInfo.productFilename}.app`,
+	);
 
 	console.log(`Ad-hoc signing ${appPath}...`);
 
@@ -34,19 +37,18 @@ module.exports = async (context) => {
 	for (const binary of binaries) {
 		try {
 			execSync(`codesign --force --sign - "${binary}"`, { stdio: "pipe" });
-		} catch (e) {
+		} catch (_e) {
 			console.log(`Warning: Could not sign ${binary}`);
 		}
 	}
 
-	execSync(
-		`codesign --force --deep --sign - "${appPath}"`,
-		{ stdio: "inherit" }
-	);
+	execSync(`codesign --force --deep --sign - "${appPath}"`, {
+		stdio: "inherit",
+	});
 
 	const result = execSync(
 		`codesign --verify --deep --strict "${appPath}" 2>&1 || true`,
-		{ encoding: "utf-8" }
+		{ encoding: "utf-8" },
 	);
 
 	if (result.includes("valid on disk")) {

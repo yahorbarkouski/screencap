@@ -1,4 +1,4 @@
-import { Plus, Settings2, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import {
 	type ReactNode,
 	useCallback,
@@ -359,13 +359,7 @@ function PreferencesPanel() {
 			>
 				<div className="flex flex-col gap-2 md:grid lg:grid-cols-2 lg:gap-4">
 					{preferences.length === 0 ? (
-						<div className="text-center py-12 text-muted-foreground">
-							<Settings2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-							<p>No preferences set yet</p>
-							<p className="text-sm">
-								E.g., "Studying includes: Coursera, Anki"
-							</p>
-						</div>
+						<div />
 					) : (
 						preferences.map((memory) => (
 							<MemoryCard

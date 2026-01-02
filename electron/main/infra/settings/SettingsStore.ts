@@ -21,10 +21,11 @@ const DEFAULT_SETTINGS: Settings = {
 		captureProjectProgress: "Command+Shift+P",
 	},
 	llmEnabled: true,
-	allowVisionUploads: false,
+	allowVisionUploads: true,
 	localLlmEnabled: false,
 	localLlmBaseUrl: "http://localhost:11434/v1",
 	localLlmModel: "llama3.2",
+	sessionSummaryEnabled: false,
 };
 
 export { ONBOARDING_VERSION };
