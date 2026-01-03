@@ -24,7 +24,6 @@ import type {
 	ProjectRepo,
 	ProjectStatsItem,
 	RecordedApp,
-	RepoWorkSession,
 	Settings,
 	StorageUsageBreakdown,
 	Story,
@@ -126,8 +125,6 @@ export const IpcChannels = {
 		AttachRepo: "project-journal:attach-repo",
 		DetachRepo: "project-journal:detach-repo",
 		GetActivity: "project-journal:get-activity",
-		GenerateSummary: "project-journal:generate-summary",
-		GenerateSessionSummary: "project-journal:generate-session-summary",
 	},
 	LLM: {
 		Classify: "llm:classify",
@@ -268,17 +265,7 @@ export interface IpcInvokeHandlers {
 	}) => Promise<{
 		repos: ProjectRepo[];
 		commits: GitCommit[];
-		sessions: RepoWorkSession[];
 	}>;
-	[IpcChannels.ProjectJournal.GenerateSummary]: (options: {
-		projectName: string;
-		startAt: number;
-		endAt: number;
-	}) => Promise<string>;
-	[IpcChannels.ProjectJournal.GenerateSessionSummary]: (options: {
-		sessionId: string;
-		projectName: string;
-	}) => Promise<string | null>;
 
 	[IpcChannels.LLM.Classify]: (
 		imageBase64: string,

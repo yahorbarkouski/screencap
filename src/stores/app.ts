@@ -230,6 +230,7 @@ export const useAppStore = create<AppState>((set, _get) => ({
 		},
 		llmEnabled: true,
 		allowVisionUploads: true,
+		cloudLlmModel: "openai/gpt-5",
 		localLlmEnabled: false,
 		localLlmBaseUrl: "http://localhost:11434/v1",
 		localLlmModel: "llama3.2",

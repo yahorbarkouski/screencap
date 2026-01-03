@@ -87,6 +87,7 @@ function shouldDisableAddictionTracking(
 export async function classifyScreenshot(
 	imageBase64: string,
 	context: ScreenContext | null = null,
+	model?: string | null,
 ): Promise<ClassificationResult | null> {
 	logger.debug("Starting classification...", { hasContext: !!context });
 
@@ -112,6 +113,7 @@ export async function classifyScreenshot(
 			},
 		],
 		ClassificationStage1Schema,
+		{ model: model?.trim() || undefined },
 	);
 
 	const projectProgress = normalizeProjectProgress(
@@ -174,6 +176,7 @@ export async function classifyScreenshot(
 				},
 			],
 			ClassificationStage2Schema,
+			{ model: model?.trim() || undefined },
 		);
 
 		const resolved = normalizeStage2Decision(candidates, stage2);

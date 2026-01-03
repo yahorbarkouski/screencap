@@ -224,111 +224,112 @@ function AutomationRulesSection({
 	);
 
 	return (
-		<Panel
-			title="Rules"
-			meta="Override capture and AI behavior for specific apps and websites"
-		>
-			<div className="grid gap-6 md:grid-cols-2">
-				<div className="space-y-3">
-					<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-						<div className="text-sm font-medium">Apps</div>
-						{availableApps.length > 0 ? (
-							<Select onValueChange={addAppRule}>
-								<SelectTrigger className="h-8 w-full sm:w-[220px]">
-									<SelectValue placeholder="Add app..." />
-								</SelectTrigger>
-								<SelectContent>
-									{availableApps.map((app) => (
-										<SelectItem key={app.bundleId} value={app.bundleId}>
-											<span className="flex items-center gap-2 min-w-0">
-												{app.appIconPath ? (
-													<img
-														src={`local-file://${app.appIconPath}`}
-														alt=""
-														className="h-4 w-4 rounded-sm object-contain"
-														loading="lazy"
-													/>
-												) : null}
-												<span className="truncate">
-													{app.name ?? app.bundleId}
-												</span>
-											</span>
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						) : null}
-					</div>
-					{appEntries.length === 0 ? (
-						<div className="text-xs text-muted-foreground">
-							No app rules configured.
-						</div>
-					) : (
-						<div className="space-y-2">
-							{appEntries.map(([key, rule]) => {
-								const app = recordedApps.find((a) => a.bundleId === key);
-								return (
-									<RuleRow
-										key={key}
-										title={app?.name ?? key}
-										icon={
-											app?.appIconPath ? (
+		<div className="space-y-6">
+			<Panel
+				title="App rules"
+				meta="Override capture and AI behavior for specific apps"
+				className="max-w-3xl"
+				right={
+					availableApps.length > 0 ? (
+						<Select onValueChange={addAppRule}>
+							<SelectTrigger className="h-8 w-[220px]">
+								<SelectValue placeholder="Add app..." />
+							</SelectTrigger>
+							<SelectContent>
+								{availableApps.map((app) => (
+									<SelectItem key={app.bundleId} value={app.bundleId}>
+										<span className="flex items-center gap-2 min-w-0">
+											{app.appIconPath ? (
 												<img
 													src={`local-file://${app.appIconPath}`}
 													alt=""
 													className="h-4 w-4 rounded-sm object-contain"
 													loading="lazy"
 												/>
-											) : undefined
-										}
-										rule={rule}
-										onChange={(updates) => updateRule("apps", key, updates)}
-										onDelete={() => deleteRule("apps", key)}
-									/>
-								);
-							})}
-						</div>
-					)}
-				</div>
-
-				<div className="space-y-3">
-					<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-						<div className="text-sm font-medium">Websites</div>
-						{availableHosts.length > 0 ? (
-							<Select onValueChange={addHostRule}>
-								<SelectTrigger className="h-8 w-full sm:w-[220px]">
-									<SelectValue placeholder="Add website..." />
-								</SelectTrigger>
-								<SelectContent>
-									{availableHosts.map((site) => (
-										<SelectItem key={site.host} value={site.host}>
-											{site.host}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						) : null}
+											) : null}
+											<span className="truncate">
+												{app.name ?? app.bundleId}
+											</span>
+										</span>
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					) : null
+				}
+			>
+				{appEntries.length === 0 ? (
+					<div className="text-xs text-muted-foreground">
+						No app rules configured.
 					</div>
-					{hostEntries.length === 0 ? (
-						<div className="text-xs text-muted-foreground">
-							No website rules configured.
-						</div>
-					) : (
-						<div className="space-y-2">
-							{hostEntries.map(([key, rule]) => (
+				) : (
+					<div className="space-y-2">
+						{appEntries.map(([key, rule]) => {
+							const app = recordedApps.find((a) => a.bundleId === key);
+							return (
 								<RuleRow
 									key={key}
-									title={key}
+									title={app?.name ?? key}
+									icon={
+										app?.appIconPath ? (
+											<img
+												src={`local-file://${app.appIconPath}`}
+												alt=""
+												className="h-4 w-4 rounded-sm object-contain"
+												loading="lazy"
+											/>
+										) : undefined
+									}
 									rule={rule}
-									onChange={(updates) => updateRule("hosts", key, updates)}
-									onDelete={() => deleteRule("hosts", key)}
+									onChange={(updates) => updateRule("apps", key, updates)}
+									onDelete={() => deleteRule("apps", key)}
 								/>
-							))}
-						</div>
-					)}
-				</div>
-			</div>
-		</Panel>
+							);
+						})}
+					</div>
+				)}
+			</Panel>
+
+			<Panel
+				title="Website rules"
+				meta="Override capture and AI behavior for specific websites"
+				className="max-w-3xl"
+				right={
+					availableHosts.length > 0 ? (
+						<Select onValueChange={addHostRule}>
+							<SelectTrigger className="h-8 w-[220px]">
+								<SelectValue placeholder="Add website..." />
+							</SelectTrigger>
+							<SelectContent>
+								{availableHosts.map((site) => (
+									<SelectItem key={site.host} value={site.host}>
+										{site.host}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					) : null
+				}
+			>
+				{hostEntries.length === 0 ? (
+					<div className="text-xs text-muted-foreground">
+						No website rules configured.
+					</div>
+				) : (
+					<div className="space-y-2">
+						{hostEntries.map(([key, rule]) => (
+							<RuleRow
+								key={key}
+								title={key}
+								rule={rule}
+								onChange={(updates) => updateRule("hosts", key, updates)}
+								onDelete={() => deleteRule("hosts", key)}
+							/>
+						))}
+					</div>
+				)}
+			</Panel>
+		</div>
 	);
 }
 

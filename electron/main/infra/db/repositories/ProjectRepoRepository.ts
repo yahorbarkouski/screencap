@@ -1,6 +1,5 @@
 import type { ProjectRepo } from "../../../../shared/types";
 import { getDatabase, getDatabaseOrNull, isDbOpen } from "../connection";
-import { deleteWorkSessionsByProjectRepoId } from "./RepoWorkSessionRepository";
 
 type RawProjectRepoRow = {
 	id: string;
@@ -85,6 +84,5 @@ export function listAllProjectRepos(): ProjectRepo[] {
 export function deleteProjectRepoById(id: string): void {
 	const db = getDatabaseOrNull();
 	if (!db) return;
-	deleteWorkSessionsByProjectRepoId(id);
 	db.prepare("DELETE FROM project_repos WHERE id = ?").run(id);
 }

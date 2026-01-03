@@ -110,25 +110,6 @@ export function createTables(db: Database.Database): void {
       created_at INTEGER NOT NULL,
       UNIQUE(project_key, repo_root)
     );
-
-    CREATE TABLE IF NOT EXISTS repo_work_sessions (
-      id TEXT PRIMARY KEY,
-      project_repo_id TEXT NOT NULL,
-      project_key TEXT NOT NULL,
-      project_name TEXT NOT NULL,
-      repo_root TEXT NOT NULL,
-      branch TEXT,
-      head_sha TEXT,
-      start_at INTEGER NOT NULL,
-      end_at INTEGER NOT NULL,
-      is_open INTEGER NOT NULL DEFAULT 1,
-      max_insertions INTEGER NOT NULL DEFAULT 0,
-      max_deletions INTEGER NOT NULL DEFAULT 0,
-      files_json TEXT NOT NULL DEFAULT '[]',
-      updated_at INTEGER NOT NULL,
-      summary TEXT,
-      FOREIGN KEY (project_repo_id) REFERENCES project_repos(id) ON DELETE CASCADE
-    );
   `);
 
 	logger.info("Tables created");
@@ -158,9 +139,6 @@ export function createIndexes(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_queue_next_attempt ON queue(next_attempt_at);
     CREATE INDEX IF NOT EXISTS idx_project_repos_project_key ON project_repos(project_key);
     CREATE INDEX IF NOT EXISTS idx_project_repos_repo_root ON project_repos(repo_root);
-    CREATE INDEX IF NOT EXISTS idx_repo_work_sessions_project_key_start ON repo_work_sessions(project_key, start_at);
-    CREATE INDEX IF NOT EXISTS idx_repo_work_sessions_repo_start ON repo_work_sessions(project_repo_id, start_at);
-    CREATE INDEX IF NOT EXISTS idx_repo_work_sessions_open ON repo_work_sessions(is_open);
   `);
 
 	logger.info("Indexes created");

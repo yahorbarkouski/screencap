@@ -26,7 +26,6 @@ import type {
 	ProjectRepo,
 	ProjectStatsItem,
 	RecordedApp,
-	RepoWorkSession,
 	Settings,
 	StorageUsageBreakdown,
 	Story,
@@ -231,22 +230,7 @@ const api = {
 		}): Promise<{
 			repos: ProjectRepo[];
 			commits: GitCommit[];
-			sessions: RepoWorkSession[];
 		}> => ipcRenderer.invoke(IpcChannels.ProjectJournal.GetActivity, options),
-		generateSummary: (options: {
-			projectName: string;
-			startAt: number;
-			endAt: number;
-		}): Promise<string> =>
-			ipcRenderer.invoke(IpcChannels.ProjectJournal.GenerateSummary, options),
-		generateSessionSummary: (options: {
-			sessionId: string;
-			projectName: string;
-		}): Promise<string | null> =>
-			ipcRenderer.invoke(
-				IpcChannels.ProjectJournal.GenerateSessionSummary,
-				options,
-			),
 	},
 
 	llm: {
@@ -293,7 +277,6 @@ export {
 	type GitCommit,
 	type Memory,
 	type ProjectRepo,
-	type RepoWorkSession,
 	type Settings,
 	type Story,
 	type PermissionStatus,

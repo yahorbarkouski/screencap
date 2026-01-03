@@ -2,7 +2,6 @@ import { app } from "electron";
 import type { ClassificationEvalOptions } from "../features/aiEval";
 import { runClassificationEval } from "../features/aiEval";
 import { checkScreenCapturePermission } from "../features/permissions";
-import { startRepoMonitor } from "../features/projectJournal";
 import { startQueueProcessor } from "../features/queue";
 import { startRetentionService } from "../features/retention";
 import { startScheduler } from "../features/scheduler";
@@ -93,7 +92,6 @@ export async function bootstrap(): Promise<void> {
 
 	startRetentionService();
 	startQueueProcessor();
-	startRepoMonitor();
 
 	if (hasPermission) {
 		startScheduler();

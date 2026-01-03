@@ -31,10 +31,12 @@ export function AiSettingsTab({
 	updateSetting,
 	apiKey,
 	setApiKey,
+	cloudModel,
+	setCloudModel,
 	isTesting,
 	testResult,
-	onSaveApiKey,
 	onTestConnection,
+	onSaveCloudLlm,
 	localBaseUrl,
 	setLocalBaseUrl,
 	localModel,
@@ -53,10 +55,12 @@ export function AiSettingsTab({
 	) => Promise<void>;
 	apiKey: string;
 	setApiKey: (value: string) => void;
+	cloudModel: string;
+	setCloudModel: (value: string) => void;
 	isTesting: boolean;
 	testResult: ConnectionTestResult | null;
-	onSaveApiKey: () => Promise<void>;
 	onTestConnection: () => Promise<void>;
+	onSaveCloudLlm: () => Promise<void>;
 	localBaseUrl: string;
 	setLocalBaseUrl: (value: string) => void;
 	localModel: string;
@@ -114,19 +118,6 @@ export function AiSettingsTab({
 								/>
 							}
 						/>
-						<SettingsRow
-							title="Session summaries"
-							description="Generate AI descriptions of what changed during work sessions (uses gpt-5-nano)"
-							right={
-								<Switch
-									checked={settings.sessionSummaryEnabled}
-									disabled={!settings.llmEnabled}
-									onCheckedChange={(checked) =>
-										updateSetting("sessionSummaryEnabled", checked)
-									}
-								/>
-							}
-						/>
 					</SettingsRows>
 				</Panel>
 
@@ -147,42 +138,53 @@ export function AiSettingsTab({
 					}
 				>
 					<div className="space-y-3">
-						<div className="space-y-2">
-							<div className="text-sm font-medium">
-								OpenRouter API key (OpenAI-compatible)
-							</div>
-							<div className="flex flex-col gap-2 sm:flex-row">
+						<div className="grid gap-2 sm:grid-cols-2">
+							<div className="space-y-1">
+								<div className="text-xs text-muted-foreground">
+									API key (OpenRouter / OpenAI-compatible)
+								</div>
 								<Input
 									type="password"
 									value={apiKey}
 									onChange={(e) => setApiKey(e.target.value)}
 									placeholder="sk-or-..."
-									className="flex-1"
 								/>
-								<Button
-									variant="outline"
-									size="sm"
-									onClick={onSaveApiKey}
-									className="sm:w-[96px]"
-								>
-									Save
-								</Button>
-								<Button
-									variant="secondary"
-									size="sm"
-									onClick={onTestConnection}
-									disabled={!apiKey || isTesting}
-									className="sm:w-[96px]"
-								>
-									{isTesting ? (
-										<Loader2 className="h-4 w-4 animate-spin" />
-									) : (
-										"Test"
-									)}
-								</Button>
 							</div>
+							<div className="space-y-1">
+								<div className="text-xs text-muted-foreground">Model</div>
+								<Input
+									value={cloudModel}
+									onChange={(e) => setCloudModel(e.target.value)}
+									placeholder="openai/gpt-5"
+								/>
+							</div>
+						</div>
+
+						<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={onSaveCloudLlm}
+								className="sm:w-[96px]"
+							>
+								Save
+							</Button>
+							<Button
+								variant="secondary"
+								size="sm"
+								onClick={onTestConnection}
+								disabled={!apiKey || isTesting}
+								className="sm:w-[96px]"
+							>
+								{isTesting ? (
+									<Loader2 className="h-4 w-4 animate-spin" />
+								) : (
+									"Test"
+								)}
+							</Button>
 							<div className="text-xs text-muted-foreground">
-								Used for cloud classification via OpenRouter.
+								Controls the model used for cloud classification (text +
+								vision).
 							</div>
 						</div>
 

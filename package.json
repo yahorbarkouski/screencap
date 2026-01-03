@@ -15,7 +15,7 @@
 		"test:watch": "vitest",
 		"lint": "biome check",
 		"lint:fix": "biome check --write",
-		"typecheck": "tsc --noEmit",
+		"typecheck": "tsc -b --noEmit",
 		"generate:icon": "node scripts/generate-icon.mjs",
 		"postinstall": "electron-builder install-app-deps"
 	},

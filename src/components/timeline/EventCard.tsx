@@ -17,6 +17,7 @@ import {
 	ContextMenuItem,
 	ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { useImageBrightness } from "@/hooks/useImageBrightness";
 import { copyBestImage } from "@/lib/copyImage";
 import { isNsfwEvent } from "@/lib/nsfw";
 import { cn, formatTime } from "@/lib/utils";
@@ -32,20 +33,42 @@ const STATUS_ICON = {
 	failed: <AlertTriangle className="h-3 w-3 text-destructive" />,
 } as const;
 
-function getCategoryOverlayColor(category: string | null): string {
+function getCategoryOverlayColor(
+	category: string | null,
+	isLightBackground: boolean,
+): string {
+	const base = "backdrop-blur-sm";
+
+	if (isLightBackground) {
+		switch (category) {
+			case "Study":
+				return `${base} bg-blue-800/70 text-white font-medium`;
+			case "Work":
+				return `${base} bg-green-800/80 text-white font-medium`;
+			case "Leisure":
+				return `${base} bg-purple-800/70 text-white font-medium`;
+			case "Chores":
+				return `${base} bg-orange-600/70 text-orange-800 font-medium`;
+			case "Social":
+				return `${base} bg-pink-800/70 text-white font-medium`;
+			default:
+				return `${base} bg-gray-800/70 text-white font-medium`;
+		}
+	}
+
 	switch (category) {
 		case "Study":
-			return "bg-blue-900/60 text-blue-400 backdrop-blur-sm";
+			return `${base} bg-blue-900/60 text-blue-400`;
 		case "Work":
-			return "bg-green-900/60 text-green-400 backdrop-blur-sm";
+			return `${base} bg-green-900/60 text-green-400`;
 		case "Leisure":
-			return "bg-purple-900/80 text-purple-400 backdrop-blur-sm";
+			return `${base} bg-purple-900/80 text-purple-400`;
 		case "Chores":
-			return "bg-orange-900/60 text-orange-400 backdrop-blur-sm";
+			return `${base} bg-orange-900/60 text-orange-400`;
 		case "Social":
-			return "bg-pink-900/70 text-pink-400 backdrop-blur-sm";
+			return `${base} bg-pink-900/70 text-pink-400`;
 		default:
-			return "bg-gray-900/60 text-gray-400 backdrop-blur-sm";
+			return `${base} bg-gray-900/60 text-gray-400`;
 	}
 }
 
@@ -138,6 +161,7 @@ export const EventCard = memo(function EventCard({
 
 	const preferredImagePath = hqPath ?? fallbackLowResPath ?? null;
 	const [imagePath, setImagePath] = useState<string | null>(preferredImagePath);
+	const brightness = useImageBrightness(imagePath);
 
 	useEffect(() => {
 		setImagePath(preferredImagePath);
@@ -239,7 +263,12 @@ export const EventCard = memo(function EventCard({
 								{screenshotCount > 1 && (
 									<Badge
 										variant="outline"
-										className="bg-background/70 backdrop-blur"
+										className={cn(
+											"backdrop-blur-sm size-5 flex items-center justify-center text-xs rounded-md",
+											brightness.topLeft === "light"
+												? "bg-white/70 text-black/60 font-medium border-gray-600/30"
+												: "bg-background/70",
+										)}
 									>
 										{screenshotCount}
 									</Badge>
@@ -253,6 +282,7 @@ export const EventCard = memo(function EventCard({
 											"border-0 flex items-center gap-1 max-w-[180px]",
 											getCategoryOverlayColor(
 												event.userLabel || event.category,
+												brightness.bottomRight === "light",
 											),
 										)}
 									>
@@ -268,12 +298,26 @@ export const EventCard = memo(function EventCard({
 								(!event.trackedAddiction && event.addictionCandidate)) && (
 								<div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
 									{event.trackedAddiction && (
-										<Badge className="bg-destructive/90 text-destructive-foreground border-0">
+										<Badge
+											className={cn(
+												"border-0 backdrop-blur-sm",
+												brightness.topRight === "light"
+													? "bg-red-800/70 text-white font-medium"
+													: "bg-destructive/90 text-destructive-foreground",
+											)}
+										>
 											{event.trackedAddiction}
 										</Badge>
 									)}
 									{!event.trackedAddiction && event.addictionCandidate && (
-										<Badge className="bg-amber-500/90 text-white border-0">
+										<Badge
+											className={cn(
+												"border-0 backdrop-blur-sm",
+												brightness.topRight === "light"
+													? "bg-amber-800/70 text-white font-medium"
+													: "bg-amber-500/90 text-white",
+											)}
+										>
 											Review: {event.addictionCandidate}
 										</Badge>
 									)}

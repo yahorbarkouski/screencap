@@ -78,11 +78,13 @@ function buildProviderContext(
 	const localModel = settings.localLlmEnabled
 		? settings.localLlmModel.trim() || null
 		: null;
+	const cloudModel = settings.cloudLlmModel.trim() || null;
 
 	return {
 		mode: settings.llmEnabled ? "hybrid" : "off",
 		apiKey: settings.apiKey,
 		allowVisionUploads: settings.allowVisionUploads,
+		cloudModel,
 		localBaseUrl,
 		localModel,
 	};

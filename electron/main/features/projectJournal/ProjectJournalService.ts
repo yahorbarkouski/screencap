@@ -1,8 +1,4 @@
-import type {
-	GitCommit,
-	ProjectRepo,
-	RepoWorkSession,
-} from "../../../shared/types";
+import type { GitCommit, ProjectRepo } from "../../../shared/types";
 import { getEarliestEventTimestampForProject } from "../../infra/db/repositories/EventRepository";
 import { getProjectMemories } from "../../infra/db/repositories/MemoryRepository";
 import {
@@ -11,14 +7,12 @@ import {
 	insertProjectRepo,
 	listProjectReposByProjectKey,
 } from "../../infra/db/repositories/ProjectRepoRepository";
-import { listWorkSessionsByProjectKeyInRange } from "../../infra/db/repositories/RepoWorkSessionRepository";
 import {
 	canonicalizeProject,
 	normalizeProjectBase,
 	projectKeyFromBase,
 } from "../projects";
 import { listCommitsInRange, resolveRepoRoot } from "./GitService";
-import { generateProjectJournalSummary } from "./ProjectJournalSummaryService";
 
 function requireProjectIdentity(projectName: string): {
 	projectName: string;
@@ -97,7 +91,6 @@ export async function getProjectGitActivity(options: {
 }): Promise<{
 	repos: ProjectRepo[];
 	commits: GitCommit[];
-	sessions: RepoWorkSession[];
 }> {
 	const { projectName, projectKey } = requireProjectIdentity(
 		options.projectName,
@@ -112,7 +105,7 @@ export async function getProjectGitActivity(options: {
 		options.startAt > 0 ? options.startAt : backfillStartAt;
 	const startAt = Math.max(requestedStartAt, backfillStartAt);
 	const endAt = options.endAt > 0 ? options.endAt : Date.now();
-	const limitPerRepo = options.startAt > 0 ? options.limitPerRepo : undefined;
+	const limitPerRepo = options.limitPerRepo;
 
 	const commits: GitCommit[] = [];
 
@@ -130,31 +123,5 @@ export async function getProjectGitActivity(options: {
 
 	commits.sort((a, b) => b.timestamp - a.timestamp);
 
-	const sessions = listWorkSessionsByProjectKeyInRange({
-		projectKey,
-		startAt,
-		endAt,
-	});
-
-	return { repos, commits, sessions };
-}
-
-export async function generateProjectSummary(options: {
-	projectName: string;
-	startAt: number;
-	endAt: number;
-}): Promise<string> {
-	const activity = await getProjectGitActivity({
-		projectName: options.projectName,
-		startAt: options.startAt,
-		endAt: options.endAt,
-		limitPerRepo: 2000,
-	});
-
-	return await generateProjectJournalSummary({
-		projectName: options.projectName,
-		repos: activity.repos,
-		commits: activity.commits,
-		sessions: activity.sessions,
-	});
+	return { repos, commits };
 }

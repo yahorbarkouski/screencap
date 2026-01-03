@@ -160,8 +160,7 @@ export function createPopupWindow(anchor?: Rectangle): BrowserWindow {
 			pendingShow = null;
 			positionPopupWindow(anchor);
 			if (popupWindow && !popupWindow.isDestroyed()) {
-				popupWindow.show();
-				popupWindow.focus();
+				popupWindow.showInactive();
 			}
 		}
 	});
@@ -197,8 +196,7 @@ export function showPopupWindow(anchor?: Rectangle): void {
 		return;
 	}
 	positionPopupWindow(anchor);
-	popupWindow.show();
-	popupWindow.focus();
+	popupWindow.showInactive();
 }
 
 export function hidePopupWindow(): void {
@@ -225,8 +223,7 @@ export function togglePopupWindow(anchor?: Rectangle): void {
 	}
 
 	positionPopupWindow(anchor);
-	popupWindow.show();
-	popupWindow.focus();
+	popupWindow.showInactive();
 }
 
 export function destroyPopupWindow(): void {

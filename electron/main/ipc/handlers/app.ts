@@ -62,10 +62,14 @@ export function registerAppHandlers(): void {
 	});
 
 	secureHandle(IpcChannels.App.PickDirectory, ipcNoArgs, async () => {
-		const browserWindow = BrowserWindow.getFocusedWindow() ?? undefined;
-		const result = await dialog.showOpenDialog(browserWindow, {
-			properties: ["openDirectory"],
-		});
+		const browserWindow = BrowserWindow.getFocusedWindow();
+		const result = browserWindow
+			? await dialog.showOpenDialog(browserWindow, {
+					properties: ["openDirectory"],
+				})
+			: await dialog.showOpenDialog({
+					properties: ["openDirectory"],
+				});
 		if (result.canceled) return null;
 		return result.filePaths[0] ?? null;
 	});

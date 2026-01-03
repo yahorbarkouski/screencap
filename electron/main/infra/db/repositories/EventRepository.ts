@@ -395,10 +395,14 @@ export function getDistinctProjects(): string[] {
 	const db = getDatabase();
 	const rows = db
 		.prepare(
-			"SELECT DISTINCT project FROM events WHERE project IS NOT NULL ORDER BY project COLLATE NOCASE ASC",
+			`SELECT DISTINCT name FROM (
+				SELECT project AS name FROM events WHERE project IS NOT NULL
+				UNION
+				SELECT content AS name FROM memory WHERE type = 'project'
+			) ORDER BY name COLLATE NOCASE ASC`,
 		)
-		.all() as { project: string }[];
-	return rows.map((r) => r.project);
+		.all() as { name: string }[];
+	return rows.map((r) => r.name);
 }
 
 export function getEarliestEventTimestampForProject(

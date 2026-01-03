@@ -1,5 +1,4 @@
 import { app } from "electron";
-import { stopRepoMonitor } from "../features/projectJournal";
 import { stopQueueProcessor } from "../features/queue";
 import { stopRetentionService } from "../features/retention";
 import { stopScheduler } from "../features/scheduler";
@@ -51,7 +50,6 @@ export function setupLifecycleHandlers(): void {
 		stopScheduler();
 		stopRetentionService();
 		stopQueueProcessor();
-		stopRepoMonitor();
 		closeDatabase();
 	});
 }
@@ -62,6 +60,5 @@ export function performShutdown(): void {
 	stopScheduler();
 	stopRetentionService();
 	stopQueueProcessor();
-	stopRepoMonitor();
 	closeDatabase();
 }

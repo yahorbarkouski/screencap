@@ -134,6 +134,7 @@ export interface Settings {
 	shortcuts: ShortcutSettings;
 	llmEnabled: boolean;
 	allowVisionUploads: boolean;
+	cloudLlmModel: string;
 	localLlmEnabled: boolean;
 	localLlmBaseUrl: string;
 	localLlmModel: string;
@@ -145,23 +146,6 @@ export interface ProjectRepo {
 	projectName: string;
 	repoRoot: string;
 	createdAt: number;
-}
-
-export interface RepoWorkSession {
-	id: string;
-	projectRepoId: string;
-	projectKey: string;
-	projectName: string;
-	repoRoot: string;
-	branch: string | null;
-	headSha: string | null;
-	startAt: number;
-	endAt: number;
-	isOpen: boolean;
-	maxInsertions: number;
-	maxDeletions: number;
-	files: string[];
-	updatedAt: number;
 }
 
 export interface GitCommit {
@@ -512,13 +496,7 @@ declare global {
 				}) => Promise<{
 					repos: ProjectRepo[];
 					commits: GitCommit[];
-					sessions: RepoWorkSession[];
 				}>;
-				generateSummary: (options: {
-					projectName: string;
-					startAt: number;
-					endAt: number;
-				}) => Promise<string>;
 			};
 			llm: {
 				classify: (imageBase64: string) => Promise<unknown>;

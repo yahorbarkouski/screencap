@@ -47,6 +47,7 @@ export function SettingsView() {
 		success: boolean;
 		error?: string;
 	} | null>(null);
+	const [cloudModel, setCloudModel] = useState(settings.cloudLlmModel);
 	const [localBaseUrl, setLocalBaseUrl] = useState(settings.localLlmBaseUrl);
 	const [localModel, setLocalModel] = useState(settings.localLlmModel);
 	const [isTestingLocal, setIsTestingLocal] = useState(false);
@@ -91,19 +92,34 @@ export function SettingsView() {
 	}, []);
 
 	useEffect(() => {
+		setCloudModel(settings.cloudLlmModel);
 		setLocalBaseUrl(settings.localLlmBaseUrl);
 		setLocalModel(settings.localLlmModel);
-	}, [settings.localLlmBaseUrl, settings.localLlmModel]);
+	}, [
+		settings.cloudLlmModel,
+		settings.localLlmBaseUrl,
+		settings.localLlmModel,
+	]);
 
-	const handleSaveApiKey = async () => {
-		await updateSetting("apiKey", apiKey || null);
+	const handleSaveCloudLlm = async () => {
+		const nextCloudModel = cloudModel.trim() || "openai/gpt-5";
+		const nextApiKey = apiKey.trim() ? apiKey : settings.apiKey;
+		await saveSettings({
+			...settings,
+			apiKey: nextApiKey,
+			cloudLlmModel: nextCloudModel,
+		});
 		setTestResult(null);
 	};
 
 	const handleTestConnection = async () => {
 		if (!apiKey || !window.api) return;
 
-		await updateSetting("apiKey", apiKey);
+		await saveSettings({
+			...settings,
+			apiKey,
+			cloudLlmModel: cloudModel.trim() || "openai/gpt-5",
+		});
 		setIsTesting(true);
 		setTestResult(null);
 
@@ -422,10 +438,12 @@ export function SettingsView() {
 						updateSetting={updateSetting}
 						apiKey={apiKey}
 						setApiKey={setApiKey}
+						cloudModel={cloudModel}
+						setCloudModel={setCloudModel}
 						isTesting={isTesting}
 						testResult={testResult}
-						onSaveApiKey={handleSaveApiKey}
 						onTestConnection={handleTestConnection}
+						onSaveCloudLlm={handleSaveCloudLlm}
 						localBaseUrl={localBaseUrl}
 						setLocalBaseUrl={setLocalBaseUrl}
 						localModel={localModel}

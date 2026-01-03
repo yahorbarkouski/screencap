@@ -20,6 +20,6 @@ export const openRouterVisionProvider: ClassificationProvider = {
 		if (ctx.mode === "off" || ctx.mode === "local") return null;
 		if (!ctx.allowVisionUploads) return null;
 		if (!input.imageBase64) return null;
-		return classifyScreenshot(input.imageBase64, input.context);
+		return classifyScreenshot(input.imageBase64, input.context, ctx.cloudModel);
 	},
 };

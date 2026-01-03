@@ -5,5 +5,4 @@ export * from "./FaviconRepository";
 export * from "./MemoryRepository";
 export * from "./ProjectRepoRepository";
 export * from "./QueueRepository";
-export * from "./RepoWorkSessionRepository";
 export * from "./StoryRepository";

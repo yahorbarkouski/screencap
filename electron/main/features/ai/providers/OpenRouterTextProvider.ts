@@ -83,7 +83,7 @@ export const openRouterTextProvider: ClassificationProvider = {
 				},
 			],
 			ClassificationStage1Schema,
-			{ maxTokens: 900, temperature: 0 },
+			{ maxTokens: 900, temperature: 0, model: ctx.cloudModel ?? undefined },
 		);
 
 		if (

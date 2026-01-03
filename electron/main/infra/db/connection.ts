@@ -29,6 +29,7 @@ export function openDatabase(): Database.Database {
 	const dbPath = getDbPath();
 	logger.info("Opening database at:", dbPath);
 	db = new Database(dbPath);
+	db.pragma("foreign_keys = ON");
 	return db;
 }
 

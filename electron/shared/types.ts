@@ -124,10 +124,10 @@ export interface Settings {
 	shortcuts: ShortcutSettings;
 	llmEnabled: boolean;
 	allowVisionUploads: boolean;
+	cloudLlmModel: string;
 	localLlmEnabled: boolean;
 	localLlmBaseUrl: string;
 	localLlmModel: string;
-	sessionSummaryEnabled: boolean;
 }
 
 export interface ProjectRepo {
@@ -136,24 +136,6 @@ export interface ProjectRepo {
 	projectName: string;
 	repoRoot: string;
 	createdAt: number;
-}
-
-export interface RepoWorkSession {
-	id: string;
-	projectRepoId: string;
-	projectKey: string;
-	projectName: string;
-	repoRoot: string;
-	branch: string | null;
-	headSha: string | null;
-	startAt: number;
-	endAt: number;
-	isOpen: boolean;
-	maxInsertions: number;
-	maxDeletions: number;
-	files: string[];
-	updatedAt: number;
-	summary: string | null;
 }
 
 export interface GitCommit {

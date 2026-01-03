@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { safeStorage } from "electron";
+import { z } from "zod";
 import type { Settings } from "../../../shared/types";
 import { createLogger } from "../log";
 import { getSettingsPath } from "../paths";
@@ -22,11 +23,92 @@ const DEFAULT_SETTINGS: Settings = {
 	},
 	llmEnabled: true,
 	allowVisionUploads: true,
+	cloudLlmModel: "openai/gpt-5",
 	localLlmEnabled: false,
 	localLlmBaseUrl: "http://localhost:11434/v1",
 	localLlmModel: "llama3.2",
-	sessionSummaryEnabled: false,
 };
+
+const zNonEmptyString = z.string().min(1);
+const zLimitedString = (max: number) => zNonEmptyString.max(max);
+const zNonNegativeInt = z.number().int().nonnegative();
+const zPositiveInt = z.number().int().positive();
+
+const zAutomationRule = z
+	.object({
+		capture: z.enum(["allow", "skip"]).optional(),
+		llm: z.enum(["allow", "skip"]).optional(),
+		category: z
+			.enum(["Study", "Work", "Leisure", "Chores", "Social", "Unknown"])
+			.optional(),
+		tags: z.array(zLimitedString(200)).max(100).optional(),
+		projectMode: z.enum(["auto", "skip", "force"]).optional(),
+		project: zLimitedString(500).optional(),
+	})
+	.strip()
+	.catch({});
+
+const zAutomationRules = z
+	.object({
+		apps: z.record(zLimitedString(500), zAutomationRule).catch({}),
+		hosts: z.record(zLimitedString(500), zAutomationRule).catch({}),
+	})
+	.strip()
+	.catch(DEFAULT_SETTINGS.automationRules);
+
+const zOnboardingState = z
+	.object({
+		version: zNonNegativeInt.catch(ONBOARDING_VERSION),
+		completedAt: z.number().int().nullable().catch(null),
+	})
+	.strip()
+	.catch(DEFAULT_SETTINGS.onboarding);
+
+const zShortcutAccelerator = zLimitedString(200).nullable();
+
+const zShortcutSettings = z
+	.object({
+		captureNow: zShortcutAccelerator.catch(
+			DEFAULT_SETTINGS.shortcuts.captureNow,
+		),
+		captureProjectProgress: zShortcutAccelerator.catch(
+			DEFAULT_SETTINGS.shortcuts.captureProjectProgress,
+		),
+	})
+	.strip()
+	.catch(DEFAULT_SETTINGS.shortcuts);
+
+const settingsFileSchema: z.ZodType<Settings, z.ZodTypeDef, unknown> = z
+	.object({
+		apiKey: z
+			.string()
+			.min(1)
+			.max(5000)
+			.nullable()
+			.catch(DEFAULT_SETTINGS.apiKey),
+		captureInterval: zPositiveInt
+			.max(1440)
+			.catch(DEFAULT_SETTINGS.captureInterval),
+		retentionDays: zPositiveInt.max(3650).catch(DEFAULT_SETTINGS.retentionDays),
+		excludedApps: z
+			.array(zLimitedString(500))
+			.max(5000)
+			.catch(DEFAULT_SETTINGS.excludedApps),
+		launchAtLogin: z.boolean().catch(DEFAULT_SETTINGS.launchAtLogin),
+		automationRules: zAutomationRules,
+		onboarding: zOnboardingState,
+		shortcuts: zShortcutSettings,
+		llmEnabled: z.boolean().catch(DEFAULT_SETTINGS.llmEnabled),
+		allowVisionUploads: z.boolean().catch(DEFAULT_SETTINGS.allowVisionUploads),
+		cloudLlmModel: zLimitedString(500).catch(DEFAULT_SETTINGS.cloudLlmModel),
+		localLlmEnabled: z.boolean().catch(DEFAULT_SETTINGS.localLlmEnabled),
+		localLlmBaseUrl: zLimitedString(2000).catch(
+			DEFAULT_SETTINGS.localLlmBaseUrl,
+		),
+		localLlmModel: zLimitedString(500).catch(DEFAULT_SETTINGS.localLlmModel),
+	})
+	.strip()
+	.catch(DEFAULT_SETTINGS);
 
 export { ONBOARDING_VERSION };
 
@@ -110,9 +192,8 @@ export function getSettings(): Settings {
 
 	try {
 		const data = readFileSync(path, "utf-8");
-		const parsed = JSON.parse(data) as Settings;
+		const parsed = settingsFileSchema.parse(JSON.parse(data) as unknown);
 		const settings: Settings = {
-			...DEFAULT_SETTINGS,
 			...parsed,
 			apiKey: decryptApiKey(parsed.apiKey),
 		};

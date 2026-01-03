@@ -7,6 +7,7 @@ export type ClassificationProviderContext = {
 	mode: AiMode;
 	apiKey: string | null;
 	allowVisionUploads: boolean;
+	cloudModel: string | null;
 	localBaseUrl: string | null;
 	localModel: string | null;
 };

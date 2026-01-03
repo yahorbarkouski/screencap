@@ -651,8 +651,7 @@ export function EventPreview({ event, open, onOpenChange }: EventPreviewProps) {
 									<div className="min-w-0">
 										<div className="flex items-center gap-2 text-sm">
 											<span className="font-medium">
-												{formatContentKind(event.contentKind) ||
-													"Web Activity"}
+												{formatContentKind(event.contentKind) || "Web Activity"}
 											</span>
 										</div>
 										{event.contentTitle && (
@@ -675,9 +674,7 @@ export function EventPreview({ event, open, onOpenChange }: EventPreviewProps) {
 											size="sm"
 											className="flex-shrink-0"
 											onClick={() =>
-												void window.api.app.openExternal(
-													event.urlCanonical!,
-												)
+												void window.api.app.openExternal(event.urlCanonical!)
 											}
 										>
 											<ExternalLink />

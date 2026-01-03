@@ -23,6 +23,9 @@ const S_PATTERN = [
 	"    ######    ",
 ];
 
+const ICON_INSET_RATIO = 100 / 1024;
+const ICON_SIZE_RATIO = 824 / 1024;
+
 function drawSquircle(ctx, x, y, width, height, radius) {
 	const r = Math.min(radius, width / 2, height / 2);
 	const k = 0.5522847498;
@@ -61,18 +64,27 @@ function drawSquircle(ctx, x, y, width, height, radius) {
 	ctx.closePath();
 }
 
-function fillRoundedBackground(ctx, size) {
-	const radius = size * 0.225;
+function getIconBounds(canvasSize) {
+	const inset = Math.round(canvasSize * ICON_INSET_RATIO);
+	const iconSize = Math.round(canvasSize * ICON_SIZE_RATIO);
+	return { inset, iconSize };
+}
+
+function fillRoundedBackground(ctx, canvasSize) {
+	const { inset, iconSize } = getIconBounds(canvasSize);
+	const radius = iconSize * 0.225;
 	ctx.fillStyle = "#0a0a0a";
-	drawSquircle(ctx, 0, 0, size, size, radius);
+	drawSquircle(ctx, inset, inset, iconSize, iconSize, radius);
 	ctx.fill();
 }
 
-function generateSmallIcon(size) {
-	const canvas = createCanvas(size, size);
+function generateSmallIcon(canvasSize) {
+	const canvas = createCanvas(canvasSize, canvasSize);
 	const ctx = canvas.getContext("2d");
 
-	fillRoundedBackground(ctx, size);
+	fillRoundedBackground(ctx, canvasSize);
+
+	const { inset, iconSize } = getIconBounds(canvasSize);
 
 	const pixelGrid = [
 		"████████",
@@ -88,10 +100,12 @@ function generateSmallIcon(size) {
 	const rows = pixelGrid.length;
 	const cols = pixelGrid[0].length;
 
-	const padding = size * 0.18;
-	const cellSize = (size - padding * 2) / Math.max(rows, cols);
-	const offsetX = padding + (size - padding * 2 - cols * cellSize) / 2;
-	const offsetY = padding + (size - padding * 2 - rows * cellSize) / 2;
+	const padding = iconSize * 0.18;
+	const cellSize = (iconSize - padding * 2) / Math.max(rows, cols);
+	const offsetX =
+		inset + padding + (iconSize - padding * 2 - cols * cellSize) / 2;
+	const offsetY =
+		inset + padding + (iconSize - padding * 2 - rows * cellSize) / 2;
 
 	for (let row = 0; row < rows; row++) {
 		for (let col = 0; col < cols; col++) {
@@ -119,11 +133,13 @@ function generateSmallIcon(size) {
 	return canvas;
 }
 
-function generateMediumIcon(size) {
-	const canvas = createCanvas(size, size);
+function generateMediumIcon(canvasSize) {
+	const canvas = createCanvas(canvasSize, canvasSize);
 	const ctx = canvas.getContext("2d");
 
-	fillRoundedBackground(ctx, size);
+	fillRoundedBackground(ctx, canvasSize);
+
+	const { inset, iconSize } = getIconBounds(canvasSize);
 
 	const pattern = [
 		" @@@ ",
@@ -138,8 +154,8 @@ function generateMediumIcon(size) {
 	const rows = pattern.length;
 	const cols = Math.max(...pattern.map((r) => r.length));
 
-	const padding = size * 0.18;
-	const availableSize = size - padding * 2;
+	const padding = iconSize * 0.18;
+	const availableSize = iconSize - padding * 2;
 
 	const charWidth = availableSize / cols;
 	const charHeight = availableSize / rows;
@@ -150,8 +166,8 @@ function generateMediumIcon(size) {
 	ctx.textBaseline = "middle";
 	ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
 
-	const offsetX = padding + charWidth / 2;
-	const offsetY = padding + charHeight / 2;
+	const offsetX = inset + padding + charWidth / 2;
+	const offsetY = inset + padding + charHeight / 2;
 
 	for (let row = 0; row < rows; row++) {
 		for (let col = 0; col < pattern[row].length; col++) {
@@ -168,18 +184,20 @@ function generateMediumIcon(size) {
 	return canvas;
 }
 
-function generateLargeIcon(size) {
-	const canvas = createCanvas(size, size);
+function generateLargeIcon(canvasSize) {
+	const canvas = createCanvas(canvasSize, canvasSize);
 	const ctx = canvas.getContext("2d");
 
-	fillRoundedBackground(ctx, size);
+	fillRoundedBackground(ctx, canvasSize);
+
+	const { inset, iconSize } = getIconBounds(canvasSize);
 
 	const pattern = S_PATTERN;
 	const rows = pattern.length;
 	const cols = Math.max(...pattern.map((r) => r.length));
 
-	const padding = size * 0.17;
-	const availableSize = size - padding * 2;
+	const padding = iconSize * 0.17;
+	const availableSize = iconSize - padding * 2;
 
 	const charWidth = availableSize / cols;
 	const charHeight = availableSize / rows;
@@ -189,8 +207,8 @@ function generateLargeIcon(size) {
 	ctx.textAlign = "center";
 	ctx.textBaseline = "middle";
 
-	const offsetX = padding + charWidth / 2;
-	const offsetY = padding + charHeight / 2;
+	const offsetX = inset + padding + charWidth / 2;
+	const offsetY = inset + padding + charHeight / 2;
 
 	for (let row = 0; row < rows; row++) {
 		for (let col = 0; col < pattern[row].length; col++) {

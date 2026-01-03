@@ -200,10 +200,10 @@ export const ipcSetSettingsArgs = z.tuple([
 			shortcuts: zShortcutSettings,
 			llmEnabled: z.boolean(),
 			allowVisionUploads: z.boolean(),
+			cloudLlmModel: zLimitedString(500),
 			localLlmEnabled: z.boolean(),
 			localLlmBaseUrl: zLimitedString(2000),
 			localLlmModel: zLimitedString(500),
-			sessionSummaryEnabled: z.boolean(),
 		})
 		.strict(),
 ]);
@@ -235,6 +235,8 @@ export const ipcLlmGenerateStoryArgs = z.tuple([
 	z.enum(["daily", "weekly"]),
 ]);
 
+export const ipcLlmTestConnectionArgs = ipcNoArgs;
+
 export const ipcProjectJournalListReposArgs = z.tuple([zLimitedString(200)]);
 
 export const ipcProjectJournalAttachRepoArgs = z.tuple([
@@ -251,25 +253,6 @@ export const ipcProjectJournalGetActivityArgs = z.tuple([
 			startAt: z.number().int().nonnegative(),
 			endAt: z.number().int().nonnegative(),
 			limitPerRepo: zPositiveInt.max(5000).optional(),
-		})
-		.strict(),
-]);
-
-export const ipcProjectJournalGenerateSummaryArgs = z.tuple([
-	z
-		.object({
-			projectName: zLimitedString(200),
-			startAt: z.number().int().nonnegative(),
-			endAt: z.number().int().nonnegative(),
-		})
-		.strict(),
-]);
-
-export const ipcProjectJournalGenerateSessionSummaryArgs = z.tuple([
-	z
-		.object({
-			sessionId: zLimitedString(256),
-			projectName: zLimitedString(200),
 		})
 		.strict(),
 ]);

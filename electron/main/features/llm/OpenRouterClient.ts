@@ -32,6 +32,7 @@ export function getOpenRouterCallRecords(): readonly OpenRouterCallRecord[] {
 }
 
 export interface OpenRouterOptions {
+	model?: string;
 	maxTokens?: number;
 	temperature?: number;
 }
@@ -60,8 +61,9 @@ export async function callOpenRouter<T>(
 		throw new Error("API key not configured");
 	}
 
+	const model = options?.model?.trim() || DEFAULT_MODEL;
 	const body: Record<string, unknown> = {
-		model: DEFAULT_MODEL,
+		model,
 		messages,
 		reasoning_effort: "low",
 	};
@@ -108,18 +110,27 @@ export async function callOpenRouter<T>(
 
 export async function callOpenRouterRaw(
 	messages: unknown[],
-	_options?: OpenRouterOptions,
+	options?: OpenRouterOptions,
 ): Promise<string> {
 	const apiKey = getApiKey();
 	if (!apiKey) {
 		throw new Error("API key not configured");
 	}
 
+	const model = options?.model?.trim() || DEFAULT_MODEL;
 	const body: Record<string, unknown> = {
-		model: DEFAULT_MODEL,
+		model,
 		messages,
 		reasoning_effort: "low",
 	};
+
+	if (options?.maxTokens !== undefined) {
+		body.max_tokens = options.maxTokens;
+	}
+
+	if (options?.temperature !== undefined) {
+		body.temperature = options.temperature;
+	}
 
 	const response = await fetch(OPENROUTER_API_URL, {
 		method: "POST",
@@ -149,7 +160,7 @@ export async function callOpenRouterRaw(
 	return data.choices?.[0]?.message?.content || "";
 }
 
-export async function testConnection(): Promise<{
+export async function testConnection(model?: string): Promise<{
 	success: boolean;
 	error?: string;
 }> {
@@ -157,6 +168,8 @@ export async function testConnection(): Promise<{
 	if (!apiKey) {
 		return { success: false, error: "API key not configured" };
 	}
+
+	const selectedModel = model?.trim() || DEFAULT_MODEL;
 
 	try {
 		const response = await fetch(OPENROUTER_API_URL, {
@@ -168,7 +181,7 @@ export async function testConnection(): Promise<{
 				"X-Title": "Screencap",
 			},
 			body: JSON.stringify({
-				model: DEFAULT_MODEL,
+				model: selectedModel,
 				messages: [{ role: "user", content: "Hello" }],
 			}),
 		});
@@ -176,7 +189,7 @@ export async function testConnection(): Promise<{
 		recordCall({
 			timestamp: Date.now(),
 			kind: "test",
-			model: DEFAULT_MODEL,
+			model: selectedModel,
 			status: response.status,
 		});
 

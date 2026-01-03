@@ -15,6 +15,7 @@ import { secureHandle } from "../secure";
 import {
 	ipcLlmClassifyArgs,
 	ipcLlmGenerateStoryArgs,
+	ipcLlmTestConnectionArgs,
 	ipcNoArgs,
 } from "../validation";
 
@@ -32,11 +33,13 @@ function buildProviderContext(): ClassificationProviderContext {
 	const localModel = settings.localLlmEnabled
 		? settings.localLlmModel.trim() || null
 		: null;
+	const cloudModel = settings.cloudLlmModel.trim() || null;
 
 	return {
 		mode: settings.llmEnabled ? "hybrid" : "off",
 		apiKey: settings.apiKey,
 		allowVisionUploads: settings.allowVisionUploads,
+		cloudModel,
 		localBaseUrl,
 		localModel,
 	};
@@ -89,9 +92,15 @@ export function registerLLMHandlers(): void {
 		},
 	);
 
-	secureHandle(IpcChannels.LLM.TestConnection, ipcNoArgs, async () => {
-		return testConnection();
-	});
+	secureHandle(
+		IpcChannels.LLM.TestConnection,
+		ipcLlmTestConnectionArgs,
+		async () => {
+			const settings = getSettings();
+			const model = settings.cloudLlmModel.trim() || undefined;
+			return testConnection(model);
+		},
+	);
 
 	secureHandle(IpcChannels.LLM.TestLocalConnection, ipcNoArgs, async () => {
 		const settings = getSettings();
