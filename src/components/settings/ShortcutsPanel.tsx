@@ -11,6 +11,7 @@ import { SettingsRow, SettingsRows } from "./SettingsPrimitives";
 const DEFAULT_SHORTCUTS: ShortcutSettings = {
 	captureNow: "Command+Shift+O",
 	captureProjectProgress: "Command+Shift+P",
+	endOfDay: "Command+Shift+E",
 };
 
 function normalizeKey(key: string): string | null {
@@ -125,27 +126,33 @@ export function ShortcutsPanel({
 			captureProjectProgress: normalizeAccelerator(
 				shortcuts.captureProjectProgress,
 			),
+			endOfDay: normalizeAccelerator(shortcuts.endOfDay),
 		}),
-		[shortcuts.captureNow, shortcuts.captureProjectProgress],
+		[
+			shortcuts.captureNow,
+			shortcuts.captureProjectProgress,
+			shortcuts.endOfDay,
+		],
 	);
 
 	const duplicates = useMemo(() => {
-		if (!normalized.captureNow) return false;
-		return normalized.captureNow === normalized.captureProjectProgress;
-	}, [normalized.captureNow, normalized.captureProjectProgress]);
+		const values = Object.values(normalized).filter((v): v is string => !!v);
+		return new Set(values).size !== values.length;
+	}, [normalized]);
 
 	const update = useCallback(
 		(key: keyof ShortcutSettings, value: string | null) => {
 			const next: ShortcutSettings = { ...shortcuts, [key]: value };
 			const v = normalizeAccelerator(value);
-			if (v && key === "captureNow") {
-				if (normalizeAccelerator(shortcuts.captureProjectProgress) === v) {
-					next.captureProjectProgress = null;
-				}
-			}
-			if (v && key === "captureProjectProgress") {
-				if (normalizeAccelerator(shortcuts.captureNow) === v) {
-					next.captureNow = null;
+			if (v) {
+				const keys: Array<keyof ShortcutSettings> = [
+					"captureNow",
+					"captureProjectProgress",
+					"endOfDay",
+				];
+				for (const other of keys) {
+					if (other === key) continue;
+					if (normalizeAccelerator(next[other]) === v) next[other] = null;
 				}
 			}
 			onChange(next);
@@ -204,6 +211,17 @@ export function ShortcutsPanel({
 						<ShortcutInput
 							value={shortcuts.captureProjectProgress}
 							onChange={(v) => update("captureProjectProgress", v)}
+							onRecordingChange={onRecordingChange}
+						/>
+					}
+				/>
+				<SettingsRow
+					title="End of day"
+					description="Opens the end-of-day flow"
+					right={
+						<ShortcutInput
+							value={shortcuts.endOfDay}
+							onChange={(v) => update("endOfDay", v)}
 							onRecordingChange={onRecordingChange}
 						/>
 					}

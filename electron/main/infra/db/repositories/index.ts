@@ -1,4 +1,5 @@
 export * from "./AppIconRepository";
+export * from "./EodEntryRepository";
 export * from "./EventRepository";
 export * from "./EventScreenshotRepository";
 export * from "./FaviconRepository";

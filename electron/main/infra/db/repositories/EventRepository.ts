@@ -72,7 +72,7 @@ export function insertEvent(event: Partial<Event>): void {
 		event.project ?? null,
 		event.projectProgress ?? 0,
 		event.projectProgressConfidence ?? null,
-		null,
+		event.projectProgressEvidence ?? null,
 		event.tags ?? null,
 		event.confidence ?? null,
 		event.caption ?? null,
@@ -237,6 +237,61 @@ export function listExpiredEventIds(
 		)
 		.all(cutoffTimestamp, limit) as Array<{ id: string }>;
 
+	return rows.map((r) => r.id);
+}
+
+export function cleanupQueueForCompletedEvents(): number {
+	if (!isDbOpen()) return 0;
+	const db = getDatabase();
+	const result = db
+		.prepare(
+			`
+      DELETE FROM queue
+      WHERE event_id IN (SELECT id FROM events WHERE status = 'completed')
+    `,
+		)
+		.run();
+	return result.changes;
+}
+
+export function recoverInterruptedEventProcessing(now = Date.now()): number {
+	if (!isDbOpen()) return 0;
+	const db = getDatabase();
+	const tx = db.transaction((ts: number) => {
+		db.prepare(
+			`
+        UPDATE queue
+        SET next_attempt_at = ?
+        WHERE event_id IN (SELECT id FROM events WHERE status = 'processing')
+      `,
+		).run(ts);
+		const result = db
+			.prepare(
+				"UPDATE events SET status = 'failed' WHERE status = 'processing'",
+			)
+			.run();
+		return result.changes;
+	});
+	return tx(now);
+}
+
+export function listPendingEventIdsMissingQueue(limit: number): string[] {
+	if (!isDbOpen()) return [];
+	if (limit <= 0) return [];
+	const db = getDatabase();
+	const rows = db
+		.prepare(
+			`
+      SELECT e.id
+      FROM events e
+      WHERE e.dismissed = 0
+        AND e.status = 'pending'
+        AND NOT EXISTS (SELECT 1 FROM queue q WHERE q.event_id = e.id)
+      ORDER BY e.timestamp DESC
+      LIMIT ?
+    `,
+		)
+		.all(limit) as Array<{ id: string }>;
 	return rows.map((r) => r.id);
 }
 

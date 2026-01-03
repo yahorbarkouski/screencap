@@ -111,6 +111,7 @@ export interface OnboardingState {
 export interface ShortcutSettings {
 	captureNow: string | null;
 	captureProjectProgress: string | null;
+	endOfDay: string | null;
 }
 
 export interface Settings {
@@ -298,6 +299,53 @@ export interface StoryInput {
 	createdAt: number;
 }
 
+export type EodAttachment =
+	| {
+			kind: "event";
+			eventId: string;
+	  }
+	| {
+			kind: "image";
+			path: string;
+	  };
+
+export interface EodSection {
+	id: string;
+	title: string;
+	body: string;
+	attachments: EodAttachment[];
+}
+
+export interface EodContentV1 {
+	version: 1;
+	sections: EodSection[];
+	summaryEventCount?: number;
+}
+
+export type EodContent = EodContentV1;
+
+export interface EodEntry {
+	id: string;
+	dayStart: number;
+	dayEnd: number;
+	schemaVersion: number;
+	content: EodContent;
+	createdAt: number;
+	updatedAt: number;
+	submittedAt: number | null;
+}
+
+export interface EodEntryInput {
+	id: string;
+	dayStart: number;
+	dayEnd: number;
+	schemaVersion: number;
+	content: EodContent;
+	createdAt: number;
+	updatedAt: number;
+	submittedAt: number | null;
+}
+
 export interface EventSummary {
 	caption: string;
 	category: string;
@@ -433,4 +481,20 @@ export interface UpdateState {
 	progress?: UpdateProgress;
 	error?: UpdateError;
 	lastCheckedAt?: number;
+}
+
+export interface ProjectShare {
+	projectName: string;
+	publicId: string;
+	writeKey: string;
+	shareUrl: string;
+	createdAt: number;
+	updatedAt: number;
+	lastPublishedAt: number | null;
+}
+
+export interface CreateShareResult {
+	publicId: string;
+	writeKey: string;
+	shareUrl: string;
 }

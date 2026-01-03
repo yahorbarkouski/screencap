@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { CommandPalette } from "@/components/CommandPalette";
 import { PermissionDialog } from "@/components/dialogs/PermissionDialog";
+import { EndOfDayFlow } from "@/components/eod/EndOfDayFlow";
 import { AppBackdrop } from "@/components/layout/AppBackdrop";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Titlebar } from "@/components/layout/Titlebar";
@@ -23,6 +24,7 @@ export default function App() {
 	const view = useAppStore((s) => s.view);
 	const commandPaletteOpen = useAppStore((s) => s.commandPaletteOpen);
 	const setCommandPaletteOpen = useAppStore((s) => s.setCommandPaletteOpen);
+	const openEod = useAppStore((s) => s.openEod);
 	const settingsLoaded = useAppStore((s) => s.settingsLoaded);
 	const { hasPermission, checkPermission } = usePermission();
 	const { settings } = useSettings();
@@ -68,6 +70,20 @@ export default function App() {
 		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, [commandPaletteOpen, setCommandPaletteOpen]);
 
+	useEffect(() => {
+		if (!window.api) return;
+		return window.api.on("shortcut:end-of-day", (payload) => {
+			const dayStart =
+				payload &&
+				typeof payload === "object" &&
+				"dayStart" in payload &&
+				typeof (payload as { dayStart?: unknown }).dayStart === "number"
+					? (payload as { dayStart: number }).dayStart
+					: new Date(new Date().setHours(0, 0, 0, 0)).getTime();
+			openEod(dayStart);
+		});
+	}, [openEod]);
+
 	const handleOnboardingComplete = useCallback(() => {
 		setShowOnboarding(false);
 		checkPermission();
@@ -108,6 +124,7 @@ export default function App() {
 					open={commandPaletteOpen}
 					onOpenChange={setCommandPaletteOpen}
 				/>
+				<EndOfDayFlow />
 			</div>
 		</TooltipProvider>
 	);

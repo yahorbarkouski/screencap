@@ -88,6 +88,11 @@ interface AppState {
 
 	commandPaletteOpen: boolean;
 	setCommandPaletteOpen: (open: boolean) => void;
+
+	eodOpen: boolean;
+	eodDayStart: number | null;
+	openEod: (dayStart: number) => void;
+	closeEod: () => void;
 }
 
 export const useAppStore = create<AppState>((set, _get) => ({
@@ -227,6 +232,7 @@ export const useAppStore = create<AppState>((set, _get) => ({
 		shortcuts: {
 			captureNow: "Command+Shift+O",
 			captureProjectProgress: "Command+Shift+P",
+			endOfDay: "Command+Shift+E",
 		},
 		llmEnabled: true,
 		allowVisionUploads: true,
@@ -251,4 +257,14 @@ export const useAppStore = create<AppState>((set, _get) => ({
 		set((state) =>
 			state.commandPaletteOpen === open ? {} : { commandPaletteOpen: open },
 		),
+
+	eodOpen: false,
+	eodDayStart: null,
+	openEod: (dayStart) =>
+		set((state) =>
+			state.eodOpen && state.eodDayStart === dayStart
+				? {}
+				: { eodOpen: true, eodDayStart: dayStart },
+		),
+	closeEod: () => set((state) => (state.eodOpen ? { eodOpen: false } : {})),
 }));

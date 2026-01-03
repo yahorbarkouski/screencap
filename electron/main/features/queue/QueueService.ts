@@ -3,14 +3,19 @@ import { join } from "node:path";
 import { isSelfApp } from "../../../shared/appIdentity";
 import type { Event } from "../../../shared/types";
 import {
+	cleanupQueueForCompletedEvents,
 	getEventById,
 	getLatestCompletedEventByFingerprint,
+	listPendingEventIdsMissingQueue,
+	recoverInterruptedEventProcessing,
 	updateEvent,
 } from "../../infra/db/repositories/EventRepository";
 import {
+	addToQueue,
 	getDueQueueItems,
 	getQueueItems,
 	incrementAttempts,
+	isEventQueued,
 	MAX_ATTEMPTS,
 	removeFromQueue,
 } from "../../infra/db/repositories/QueueRepository";
@@ -199,12 +204,38 @@ function finalizeEventLocally(event: Event, policy: PolicyResult): void {
 	updateEvent(event.id, updates);
 }
 
+function repairPendingEventsMissingQueue(): void {
+	const ids = listPendingEventIdsMissingQueue(100);
+	if (ids.length === 0) return;
+
+	for (const id of ids) {
+		const event = getEventById(id);
+		if (!event) continue;
+
+		const hasFile =
+			!!event.originalPath &&
+			event.originalPath.trim().length > 0 &&
+			existsSync(event.originalPath);
+		if (!hasFile) {
+			updateEvent(id, { status: "failed" });
+			broadcastEventUpdated(id);
+			continue;
+		}
+
+		if (event.projectProgressEvidence === "manual") {
+			continue;
+		}
+
+		if (!isEventQueued(id)) {
+			addToQueue(id);
+		}
+	}
+}
+
 async function processQueueItem(item: {
 	id: string;
 	eventId: string;
 }): Promise<void> {
-	const attempts = incrementAttempts(item.id);
-
 	try {
 		const event = getEventById(item.eventId);
 		if (!event) {
@@ -213,6 +244,15 @@ async function processQueueItem(item: {
 				eventId: item.eventId,
 			});
 			return;
+		}
+		if (event.status === "completed") {
+			removeFromQueue(item.id);
+			return;
+		}
+
+		if (event.status !== "processing") {
+			updateEvent(item.eventId, { status: "processing" });
+			broadcastEventUpdated(item.eventId);
 		}
 
 		const settings = getSettings();
@@ -352,10 +392,15 @@ async function processQueueItem(item: {
 			selectedProject: event.project,
 		});
 		const aiCtx = buildProviderContext(settings);
+		const originalPath = event.originalPath;
+		const hasOriginalFile =
+			!!originalPath &&
+			originalPath.trim().length > 0 &&
+			existsSync(originalPath);
 		let imageBase64: string | null = null;
 		try {
-			if (event.originalPath && existsSync(event.originalPath)) {
-				imageBase64 = readFileSync(event.originalPath).toString("base64");
+			if (hasOriginalFile && originalPath) {
+				imageBase64 = readFileSync(originalPath).toString("base64");
 			}
 		} catch (error) {
 			logger.warn("Failed to read screenshot file for queue item", {
@@ -364,6 +409,9 @@ async function processQueueItem(item: {
 			});
 		}
 		if (!imageBase64) {
+			if (hasOriginalFile) {
+				throw new Error("Failed to read screenshot file");
+			}
 			updateEvent(item.eventId, { status: "failed" });
 			deleteHighResIfExists(item.eventId);
 			removeFromQueue(item.id);
@@ -499,8 +547,11 @@ async function processQueueItem(item: {
 	} catch (error) {
 		logger.error(`Failed to process queue item ${item.id}:`, error);
 
+		const attempts = incrementAttempts(item.id);
+		updateEvent(item.eventId, { status: "failed" });
+		broadcastEventUpdated(item.eventId);
+
 		if (attempts >= MAX_ATTEMPTS) {
-			updateEvent(item.eventId, { status: "failed" });
 			deleteHighResIfExists(item.eventId);
 			removeFromQueue(item.id);
 			logger.warn("Queue item exceeded max attempts", {
@@ -516,6 +567,9 @@ async function processQueue(): Promise<void> {
 		logger.debug("Queue processing already in progress, skipping");
 		return;
 	}
+
+	cleanupQueueForCompletedEvents();
+	repairPendingEventsMissingQueue();
 
 	const settings = getSettings();
 
@@ -564,6 +618,11 @@ export function startQueueProcessor(): void {
 	}
 
 	logger.info("Starting queue processor");
+
+	const recovered = recoverInterruptedEventProcessing();
+	if (recovered > 0) {
+		logger.warn("Recovered interrupted processing events", { recovered });
+	}
 
 	processingInterval = setInterval(() => {
 		processQueue().catch((error) => {

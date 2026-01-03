@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { BrowserWindow, type Rectangle, screen } from "electron";
-import { IpcEvents } from "../../shared/ipc";
+import { IpcEvents, type ProjectProgressPreview } from "../../shared/ipc";
 import {
 	addTrustedWebContentsId,
 	removeTrustedWebContentsId,
@@ -225,17 +225,9 @@ export function setCapturePopupHeight(height: number): void {
 	positionCapturePopupWindow(anchor);
 }
 
-export async function openProjectProgressCapture(input: {
-	eventId: string;
-	anchor?: Rectangle;
-}): Promise<void> {
-	const eventId = input.eventId.trim();
-	if (!eventId) return;
-
-	showCapturePopupWindow(input.anchor);
-
+async function waitForPopupReady(): Promise<BrowserWindow | null> {
 	const win = getCapturePopupWindow();
-	if (!win || win.isDestroyed()) return;
+	if (!win || win.isDestroyed()) return null;
 
 	if (win.webContents.isLoadingMainFrame()) {
 		await new Promise<void>((resolve) => {
@@ -245,7 +237,35 @@ export async function openProjectProgressCapture(input: {
 		});
 	}
 
-	if (!win.isDestroyed()) {
-		win.webContents.send(IpcEvents.ShortcutCaptureProjectProgress, eventId);
-	}
+	return win.isDestroyed() ? null : win;
+}
+
+export async function sendPreviewToPopup(
+	preview: ProjectProgressPreview,
+): Promise<void> {
+	const win = await waitForPopupReady();
+	if (!win) return;
+	win.webContents.send(
+		IpcEvents.ShortcutCaptureProjectProgressPreview,
+		preview,
+	);
+}
+
+export function sendEventIdToPopup(eventId: string): void {
+	const win = getCapturePopupWindow();
+	if (!win || win.isDestroyed()) return;
+	win.webContents.send(IpcEvents.ShortcutCaptureProjectProgress, eventId);
+}
+
+export async function openProjectProgressCapture(input: {
+	eventId: string;
+	anchor?: Rectangle;
+}): Promise<void> {
+	const eventId = input.eventId.trim();
+	if (!eventId) return;
+
+	showCapturePopupWindow(input.anchor);
+	const win = await waitForPopupReady();
+	if (!win) return;
+	win.webContents.send(IpcEvents.ShortcutCaptureProjectProgress, eventId);
 }

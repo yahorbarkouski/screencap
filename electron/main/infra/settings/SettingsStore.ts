@@ -20,6 +20,7 @@ const DEFAULT_SETTINGS: Settings = {
 	shortcuts: {
 		captureNow: "Command+Shift+O",
 		captureProjectProgress: "Command+Shift+P",
+		endOfDay: "Command+Shift+E",
 	},
 	llmEnabled: true,
 	allowVisionUploads: true,
@@ -74,6 +75,7 @@ const zShortcutSettings = z
 		captureProjectProgress: zShortcutAccelerator.catch(
 			DEFAULT_SETTINGS.shortcuts.captureProjectProgress,
 		),
+		endOfDay: zShortcutAccelerator.catch(DEFAULT_SETTINGS.shortcuts.endOfDay),
 	})
 	.strip()
 	.catch(DEFAULT_SETTINGS.shortcuts);

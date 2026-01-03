@@ -295,6 +295,7 @@ export function StoryViewHeader({
 	onPrevDay,
 	onNextDay,
 	onToday,
+	onOpenEod,
 	isToday,
 	nextDisabled,
 	showJournal,
@@ -308,6 +309,7 @@ export function StoryViewHeader({
 	onPrevDay: () => void;
 	onNextDay: () => void;
 	onToday: () => void;
+	onOpenEod: () => void;
 	isToday: boolean;
 	nextDisabled: boolean;
 	showJournal: boolean;
@@ -363,6 +365,9 @@ export function StoryViewHeader({
 					disabled={nextDisabled}
 				>
 					<ChevronRight className="h-4 w-4" />
+				</Button>
+				<Button size="sm" variant="secondary" onClick={onOpenEod}>
+					End of day
 				</Button>
 				{showJournal ? (
 					<Button size="sm" onClick={onGenerate} disabled={generateDisabled}>

@@ -1,10 +1,12 @@
 export { registerAppHandlers } from "./app";
 export { registerCaptureHandlers } from "./capture";
+export { registerEodHandlers } from "./eod";
 export { registerLLMHandlers } from "./llm";
 export { registerOcrHandlers } from "./ocr";
 export { registerPermissionHandlers } from "./permissions";
 export { registerPopupHandlers } from "./popup";
 export { registerProjectJournalHandlers } from "./projectJournal";
+export { registerPublishingHandlers } from "./publishing";
 export { registerSchedulerHandlers } from "./scheduler";
 export { registerSettingsHandlers } from "./settings";
 export { registerShortcutsHandlers } from "./shortcuts";

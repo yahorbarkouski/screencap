@@ -3,11 +3,18 @@ import { IpcEvents } from "../../../shared/ipc";
 import type { Settings, ShortcutSettings } from "../../../shared/types";
 import {
 	getCapturePopupWindow,
-	openProjectProgressCapture,
+	sendEventIdToPopup,
+	sendPreviewToPopup,
+	showCapturePopupWindow,
 } from "../../app/capturePopup";
 import { getPopupWindow } from "../../app/popup";
 import { getMainWindow, showMainWindow } from "../../app/window";
 import { createLogger } from "../../infra/log";
+import { broadcast } from "../../infra/windows";
+import { captureInstant, processInstantCapture } from "../capture";
+import { collectActivityContext } from "../context";
+import { processCaptureGroup } from "../events";
+import { checkScreenCapturePermission } from "../permissions";
 import { triggerManualCaptureWithPrimaryDisplay } from "../scheduler";
 
 const logger = createLogger({ scope: "Shortcuts" });
@@ -31,6 +38,12 @@ function cursorAnchor(): Rectangle {
 	return { x: p.x, y: p.y, width: 1, height: 1 };
 }
 
+function startOfLocalDayMs(timestamp: number): number {
+	const d = new Date(timestamp);
+	d.setHours(0, 0, 0, 0);
+	return d.getTime();
+}
+
 function getPrimaryDisplayIdFromCursor(): string {
 	const point = screen.getCursorScreenPoint();
 	return String(screen.getDisplayNearestPoint(point).id);
@@ -48,11 +61,13 @@ function unregisterRegistered(): void {
 async function withWindowsHidden<T>(
 	run: () => Promise<T>,
 	options?: {
+		restoreMain?: boolean;
 		restoreMainFocus?: boolean;
 		restoreTrayPopup?: boolean;
 		restoreCapturePopup?: boolean;
 	},
 ): Promise<T> {
+	const restoreMain = options?.restoreMain ?? true;
 	const restoreMainFocus = options?.restoreMainFocus ?? true;
 	const restoreTrayPopup = options?.restoreTrayPopup ?? true;
 	const restoreCapturePopup = options?.restoreCapturePopup ?? true;
@@ -112,7 +127,7 @@ async function withWindowsHidden<T>(
 			}
 		}
 
-		if (mainWasVisible && main && !main.isDestroyed()) {
+		if (restoreMain && mainWasVisible && main && !main.isDestroyed()) {
 			if (restoreMainFocus && mainWasFocused) {
 				showMainWindow();
 			} else {
@@ -141,25 +156,69 @@ async function handleCaptureNow(): Promise<void> {
 }
 
 async function handleCaptureProjectProgress(): Promise<void> {
+	if (!checkScreenCapturePermission()) {
+		logger.warn("No screen capture permission");
+		return;
+	}
+
 	const primaryDisplayId = getPrimaryDisplayIdFromCursor();
-	const result = await withWindowsHidden(
-		async () => {
-			return await triggerManualCaptureWithPrimaryDisplay({
-				primaryDisplayId,
-				intent: "project_progress",
-			});
-		},
+	const anchor = cursorAnchor();
+
+	const instantCapture = await withWindowsHidden(
+		() => captureInstant(primaryDisplayId),
 		{
-			restoreMainFocus: false,
+			restoreMain: false,
 			restoreTrayPopup: false,
 			restoreCapturePopup: false,
 		},
 	);
 
-	if (!result.eventId) return;
-	await openProjectProgressCapture({
-		eventId: result.eventId,
-		anchor: cursorAnchor(),
+	if (!instantCapture) {
+		logger.warn("No captures available");
+		return;
+	}
+
+	showCapturePopupWindow(anchor);
+	await sendPreviewToPopup({
+		imageBase64: instantCapture.previewBase64,
+		project: null,
+	});
+
+	const [captures, context] = await Promise.all([
+		processInstantCapture(instantCapture, {
+			highResDisplayId: primaryDisplayId,
+		}),
+		collectActivityContext(),
+	]);
+
+	const result = await processCaptureGroup({
+		captures,
+		intervalMs: 5 * 60 * 1000,
+		primaryDisplayId,
+		context,
+		enqueueToLlmQueue: false,
+		allowMerge: false,
+	});
+
+	if (result.eventId) {
+		const { updateEvent } = await import(
+			"../../infra/db/repositories/EventRepository"
+		);
+		const { broadcastEventUpdated } = await import("../../infra/windows");
+
+		updateEvent(result.eventId, {
+			projectProgress: 1,
+			projectProgressEvidence: "manual",
+		});
+		broadcastEventUpdated(result.eventId);
+		sendEventIdToPopup(result.eventId);
+	}
+}
+
+async function handleEndOfDay(): Promise<void> {
+	showMainWindow();
+	broadcast(IpcEvents.ShortcutEndOfDay, {
+		dayStart: startOfLocalDayMs(Date.now()),
 	});
 }
 
@@ -189,6 +248,7 @@ function buildBindings(shortcuts: ShortcutSettings): Array<{
 	const captureProjectProgress = normalizeAccelerator(
 		shortcuts.captureProjectProgress,
 	);
+	const endOfDay = normalizeAccelerator(shortcuts.endOfDay);
 
 	const bindings: Array<{
 		action: keyof ShortcutSettings;
@@ -209,6 +269,14 @@ function buildBindings(shortcuts: ShortcutSettings): Array<{
 			action: "captureProjectProgress",
 			accelerator: captureProjectProgress,
 			handler: handleCaptureProjectProgress,
+		});
+	}
+
+	if (endOfDay) {
+		bindings.push({
+			action: "endOfDay",
+			accelerator: endOfDay,
+			handler: handleEndOfDay,
 		});
 	}
 

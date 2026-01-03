@@ -10,6 +10,9 @@ import type {
 	ClearableStorageCategory,
 	ContextStatus,
 	ContextTestResult,
+	CreateShareResult,
+	EodEntry,
+	EodEntryInput,
 	Event,
 	EventScreenshot,
 	EventSummary,
@@ -22,6 +25,7 @@ import type {
 	PeriodType,
 	PermissionStatus,
 	ProjectRepo,
+	ProjectShare,
 	ProjectStatsItem,
 	RecordedApp,
 	Settings,
@@ -135,6 +139,18 @@ export const IpcChannels = {
 	Ocr: {
 		Recognize: "ocr:recognize",
 	},
+	Eod: {
+		OpenFlow: "eod:open-flow",
+		GetEntryByDayStart: "eod:get-entry-by-day-start",
+		UpsertEntry: "eod:upsert-entry",
+		ListEntries: "eod:list-entries",
+	},
+	Publishing: {
+		CreateShare: "publishing:create-share",
+		GetShare: "publishing:get-share",
+		DisableShare: "publishing:disable-share",
+		SyncShare: "publishing:sync-share",
+	},
 } as const;
 
 export const IpcEvents = {
@@ -145,7 +161,10 @@ export const IpcEvents = {
 	ProjectsNormalized: "projects:normalized",
 	UpdateState: "update:state",
 	ShortcutCaptureNow: "shortcut:capture-now",
+	ShortcutCaptureProjectProgressPreview:
+		"shortcut:capture-project-progress-preview",
 	ShortcutCaptureProjectProgress: "shortcut:capture-project-progress",
+	ShortcutEndOfDay: "shortcut:end-of-day",
 } as const;
 
 export interface IpcInvokeHandlers {
@@ -278,6 +297,25 @@ export interface IpcInvokeHandlers {
 	[IpcChannels.LLM.TestLocalConnection]: () => Promise<LLMTestResult>;
 
 	[IpcChannels.Ocr.Recognize]: (imageBase64: string) => Promise<OcrResult>;
+
+	[IpcChannels.Eod.OpenFlow]: (options?: { dayStart?: number }) => void;
+	[IpcChannels.Eod.GetEntryByDayStart]: (dayStart: number) => EodEntry | null;
+	[IpcChannels.Eod.UpsertEntry]: (entry: EodEntryInput) => void;
+	[IpcChannels.Eod.ListEntries]: () => EodEntry[];
+
+	[IpcChannels.Publishing.CreateShare]: (
+		projectName: string,
+	) => Promise<CreateShareResult>;
+	[IpcChannels.Publishing.GetShare]: (
+		projectName: string,
+	) => ProjectShare | null;
+	[IpcChannels.Publishing.DisableShare]: (projectName: string) => void;
+	[IpcChannels.Publishing.SyncShare]: (projectName: string) => Promise<number>;
+}
+
+export interface ProjectProgressPreview {
+	imageBase64: string;
+	project: string | null;
 }
 
 export interface IpcEventPayloads {
@@ -288,5 +326,7 @@ export interface IpcEventPayloads {
 	[IpcEvents.ProjectsNormalized]: { updatedRows: number; groups: number };
 	[IpcEvents.UpdateState]: UpdateState;
 	[IpcEvents.ShortcutCaptureNow]: undefined;
+	[IpcEvents.ShortcutCaptureProjectProgressPreview]: ProjectProgressPreview;
 	[IpcEvents.ShortcutCaptureProjectProgress]: string | null;
+	[IpcEvents.ShortcutEndOfDay]: { dayStart: number } | undefined;
 }

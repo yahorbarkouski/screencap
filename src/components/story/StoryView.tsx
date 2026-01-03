@@ -45,6 +45,7 @@ export function StoryView() {
 	const stories = useAppStore((s) => s.stories);
 	const setStories = useAppStore((s) => s.setStories);
 	const settings = useAppStore((s) => s.settings);
+	const openEod = useAppStore((s) => s.openEod);
 	const { addictions, createMemory, editMemory, deleteMemory } = useMemories();
 
 	const [selectedDay, setSelectedDay] = useState<Date>(() =>
@@ -574,6 +575,7 @@ export function StoryView() {
 				onPrevDay={handlePrevDay}
 				onNextDay={handleNextDay}
 				onToday={handleToday}
+				onOpenEod={() => openEod(selectedStartMs)}
 				isToday={isToday}
 				nextDisabled={selectedStartMs >= todayStartMs}
 				showJournal={showJournal}

@@ -5,6 +5,7 @@ import { stopScheduler } from "../features/scheduler";
 import { stopShortcuts } from "../features/shortcuts";
 import { closeDatabase } from "../infra/db";
 import { createLogger } from "../infra/log";
+import { getCapturePopupWindow } from "./capturePopup";
 import { destroyPopupWindow } from "./popup";
 import {
 	createWindow,
@@ -33,6 +34,15 @@ export function setupLifecycleHandlers(): void {
 	});
 
 	app.on("activate", () => {
+		const capturePopup = getCapturePopupWindow();
+		if (
+			capturePopup &&
+			!capturePopup.isDestroyed() &&
+			capturePopup.isVisible()
+		) {
+			return;
+		}
+
 		const win = getMainWindow();
 		if (win === null) {
 			const _newWin = createWindow();

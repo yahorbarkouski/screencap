@@ -102,6 +102,18 @@ export function createTables(db: Database.Database): void {
       created_at INTEGER NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS eod_entries (
+      id TEXT PRIMARY KEY,
+      day_start INTEGER NOT NULL,
+      day_end INTEGER NOT NULL,
+      schema_version INTEGER NOT NULL,
+      content_json TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      submitted_at INTEGER,
+      UNIQUE(day_start)
+    );
+
     CREATE TABLE IF NOT EXISTS project_repos (
       id TEXT PRIMARY KEY,
       project_key TEXT NOT NULL,
@@ -109,6 +121,16 @@ export function createTables(db: Database.Database): void {
       repo_root TEXT NOT NULL,
       created_at INTEGER NOT NULL,
       UNIQUE(project_key, repo_root)
+    );
+
+    CREATE TABLE IF NOT EXISTS project_shares (
+      project_name TEXT PRIMARY KEY,
+      public_id TEXT NOT NULL,
+      write_key TEXT NOT NULL,
+      share_url TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      last_published_at INTEGER
     );
   `);
 
@@ -137,8 +159,12 @@ export function createIndexes(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_memory_type ON memory(type);
     CREATE INDEX IF NOT EXISTS idx_queue_created ON queue(created_at);
     CREATE INDEX IF NOT EXISTS idx_queue_next_attempt ON queue(next_attempt_at);
+    CREATE INDEX IF NOT EXISTS idx_queue_event_id ON queue(event_id);
     CREATE INDEX IF NOT EXISTS idx_project_repos_project_key ON project_repos(project_key);
     CREATE INDEX IF NOT EXISTS idx_project_repos_repo_root ON project_repos(repo_root);
+    CREATE INDEX IF NOT EXISTS idx_eod_entries_day_start ON eod_entries(day_start);
+    CREATE INDEX IF NOT EXISTS idx_eod_entries_submitted_at ON eod_entries(submitted_at);
+    CREATE INDEX IF NOT EXISTS idx_project_shares_public_id ON project_shares(public_id);
   `);
 
 	logger.info("Indexes created");

@@ -255,6 +255,9 @@ export async function processCaptureResult(
 	if (capture.originalPath && existsSync(capture.originalPath)) {
 		addToQueue(capture.id);
 		logger.debug("Added to LLM queue", { eventId: capture.id });
+	} else {
+		updateEvent(capture.id, { status: "failed" });
+		broadcastEventUpdated(capture.id);
 	}
 
 	broadcastEventCreated(capture.id);
@@ -364,6 +367,8 @@ export async function processCaptureGroup(
 	}
 
 	const eventId = primaryCapture.id;
+	const isManualProjectProgress =
+		options.enqueueToLlmQueue === false && options.allowMerge === false;
 
 	logger.debug("Creating new event from capture group", {
 		id: eventId,
@@ -383,6 +388,8 @@ export async function processCaptureGroup(
 		detailHash: primaryCapture.detailHash,
 		mergedCount: 1,
 		status: "pending",
+		projectProgress: isManualProjectProgress ? 1 : 0,
+		projectProgressEvidence: isManualProjectProgress ? "manual" : null,
 		appBundleId: effectiveContext?.app.bundleId ?? null,
 		appName: effectiveContext?.app.name ?? null,
 		windowTitle: effectiveContext?.window.title ?? null,
@@ -449,6 +456,9 @@ export async function processCaptureGroup(
 			addToQueue(eventId);
 			logger.debug("Added to LLM queue", { eventId });
 		}
+	} else {
+		updateEvent(eventId, { status: "failed" });
+		broadcastEventUpdated(eventId);
 	}
 
 	broadcastEventCreated(eventId);

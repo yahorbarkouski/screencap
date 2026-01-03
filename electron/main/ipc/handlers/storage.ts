@@ -11,6 +11,7 @@ import type {
 import { ensureAppIcon } from "../../features/appIcons/AppIconService";
 import { ensureFavicon } from "../../features/favicons/FaviconService";
 import { normalizeProjectsInDb } from "../../features/projects";
+import { publishEvent } from "../../features/publishing/PublishingService";
 import { triggerQueueProcess } from "../../features/queue";
 import {
 	confirmAddiction,
@@ -220,6 +221,8 @@ export function registerStorageHandlers(): void {
 
 			updateEvent(input.id, { caption, project });
 			broadcastEventUpdated(input.id);
+
+			void publishEvent(input.id);
 
 			if (event.status !== "pending") return;
 			if (!event.originalPath || !existsSync(event.originalPath)) return;

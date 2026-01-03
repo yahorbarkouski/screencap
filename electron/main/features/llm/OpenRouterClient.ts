@@ -6,6 +6,22 @@ const logger = createLogger({ scope: "OpenRouterClient" });
 
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 const DEFAULT_MODEL = "openai/gpt-5";
+const DEFAULT_TIMEOUT_MS = 90_000;
+const DEFAULT_TEST_TIMEOUT_MS = 15_000;
+
+async function fetchWithTimeout(
+	url: string,
+	init: RequestInit,
+	timeoutMs: number,
+): Promise<Response> {
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(), timeoutMs);
+	try {
+		return await fetch(url, { ...init, signal: controller.signal });
+	} finally {
+		clearTimeout(timeout);
+	}
+}
 
 export type OpenRouterCallRecord = {
 	timestamp: number;
@@ -35,6 +51,7 @@ export interface OpenRouterOptions {
 	model?: string;
 	maxTokens?: number;
 	temperature?: number;
+	timeoutMs?: number;
 }
 
 type OpenRouterChatCompletionResponse = {
@@ -62,6 +79,7 @@ export async function callOpenRouter<T>(
 	}
 
 	const model = options?.model?.trim() || DEFAULT_MODEL;
+	const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 	const body: Record<string, unknown> = {
 		model,
 		messages,
@@ -76,16 +94,31 @@ export async function callOpenRouter<T>(
 		body.temperature = options.temperature;
 	}
 
-	const response = await fetch(OPENROUTER_API_URL, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${apiKey}`,
-			"HTTP-Referer": "https://screencap.app",
-			"X-Title": "Screencap",
-		},
-		body: JSON.stringify(body),
-	});
+	let response: Response;
+	try {
+		response = await fetchWithTimeout(
+			OPENROUTER_API_URL,
+			{
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${apiKey}`,
+					"HTTP-Referer": "https://screencap.app",
+					"X-Title": "Screencap",
+				},
+				body: JSON.stringify(body),
+			},
+			timeoutMs,
+		);
+	} catch (error) {
+		recordCall({
+			timestamp: Date.now(),
+			kind: "json",
+			model: String(body.model ?? DEFAULT_MODEL),
+			status: 0,
+		});
+		throw error;
+	}
 
 	recordCall({
 		timestamp: Date.now(),
@@ -118,6 +151,7 @@ export async function callOpenRouterRaw(
 	}
 
 	const model = options?.model?.trim() || DEFAULT_MODEL;
+	const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 	const body: Record<string, unknown> = {
 		model,
 		messages,
@@ -132,16 +166,31 @@ export async function callOpenRouterRaw(
 		body.temperature = options.temperature;
 	}
 
-	const response = await fetch(OPENROUTER_API_URL, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${apiKey}`,
-			"HTTP-Referer": "https://screencap.app",
-			"X-Title": "Screencap",
-		},
-		body: JSON.stringify(body),
-	});
+	let response: Response;
+	try {
+		response = await fetchWithTimeout(
+			OPENROUTER_API_URL,
+			{
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${apiKey}`,
+					"HTTP-Referer": "https://screencap.app",
+					"X-Title": "Screencap",
+				},
+				body: JSON.stringify(body),
+			},
+			timeoutMs,
+		);
+	} catch (error) {
+		recordCall({
+			timestamp: Date.now(),
+			kind: "raw",
+			model: String(body.model ?? DEFAULT_MODEL),
+			status: 0,
+		});
+		throw error;
+	}
 
 	recordCall({
 		timestamp: Date.now(),
@@ -172,19 +221,23 @@ export async function testConnection(model?: string): Promise<{
 	const selectedModel = model?.trim() || DEFAULT_MODEL;
 
 	try {
-		const response = await fetch(OPENROUTER_API_URL, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${apiKey}`,
-				"HTTP-Referer": "https://screencap.app",
-				"X-Title": "Screencap",
+		const response = await fetchWithTimeout(
+			OPENROUTER_API_URL,
+			{
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${apiKey}`,
+					"HTTP-Referer": "https://screencap.app",
+					"X-Title": "Screencap",
+				},
+				body: JSON.stringify({
+					model: selectedModel,
+					messages: [{ role: "user", content: "Hello" }],
+				}),
 			},
-			body: JSON.stringify({
-				model: selectedModel,
-				messages: [{ role: "user", content: "Hello" }],
-			}),
-		});
+			DEFAULT_TEST_TIMEOUT_MS,
+		);
 
 		recordCall({
 			timestamp: Date.now(),

@@ -16,6 +16,8 @@ import type { ClassificationProvider, ProviderAvailability } from "../types";
 
 const OCR_MAX_CHARS = 12_000;
 const FALLBACK_CONFIDENCE_THRESHOLD = 0.55;
+const DEFAULT_TIMEOUT_MS = 180_000;
+const DEFAULT_TEST_TIMEOUT_MS = 15_000;
 
 type OpenAiChatCompletionResponse = {
 	choices?: Array<{
@@ -48,6 +50,7 @@ async function callLocalOpenAi<T>(
 		messages: unknown[];
 		maxTokens?: number;
 		temperature?: number;
+		timeoutMs?: number;
 	},
 	schema: z.ZodType<T>,
 ): Promise<T> {
@@ -59,11 +62,22 @@ async function callLocalOpenAi<T>(
 	if (params.maxTokens !== undefined) body.max_tokens = params.maxTokens;
 	if (params.temperature !== undefined) body.temperature = params.temperature;
 
-	const response = await fetch(url, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify(body),
-	});
+	const controller = new AbortController();
+	const timeout = setTimeout(
+		() => controller.abort(),
+		params.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+	);
+	let response: Response;
+	try {
+		response = await fetch(url, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(body),
+			signal: controller.signal,
+		});
+	} finally {
+		clearTimeout(timeout);
+	}
 
 	if (!response.ok) {
 		const error = await response.text();
@@ -98,6 +112,7 @@ export async function testLocalOpenAiConnection(input: {
 				],
 				maxTokens: 20,
 				temperature: 0,
+				timeoutMs: DEFAULT_TEST_TIMEOUT_MS,
 			},
 			PingSchema,
 		);

@@ -12,6 +12,9 @@ import type {
 	ClearableStorageCategory,
 	ContextStatus,
 	ContextTestResult,
+	CreateShareResult,
+	EodEntry,
+	EodEntryInput,
 	Event,
 	EventScreenshot,
 	EventSummary,
@@ -24,6 +27,7 @@ import type {
 	PeriodType,
 	PermissionStatus,
 	ProjectRepo,
+	ProjectShare,
 	ProjectStatsItem,
 	RecordedApp,
 	Settings,
@@ -252,6 +256,32 @@ const api = {
 			ipcRenderer.invoke(IpcChannels.Ocr.Recognize, imageBase64),
 	},
 
+	eod: {
+		openFlow: (options?: { dayStart?: number }): Promise<void> => {
+			if (options) {
+				return ipcRenderer.invoke(IpcChannels.Eod.OpenFlow, options);
+			}
+			return ipcRenderer.invoke(IpcChannels.Eod.OpenFlow);
+		},
+		getEntryByDayStart: (dayStart: number): Promise<EodEntry | null> =>
+			ipcRenderer.invoke(IpcChannels.Eod.GetEntryByDayStart, dayStart),
+		upsertEntry: (entry: EodEntryInput): Promise<void> =>
+			ipcRenderer.invoke(IpcChannels.Eod.UpsertEntry, entry),
+		listEntries: (): Promise<EodEntry[]> =>
+			ipcRenderer.invoke(IpcChannels.Eod.ListEntries),
+	},
+
+	publishing: {
+		createShare: (projectName: string): Promise<CreateShareResult> =>
+			ipcRenderer.invoke(IpcChannels.Publishing.CreateShare, projectName),
+		getShare: (projectName: string): Promise<ProjectShare | null> =>
+			ipcRenderer.invoke(IpcChannels.Publishing.GetShare, projectName),
+		disableShare: (projectName: string): Promise<void> =>
+			ipcRenderer.invoke(IpcChannels.Publishing.DisableShare, projectName),
+		syncShare: (projectName: string): Promise<number> =>
+			ipcRenderer.invoke(IpcChannels.Publishing.SyncShare, projectName),
+	},
+
 	on: (channel: string, callback: (...args: unknown[]) => void) => {
 		if (!allowedEventChannels.has(channel)) {
 			throw new Error("Invalid event channel");
@@ -277,6 +307,8 @@ export {
 	type GitCommit,
 	type Memory,
 	type ProjectRepo,
+	type ProjectShare,
+	type CreateShareResult,
 	type Settings,
 	type Story,
 	type PermissionStatus,
@@ -294,4 +326,6 @@ export {
 	type ContextStatus,
 	type AppInfo,
 	type UpdateState,
+	type EodEntry,
+	type EodEntryInput,
 };

@@ -222,6 +222,12 @@ export function StreakPopup() {
 		window.close();
 	}, []);
 
+	const triggerEndOfDay = useCallback(() => {
+		if (!window.api?.eod?.openFlow) return;
+		void window.api.eod.openFlow();
+		window.close();
+	}, []);
+
 	useEffect(() => {
 		if (!window.api) return;
 		return window.api.on("shortcut:capture-now", () => {
@@ -354,54 +360,69 @@ export function StreakPopup() {
 
 			<DayWrappedLegend slots={slots} mode={daylineMode} />
 
-			<div className="mt-4 grid grid-cols-2 gap-2">
+			<div className="mt-4 space-y-2">
 				<Button
 					size="sm"
-					variant="outline"
-					className="w-full hover:bg-primary/10"
-					onClick={() => {
-						window.api?.window.show();
-						window.close();
-					}}
+					className="w-full justify-between bg-primary/15 text-primary hover:bg-primary/20"
+					onClick={triggerEndOfDay}
 					disabled={!window.api}
 				>
-					Open app
+					<span>End of day</span>
+					<ShortcutKbd
+						accelerator={settings.shortcuts.endOfDay}
+						className="h-4 px-1 text-[9px] rounded-sm"
+					/>
 				</Button>
 
-				<DropdownMenu>
-					<div className="flex w-full">
-						<Button
-							size="sm"
-							className="flex-1 justify-center rounded-r-none bg-accent/20 text-accent-foreground hover:bg-accent/30"
-							onClick={triggerCaptureNow}
-							disabled={!window.api}
-						>
-							<span>Capture now</span>
-						</Button>
-						<DropdownMenuTrigger asChild>
+				<div className="grid grid-cols-2 gap-2">
+					<Button
+						size="sm"
+						variant="outline"
+						className="w-full hover:bg-primary/10"
+						onClick={() => {
+							window.api?.window.show();
+							window.close();
+						}}
+						disabled={!window.api}
+					>
+						Open app
+					</Button>
+
+					<DropdownMenu>
+						<div className="flex w-full">
 							<Button
 								size="sm"
-								className="rounded-l-none px-2 bg-accent/20 text-accent-foreground hover:bg-accent/30 border-l border-border/40"
+								className="flex-1 justify-center rounded-r-none bg-accent/20 text-accent-foreground hover:bg-accent/30"
+								onClick={triggerCaptureNow}
 								disabled={!window.api}
-								aria-label="Capture options"
 							>
-								<ChevronDown className="size-3" />
+								<span>Capture now</span>
 							</Button>
-						</DropdownMenuTrigger>
-					</div>
-					<DropdownMenuContent align="end" side="top" avoidCollisions={false}>
-						<DropdownMenuItem
-							onSelect={triggerProjectProgressCapture}
-							className="flex items-center justify-between gap-3"
-						>
-							<span>Capture project progress</span>
-							<ShortcutKbd
-								accelerator={settings.shortcuts.captureProjectProgress}
-								className="h-4 px-1 text-[9px] rounded-sm"
-							/>
-						</DropdownMenuItem>
-					</DropdownMenuContent>
-				</DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									size="sm"
+									className="rounded-l-none px-2 bg-accent/20 text-accent-foreground hover:bg-accent/30 border-l border-border/40"
+									disabled={!window.api}
+									aria-label="Capture options"
+								>
+									<ChevronDown className="size-3" />
+								</Button>
+							</DropdownMenuTrigger>
+						</div>
+						<DropdownMenuContent align="end" side="top" avoidCollisions={false}>
+							<DropdownMenuItem
+								onSelect={triggerProjectProgressCapture}
+								className="flex items-center justify-between gap-3"
+							>
+								<span>Capture project progress</span>
+								<ShortcutKbd
+									accelerator={settings.shortcuts.captureProjectProgress}
+									className="h-4 px-1 text-[9px] rounded-sm"
+								/>
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				</div>
 			</div>
 		</div>
 	);

@@ -151,6 +151,68 @@ export const ipcInsertStoryArgs = z.tuple([
 		.strict(),
 ]);
 
+export const ipcEodOpenFlowArgs = z.union([
+	ipcNoArgs,
+	z.tuple([
+		z
+			.object({
+				dayStart: z.number().int().optional(),
+			})
+			.strict(),
+	]),
+]);
+
+export const ipcEodGetEntryByDayStartArgs = z.tuple([z.number().int()]);
+
+const zEodAttachment = z.union([
+	z
+		.object({
+			kind: z.literal("event"),
+			eventId: zLimitedString(256),
+		})
+		.strict(),
+	z
+		.object({
+			kind: z.literal("image"),
+			path: zLimitedString(10_000),
+		})
+		.strict(),
+]);
+
+const zEodSection = z
+	.object({
+		id: zLimitedString(256),
+		title: zLimitedString(500),
+		body: z.string().max(200_000),
+		attachments: z.array(zEodAttachment).max(100),
+	})
+	.strict();
+
+const zEodContent = z
+	.object({
+		version: z.literal(1),
+		sections: z.array(zEodSection).max(100),
+		summaryEventCount: z.number().int().nonnegative().optional(),
+	})
+	.strict();
+
+export const ipcEodUpsertEntryArgs = z.tuple([
+	z
+		.object({
+			id: zLimitedString(256),
+			dayStart: z.number().int(),
+			dayEnd: z.number().int(),
+			schemaVersion: zPositiveInt.max(1000),
+			content: zEodContent,
+			createdAt: zNonNegativeInt,
+			updatedAt: zNonNegativeInt,
+			submittedAt: z.number().int().nullable(),
+		})
+		.strict(),
+]);
+
+export const ipcEodListEntriesArgs = ipcNoArgs;
+
 const zAutomationRule = z
 	.object({
 		capture: z.enum(["allow", "skip"]).optional(),
@@ -184,6 +246,7 @@ const zShortcutSettings = z
 	.object({
 		captureNow: zShortcutAccelerator,
 		captureProjectProgress: zShortcutAccelerator,
+		endOfDay: zShortcutAccelerator,
 	})
 	.strict();
 

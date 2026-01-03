@@ -1,3 +1,8 @@
+export interface ProjectProgressPreview {
+	imageBase64: string;
+	project: string | null;
+}
+
 export interface BackgroundContext {
 	provider: string;
 	kind: string;
@@ -121,6 +126,7 @@ export interface OnboardingState {
 export interface ShortcutSettings {
 	captureNow: string | null;
 	captureProjectProgress: string | null;
+	endOfDay: string | null;
 }
 
 export interface Settings {
@@ -167,6 +173,53 @@ export interface Story {
 	periodEnd: number;
 	content: string;
 	createdAt: number;
+}
+
+export type EodAttachment =
+	| {
+			kind: "event";
+			eventId: string;
+	  }
+	| {
+			kind: "image";
+			path: string;
+	  };
+
+export interface EodSection {
+	id: string;
+	title: string;
+	body: string;
+	attachments: EodAttachment[];
+}
+
+export interface EodContentV1 {
+	version: 1;
+	sections: EodSection[];
+	summaryEventCount?: number;
+}
+
+export type EodContent = EodContentV1;
+
+export interface EodEntry {
+	id: string;
+	dayStart: number;
+	dayEnd: number;
+	schemaVersion: number;
+	content: EodContent;
+	createdAt: number;
+	updatedAt: number;
+	submittedAt: number | null;
+}
+
+export interface EodEntryInput {
+	id: string;
+	dayStart: number;
+	dayEnd: number;
+	schemaVersion: number;
+	content: EodContent;
+	createdAt: number;
+	updatedAt: number;
+	submittedAt: number | null;
 }
 
 export interface EventFilters {
@@ -345,6 +398,22 @@ export interface ProjectStatsItem {
 	coverProjectProgress: number;
 }
 
+export interface ProjectShare {
+	projectName: string;
+	publicId: string;
+	writeKey: string;
+	shareUrl: string;
+	createdAt: number;
+	updatedAt: number;
+	lastPublishedAt: number | null;
+}
+
+export interface CreateShareResult {
+	publicId: string;
+	writeKey: string;
+	shareUrl: string;
+}
+
 declare global {
 	interface Window {
 		api: {
@@ -516,6 +585,18 @@ declare global {
 			ocr: {
 				recognize: (imageBase64: string) => Promise<OcrResult>;
 			};
+			eod: {
+				openFlow: (options?: { dayStart?: number }) => Promise<void>;
+				getEntryByDayStart: (dayStart: number) => Promise<EodEntry | null>;
+				upsertEntry: (entry: EodEntryInput) => Promise<void>;
+				listEntries: () => Promise<EodEntry[]>;
+			};
+			publishing: {
+				createShare: (projectName: string) => Promise<CreateShareResult>;
+				getShare: (projectName: string) => Promise<ProjectShare | null>;
+				disableShare: (projectName: string) => Promise<void>;
+				syncShare: (projectName: string) => Promise<number>;
+			};
 			on: (
 				channel:
 					| "permission:required"
@@ -525,7 +606,9 @@ declare global {
 					| "projects:normalized"
 					| "update:state"
 					| "shortcut:capture-now"
-					| "shortcut:capture-project-progress",
+					| "shortcut:capture-project-progress-preview"
+					| "shortcut:capture-project-progress"
+					| "shortcut:end-of-day",
 				callback: (...args: unknown[]) => void,
 			) => () => void;
 		};
