@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/yahorbarkouski/screencap/compare/v1.3.2...v1.4.0) (2026-01-03)
+
+
+### Features
+
+* rich llm customization, summaries, deployment ([d39b5f0](https://github.com/yahorbarkouski/screencap/commit/d39b5f03f3a7b1fff874a260aa3519c8e34b8c41))
+
 ## [1.3.2](https://github.com/yahorbarkouski/screencap/compare/v1.3.1...v1.3.2) (2026-01-02)
 
 
