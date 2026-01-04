@@ -1,6 +1,8 @@
 export {
 	discardActivityWindow,
 	finalizeActivityWindow,
+	getLastKnownCandidate,
+	getLastKnownSnapshot,
 	isActivityWindowTracking,
 	startActivityWindowTracking,
 	stopActivityWindowTracking,

@@ -27,6 +27,7 @@ import type {
 	GetTimelineFacetsOptions,
 	GitCommit,
 	LLMTestResult,
+	LogsCollectResult,
 	Memory,
 	OcrResult,
 	PeriodType,
@@ -177,6 +178,8 @@ const api = {
 			ipcRenderer.invoke(IpcChannels.Storage.UnmarkProjectProgress, id),
 		deleteEvent: (id: string) =>
 			ipcRenderer.invoke(IpcChannels.Storage.DeleteEvent, id),
+		finalizeOnboardingEvent: (id: string): Promise<void> =>
+			ipcRenderer.invoke(IpcChannels.Storage.FinalizeOnboardingEvent, id),
 		getMemories: (type?: string): Promise<Memory[]> =>
 			ipcRenderer.invoke(IpcChannels.Storage.GetMemories, type),
 		insertMemory: (memory: Memory) =>
@@ -385,6 +388,15 @@ const api = {
 			ipcRenderer.invoke(IpcChannels.SharedProjects.SyncAll),
 	},
 
+	logs: {
+		collect: (rendererLogs?: string): Promise<LogsCollectResult> =>
+			ipcRenderer.invoke(IpcChannels.Logs.Collect, rendererLogs),
+		copyToClipboard: (rendererLogs?: string): Promise<void> =>
+			ipcRenderer.invoke(IpcChannels.Logs.CopyToClipboard, rendererLogs),
+		saveToFile: (rendererLogs?: string): Promise<string | null> =>
+			ipcRenderer.invoke(IpcChannels.Logs.SaveToFile, rendererLogs),
+	},
+
 	on: (channel: string, callback: (...args: unknown[]) => void) => {
 		if (!allowedEventChannels.has(channel)) {
 			throw new Error("Invalid event channel");
@@ -409,6 +421,7 @@ export {
 	type Event,
 	type EventScreenshot,
 	type GitCommit,
+	type LogsCollectResult,
 	type Memory,
 	type ProjectRepo,
 	type ProjectShare,

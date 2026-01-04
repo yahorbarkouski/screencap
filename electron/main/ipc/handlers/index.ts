@@ -3,6 +3,7 @@ export { registerCaptureHandlers } from "./capture";
 export { registerChatHandlers } from "./chat";
 export { registerEodHandlers } from "./eod";
 export { registerLLMHandlers } from "./llm";
+export { registerLogsHandlers } from "./logs";
 export { registerOcrHandlers } from "./ocr";
 export { registerPermissionHandlers } from "./permissions";
 export { registerPopupHandlers } from "./popup";

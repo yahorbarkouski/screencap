@@ -55,6 +55,9 @@ export interface Event {
 	contextConfidence: number | null;
 	contextKey: string | null;
 	contextJson: string | null;
+	authorUserId?: string;
+	authorUsername?: string;
+	isRemote?: boolean;
 }
 
 export function parseBackgroundFromEvent(event: Event): BackgroundContext[] {
@@ -129,6 +132,12 @@ export interface ShortcutSettings {
 	endOfDay: string | null;
 }
 
+export interface SharingSettings {
+	includeAppName: boolean;
+	includeWindowTitle: boolean;
+	includeContentInfo: boolean;
+}
+
 export interface Settings {
 	apiKey: string | null;
 	captureInterval: number;
@@ -138,6 +147,7 @@ export interface Settings {
 	automationRules: AutomationRules;
 	onboarding: OnboardingState;
 	shortcuts: ShortcutSettings;
+	sharing: SharingSettings;
 	llmEnabled: boolean;
 	allowVisionUploads: boolean;
 	cloudLlmModel: string;
@@ -499,8 +509,18 @@ export interface SharedEvent {
 	authorUserId: string;
 	authorUsername: string;
 	timestampMs: number;
+	endTimestampMs: number | null;
+	project: string | null;
+	category: string | null;
 	caption: string | null;
-	imageCachePath: string | null;
+	projectProgress: number;
+	appBundleId: string | null;
+	appName: string | null;
+	windowTitle: string | null;
+	contentKind: string | null;
+	contentTitle: string | null;
+	thumbnailPath: string | null;
+	originalPath: string | null;
 }
 
 export interface AcceptRoomInviteParams {
@@ -508,6 +528,12 @@ export interface AcceptRoomInviteParams {
 	roomName: string;
 	ownerUserId: string;
 	ownerUsername: string;
+}
+
+export interface LogsCollectResult {
+	logs: string;
+	entryCount: number;
+	appInfo: AppInfo;
 }
 
 declare global {
@@ -603,6 +629,7 @@ declare global {
 				}) => Promise<void>;
 				unmarkProjectProgress: (id: string) => Promise<void>;
 				deleteEvent: (id: string) => Promise<void>;
+			finalizeOnboardingEvent: (id: string) => Promise<void>;
 				getMemories: (type?: string) => Promise<Memory[]>;
 				insertMemory: (memory: Memory) => Promise<void>;
 				updateMemory: (
@@ -738,6 +765,11 @@ declare global {
 				}) => Promise<SharedEvent[]>;
 				sync: (roomId: string) => Promise<{ count: number }>;
 				syncAll: () => Promise<void>;
+			};
+			logs: {
+				collect: (rendererLogs?: string) => Promise<LogsCollectResult>;
+				copyToClipboard: (rendererLogs?: string) => Promise<void>;
+				saveToFile: (rendererLogs?: string) => Promise<string | null>;
 			};
 			on: (
 				channel:

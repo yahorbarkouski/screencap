@@ -1,15 +1,18 @@
 import {
 	AlertCircle,
+	Bug,
 	Check,
 	Copy,
 	Download,
 	ExternalLink,
 	Eye,
+	FileText,
 	Loader2,
 	RefreshCw,
 	RotateCcw,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { getRendererLogs, getRendererLogCount } from "@/lib/rendererLogBuffer";
 import {
 	SettingsRow,
 	SettingsRows,
@@ -217,6 +220,10 @@ export function SystemTab({
 		result?: ContextTestResult;
 	}>({ status: "idle" });
 	const [copiedSha, setCopiedSha] = useState(false);
+	const [logsAction, setLogsAction] = useState<{
+		status: "idle" | "copying" | "saving" | "copied" | "saved" | "error";
+		message?: string;
+	}>({ status: "idle" });
 
 	useEffect(() => {
 		if (!window.api) return;
@@ -297,6 +304,42 @@ export function SystemTab({
 		setCopiedSha(true);
 		setTimeout(() => setCopiedSha(false), 2000);
 	}, [appInfo?.gitSha]);
+
+	const handleCopyLogs = useCallback(async () => {
+		if (!window.api) return;
+		setLogsAction({ status: "copying" });
+		try {
+			const rendererLogs = getRendererLogs();
+			await window.api.logs.copyToClipboard(rendererLogs);
+			setLogsAction({ status: "copied", message: "Logs copied to clipboard" });
+			setTimeout(() => setLogsAction({ status: "idle" }), 3000);
+		} catch (error) {
+			setLogsAction({
+				status: "error",
+				message: String(error),
+			});
+		}
+	}, []);
+
+	const handleSaveLogs = useCallback(async () => {
+		if (!window.api) return;
+		setLogsAction({ status: "saving" });
+		try {
+			const rendererLogs = getRendererLogs();
+			const filePath = await window.api.logs.saveToFile(rendererLogs);
+			if (filePath) {
+				setLogsAction({ status: "saved", message: `Saved to ${filePath}` });
+			} else {
+				setLogsAction({ status: "idle" });
+			}
+			setTimeout(() => setLogsAction({ status: "idle" }), 3000);
+		} catch (error) {
+			setLogsAction({
+				status: "error",
+				message: String(error),
+			});
+		}
+	}, []);
 
 	const launchAtLoginSupported =
 		appInfo?.platform === "darwin" || appInfo?.platform === "win32";
@@ -431,6 +474,86 @@ export function SystemTab({
 							status={contextTest.status}
 							result={contextTest.result}
 						/>
+					</div>
+				</Panel>
+
+				<Panel
+					title="Troubleshooting"
+					meta="Share diagnostic logs"
+					className="max-w-3xl"
+					right={
+						<div className="flex items-center gap-2">
+							<Button
+								variant="outline"
+								size="sm"
+								className="h-8"
+								onClick={handleCopyLogs}
+								disabled={
+									logsAction.status === "copying" ||
+									logsAction.status === "saving"
+								}
+							>
+								{logsAction.status === "copying" ? (
+									<Loader2 className="h-4 w-4 animate-spin" />
+								) : logsAction.status === "copied" ? (
+									<Check className="h-4 w-4 text-green-500" />
+								) : (
+									<Copy className="h-4 w-4" />
+								)}
+								Copy
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								className="h-8"
+								onClick={handleSaveLogs}
+								disabled={
+									logsAction.status === "copying" ||
+									logsAction.status === "saving"
+								}
+							>
+								{logsAction.status === "saving" ? (
+									<Loader2 className="h-4 w-4 animate-spin" />
+								) : logsAction.status === "saved" ? (
+									<Check className="h-4 w-4 text-green-500" />
+								) : (
+									<FileText className="h-4 w-4" />
+								)}
+								Save
+							</Button>
+						</div>
+					}
+				>
+					<div className="space-y-3">
+						<p className="text-sm text-muted-foreground">
+							If you're experiencing issues, export diagnostic logs to share
+							with support. Logs include system info and recent activity (no
+							screenshots or personal data).
+						</p>
+						{logsAction.status === "copied" && (
+							<div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400">
+								<Check className="h-4 w-4" />
+								<span className="text-sm">{logsAction.message}</span>
+							</div>
+						)}
+						{logsAction.status === "saved" && logsAction.message && (
+							<div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400">
+								<Check className="h-4 w-4" />
+								<span className="text-sm font-mono truncate">
+									{logsAction.message}
+								</span>
+							</div>
+						)}
+						{logsAction.status === "error" && (
+							<div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive">
+								<AlertCircle className="h-4 w-4 shrink-0" />
+								<span className="text-sm">{logsAction.message}</span>
+							</div>
+						)}
+						<div className="text-xs text-muted-foreground">
+							<Bug className="inline h-3 w-3 mr-1" />
+							{getRendererLogCount()} renderer logs buffered
+						</div>
 					</div>
 				</Panel>
 

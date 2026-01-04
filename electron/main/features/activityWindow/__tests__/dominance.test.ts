@@ -3,7 +3,7 @@ import type { ActivitySegment } from "../dominance";
 import { computeDominantSegment } from "../dominance";
 
 describe("computeDominantSegment", () => {
-	it("picks dominant key while ignoring short interruptions", () => {
+	it("picks dominant key by accumulated total time", () => {
 		const segments: ActivitySegment[] = [
 			{
 				key: "1::work",
@@ -37,7 +37,7 @@ describe("computeDominantSegment", () => {
 		expect(dominant?.displayId).toBe("1");
 	});
 
-	it("returns null when nothing clears interruption threshold", () => {
+	it("returns null when no app has enough total time", () => {
 		const segments: ActivitySegment[] = [
 			{
 				key: "1::a",
@@ -61,7 +61,7 @@ describe("computeDominantSegment", () => {
 		expect(dominant).toBeNull();
 	});
 
-	it("includes segments exactly at the interruption threshold", () => {
+	it("includes apps exactly at the minimum total threshold", () => {
 		const segments: ActivitySegment[] = [
 			{
 				key: "1::a",
@@ -75,5 +75,54 @@ describe("computeDominantSegment", () => {
 
 		const dominant = computeDominantSegment(segments, 10_000, 10_000);
 		expect(dominant?.key).toBe("1::a");
+	});
+
+	it("accumulates multiple short segments into qualifying total", () => {
+		const segments: ActivitySegment[] = [
+			{
+				key: "1::work",
+				bundleId: "work",
+				displayId: "1",
+				urlHost: null,
+				startAt: 0,
+				endAt: 4_000,
+			},
+			{
+				key: "1::other",
+				bundleId: "other",
+				displayId: "1",
+				urlHost: null,
+				startAt: 4_000,
+				endAt: 5_000,
+			},
+			{
+				key: "1::work",
+				bundleId: "work",
+				displayId: "1",
+				urlHost: null,
+				startAt: 5_000,
+				endAt: 9_000,
+			},
+			{
+				key: "1::other",
+				bundleId: "other",
+				displayId: "1",
+				urlHost: null,
+				startAt: 9_000,
+				endAt: 10_000,
+			},
+			{
+				key: "1::work",
+				bundleId: "work",
+				displayId: "1",
+				urlHost: null,
+				startAt: 10_000,
+				endAt: 15_000,
+			},
+		];
+
+		const dominant = computeDominantSegment(segments, 15_000, 10_000);
+		expect(dominant?.key).toBe("1::work");
+		expect(dominant?.bundleId).toBe("work");
 	});
 });

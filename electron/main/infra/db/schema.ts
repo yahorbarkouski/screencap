@@ -174,8 +174,18 @@ export function createTables(db: Database.Database): void {
       author_user_id TEXT NOT NULL,
       author_username TEXT NOT NULL,
       timestamp_ms INTEGER NOT NULL,
+      end_timestamp_ms INTEGER,
+      project TEXT,
+      category TEXT,
       caption TEXT,
-      image_cache_path TEXT,
+      project_progress INTEGER DEFAULT 0,
+      app_bundle_id TEXT,
+      app_name TEXT,
+      window_title TEXT,
+      content_kind TEXT,
+      content_title TEXT,
+      thumbnail_path TEXT,
+      original_path TEXT,
       synced_at INTEGER NOT NULL
     );
 
@@ -249,6 +259,7 @@ export function createIndexes(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_room_memberships_role ON room_memberships(role);
     CREATE INDEX IF NOT EXISTS idx_room_events_cache_room_timestamp ON room_events_cache(room_id, timestamp_ms);
     CREATE INDEX IF NOT EXISTS idx_room_events_cache_author ON room_events_cache(author_user_id);
+    CREATE INDEX IF NOT EXISTS idx_room_events_cache_project ON room_events_cache(project);
     CREATE INDEX IF NOT EXISTS idx_chat_messages_cache_thread_timestamp ON chat_messages_cache(thread_id, timestamp_ms);
   `);
 

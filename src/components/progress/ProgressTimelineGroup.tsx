@@ -1,19 +1,11 @@
 import { useMemo } from "react";
-import type { Event, GitCommit, SharedEvent } from "@/types";
+import type { Event, GitCommit } from "@/types";
 import { ProgressCard } from "./ProgressCard";
 import { ProgressCommitCard } from "./ProgressCommitCard";
-import { SharedProgressCard } from "./SharedProgressCard";
 
 export type ProgressTimelineItem =
-	| { kind: "event"; timestamp: number; event: Event }
-	| { kind: "commit"; timestamp: number; commit: GitCommit }
-	| {
-			kind: "shared";
-			timestamp: number;
-			event: SharedEvent;
-			projectName: string;
-			isMe: boolean;
-	  };
+	| { kind: "event"; timestamp: number; event: Event; isMe?: boolean }
+	| { kind: "commit"; timestamp: number; commit: GitCommit };
 
 export function ProgressTimelineGroup({
 	date,
@@ -43,18 +35,7 @@ export function ProgressTimelineGroup({
 								event={item.event}
 								showProject={showProject}
 								isLast={idx === ordered.length - 1}
-								onUnmark={onUnmark}
-							/>
-						);
-					}
-					if (item.kind === "shared") {
-						return (
-							<SharedProgressCard
-								key={item.event.id}
-								event={item.event}
-								showProject={showProject}
-								projectName={item.projectName}
-								isLast={idx === ordered.length - 1}
+								onUnmark={item.event.isRemote ? undefined : onUnmark}
 								isMe={item.isMe}
 							/>
 						);

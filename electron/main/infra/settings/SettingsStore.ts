@@ -22,6 +22,11 @@ const DEFAULT_SETTINGS: Settings = {
 		captureProjectProgress: "Command+Shift+P",
 		endOfDay: "Command+Shift+E",
 	},
+	sharing: {
+		includeAppName: true,
+		includeWindowTitle: false,
+		includeContentInfo: true,
+	},
 	llmEnabled: true,
 	allowVisionUploads: true,
 	cloudLlmModel: "openai/gpt-5",
@@ -80,6 +85,15 @@ const zShortcutSettings = z
 	.strip()
 	.catch(DEFAULT_SETTINGS.shortcuts);
 
+const zSharingSettings = z
+	.object({
+		includeAppName: z.boolean().catch(DEFAULT_SETTINGS.sharing.includeAppName),
+		includeWindowTitle: z.boolean().catch(DEFAULT_SETTINGS.sharing.includeWindowTitle),
+		includeContentInfo: z.boolean().catch(DEFAULT_SETTINGS.sharing.includeContentInfo),
+	})
+	.strip()
+	.catch(DEFAULT_SETTINGS.sharing);
+
 const settingsFileSchema: z.ZodType<Settings, z.ZodTypeDef, unknown> = z
 	.object({
 		apiKey: z
@@ -100,6 +114,7 @@ const settingsFileSchema: z.ZodType<Settings, z.ZodTypeDef, unknown> = z
 		automationRules: zAutomationRules,
 		onboarding: zOnboardingState,
 		shortcuts: zShortcutSettings,
+		sharing: zSharingSettings,
 		llmEnabled: z.boolean().catch(DEFAULT_SETTINGS.llmEnabled),
 		allowVisionUploads: z.boolean().catch(DEFAULT_SETTINGS.allowVisionUploads),
 		cloudLlmModel: zLimitedString(500).catch(DEFAULT_SETTINGS.cloudLlmModel),

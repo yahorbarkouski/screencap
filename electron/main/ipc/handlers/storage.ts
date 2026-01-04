@@ -261,6 +261,28 @@ export function registerStorageHandlers(): void {
 	});
 
 	secureHandle(
+		IpcChannels.Storage.FinalizeOnboardingEvent,
+		ipcIdArgs,
+		(id: string) => {
+			const event = getEventById(id);
+			if (!event) return;
+
+			updateEvent(id, {
+				appName: "Screencap",
+				appBundleId: "com.screencap.app",
+				category: "Chores",
+				subcategories: "Setup",
+				caption: "Completing onboarding — your journey with Screencap begins",
+				windowTitle: "Welcome to Screencap",
+				status: "completed",
+				confidence: 0.95,
+				tags: "onboarding,first-capture",
+			});
+			broadcastEventUpdated(id);
+		},
+	);
+
+	secureHandle(
 		IpcChannels.Storage.GetMemories,
 		ipcGetMemoriesArgs,
 		(type?: string) => {

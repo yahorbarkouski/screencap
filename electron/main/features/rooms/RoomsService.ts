@@ -296,6 +296,18 @@ export async function acceptRoomInvite(params: {
 		ownerUsername: params.ownerUsername,
 		linkedLocalProject: matchingLocalProject ?? null,
 	});
+
+	void triggerBackfillSync(params.roomId);
+}
+
+async function triggerBackfillSync(roomId: string): Promise<void> {
+	try {
+		const { syncRoomWithBackfill } = await import("../sharedProjects/SharedProjectsService");
+		await syncRoomWithBackfill(roomId);
+		logger.info("Backfill sync completed for room", { roomId });
+	} catch (error) {
+		logger.warn("Backfill sync failed", { roomId, error: String(error) });
+	}
 }
 
 export async function acceptProjectRoomInvite(params: {

@@ -1,3 +1,5 @@
+import { appendLog } from "./logBuffer";
+
 type LogLevel = "debug" | "info" | "warn" | "error";
 
 interface LoggerOptions {
@@ -40,9 +42,19 @@ export function createLogger(options: LoggerOptions): Logger {
 	const minLevel = options.minLevel ?? getMinLevel();
 
 	const log = (level: LogLevel, message: string, data?: unknown): void => {
+		const timestamp = formatTimestamp();
+
+		appendLog({
+			timestamp,
+			level,
+			scope,
+			message,
+			data,
+		});
+
 		if (!shouldLog(level, minLevel)) return;
 
-		const prefix = `[${formatTimestamp()}] [${scope}]`;
+		const prefix = `[${timestamp}] [${scope}]`;
 		const fullMessage = `${prefix} ${message}`;
 
 		const logFn =

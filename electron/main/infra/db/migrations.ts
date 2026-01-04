@@ -228,9 +228,9 @@ function migrateRoomTables(db: Database.Database): void {
 
 	if (tableExists(db, "room_events_cache")) {
 		const columns = getExistingColumns(db, "room_events_cache");
-		if (columns.has("payload_ciphertext")) {
+		if (columns.has("payload_ciphertext") || !columns.has("project")) {
 			db.exec("DROP TABLE room_events_cache");
-			logger.info("Dropped old room_events_cache table with ciphertext schema");
+			logger.info("Dropped old room_events_cache table for full event schema migration");
 		}
 	}
 
@@ -242,8 +242,18 @@ function migrateRoomTables(db: Database.Database): void {
 				author_user_id TEXT NOT NULL,
 				author_username TEXT NOT NULL,
 				timestamp_ms INTEGER NOT NULL,
+				end_timestamp_ms INTEGER,
+				project TEXT,
+				category TEXT,
 				caption TEXT,
-				image_cache_path TEXT,
+				project_progress INTEGER DEFAULT 0,
+				app_bundle_id TEXT,
+				app_name TEXT,
+				window_title TEXT,
+				content_kind TEXT,
+				content_title TEXT,
+				thumbnail_path TEXT,
+				original_path TEXT,
 				synced_at INTEGER NOT NULL
 			)
 		`);
@@ -253,6 +263,9 @@ function migrateRoomTables(db: Database.Database): void {
 		db.exec(
 			"CREATE INDEX idx_room_events_cache_author ON room_events_cache(author_user_id)",
 		);
-		logger.info("Created room_events_cache table with decrypted schema");
+		db.exec(
+			"CREATE INDEX idx_room_events_cache_project ON room_events_cache(project)",
+		);
+		logger.info("Created room_events_cache table with full event schema");
 	}
 }

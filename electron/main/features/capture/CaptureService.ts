@@ -18,9 +18,11 @@ const HIGH_RES_SUFFIX = ".hq.png";
 export interface RawCapture {
 	id: string;
 	displayId: string;
-	pngBuffer: Buffer;
-	width: number;
-	height: number;
+	rawBuffer: Buffer;
+	capturedWidth: number;
+	capturedHeight: number;
+	displayWidth: number;
+	displayHeight: number;
 	timestamp: number;
 }
 
@@ -41,6 +43,46 @@ export interface InstantCapture {
 
 const PREVIEW_WIDTH = 800;
 const PREVIEW_JPEG_QUALITY = 85;
+
+function bgraToRgba(bgra: Buffer, pixelCount: number): Buffer {
+	const view = new Uint32Array(bgra.buffer, bgra.byteOffset, pixelCount);
+	const result = new Uint32Array(pixelCount);
+
+	for (let i = 0; i < pixelCount; i++) {
+		const px = view[i];
+		result[i] =
+			(px & 0xff00ff00) | ((px >>> 16) & 0x000000ff) | ((px & 0x000000ff) << 16);
+	}
+
+	return Buffer.from(result.buffer);
+}
+
+function nativeImageToRgba(nativeImage: Electron.NativeImage): {
+	buffer: Buffer;
+	width: number;
+	height: number;
+} {
+	const size = nativeImage.getSize();
+	const bitmap = nativeImage.toBitmap();
+	const pixelCount = size.width * size.height;
+	const rgbaBuffer = bgraToRgba(bitmap, pixelCount);
+
+	return {
+		buffer: rgbaBuffer,
+		width: size.width,
+		height: size.height,
+	};
+}
+
+function createSharpFromRgba(
+	buffer: Buffer,
+	width: number,
+	height: number,
+): sharp.Sharp {
+	return sharp(buffer, {
+		raw: { width, height, channels: 4 },
+	});
+}
 
 function bestThumbnailSize(): { width: number; height: number } {
 	const displays = screen.getAllDisplays();
@@ -120,21 +162,22 @@ export async function processInstantCapture(
 	const thumbnailsDir = options?.dirs?.thumbnailsDir ?? getThumbnailsDir();
 	const originalsDir = options?.dirs?.originalsDir ?? getOriginalsDir();
 
-	const results: CaptureResult[] = [];
+	const rawSources = capture.sources.map((source) => ({
+		...source,
+		rgba: nativeImageToRgba(source.nativeImage),
+	}));
 
-	for (const source of capture.sources) {
+	const processPromises = rawSources.map(async (source) => {
 		const thumbnailPath = join(thumbnailsDir, `${source.id}.webp`);
 		const originalPath = join(originalsDir, `${source.id}.webp`);
 		const highResPath = highResPathForId(source.id, originalsDir);
 
-		const pngBuffer = source.nativeImage.toPNG();
-
 		const [original, thumbnail] = await Promise.all([
-			sharp(pngBuffer)
+			createSharpFromRgba(source.rgba.buffer, source.rgba.width, source.rgba.height)
 				.resize(ORIGINAL_WIDTH, null, { withoutEnlargement: true })
 				.webp({ quality: WEBP_QUALITY })
 				.toBuffer(),
-			sharp(pngBuffer)
+			createSharpFromRgba(source.rgba.buffer, source.rgba.width, source.rgba.height)
 				.resize(THUMBNAIL_WIDTH, null, { withoutEnlargement: true })
 				.webp({ quality: WEBP_QUALITY })
 				.toBuffer(),
@@ -146,6 +189,13 @@ export async function processInstantCapture(
 		];
 
 		if (highResDisplayId && source.displayId === highResDisplayId) {
+			const pngBuffer = await createSharpFromRgba(
+				source.rgba.buffer,
+				source.rgba.width,
+				source.rgba.height,
+			)
+				.png()
+				.toBuffer();
 			writePromises.push(writeFile(highResPath, pngBuffer));
 		}
 
@@ -154,7 +204,7 @@ export async function processInstantCapture(
 			...writePromises,
 		]);
 
-		results.push({
+		return {
 			id: source.id,
 			timestamp: capture.timestamp,
 			displayId: source.displayId,
@@ -164,10 +214,10 @@ export async function processInstantCapture(
 			detailHash: fingerprint.detailHash,
 			width: source.width,
 			height: source.height,
-		});
-	}
+		};
+	});
 
-	return results;
+	return Promise.all(processPromises);
 }
 
 export async function captureRawScreens(): Promise<RawCapture[]> {
@@ -186,13 +236,16 @@ export async function captureRawScreens(): Promise<RawCapture[]> {
 		if (nativeImage.isEmpty()) continue;
 
 		const display = displays.find((d) => source.display_id === String(d.id));
+		const rgba = nativeImageToRgba(nativeImage);
 
 		results.push({
 			id: uuid(),
 			displayId: source.display_id,
-			pngBuffer: nativeImage.toPNG(),
-			width: display?.size.width ?? 1920,
-			height: display?.size.height ?? 1080,
+			rawBuffer: rgba.buffer,
+			capturedWidth: rgba.width,
+			capturedHeight: rgba.height,
+			displayWidth: display?.size.width ?? 1920,
+			displayHeight: display?.size.height ?? 1080,
 			timestamp,
 		});
 	}
@@ -211,19 +264,17 @@ export async function processRawCaptures(
 	const thumbnailsDir = options?.dirs?.thumbnailsDir ?? getThumbnailsDir();
 	const originalsDir = options?.dirs?.originalsDir ?? getOriginalsDir();
 
-	const results: CaptureResult[] = [];
-
-	for (const raw of rawCaptures) {
+	const processPromises = rawCaptures.map(async (raw) => {
 		const thumbnailPath = join(thumbnailsDir, `${raw.id}.webp`);
 		const originalPath = join(originalsDir, `${raw.id}.webp`);
 		const highResPath = highResPathForId(raw.id, originalsDir);
 
 		const [original, thumbnail] = await Promise.all([
-			sharp(raw.pngBuffer)
+			createSharpFromRgba(raw.rawBuffer, raw.capturedWidth, raw.capturedHeight)
 				.resize(ORIGINAL_WIDTH, null, { withoutEnlargement: true })
 				.webp({ quality: WEBP_QUALITY })
 				.toBuffer(),
-			sharp(raw.pngBuffer)
+			createSharpFromRgba(raw.rawBuffer, raw.capturedWidth, raw.capturedHeight)
 				.resize(THUMBNAIL_WIDTH, null, { withoutEnlargement: true })
 				.webp({ quality: WEBP_QUALITY })
 				.toBuffer(),
@@ -235,7 +286,14 @@ export async function processRawCaptures(
 		];
 
 		if (highResDisplayId && raw.displayId === highResDisplayId) {
-			writePromises.push(writeFile(highResPath, raw.pngBuffer));
+			const pngBuffer = await createSharpFromRgba(
+				raw.rawBuffer,
+				raw.capturedWidth,
+				raw.capturedHeight,
+			)
+				.png()
+				.toBuffer();
+			writePromises.push(writeFile(highResPath, pngBuffer));
 		}
 
 		const [fingerprint] = await Promise.all([
@@ -243,7 +301,7 @@ export async function processRawCaptures(
 			...writePromises,
 		]);
 
-		results.push({
+		return {
 			id: raw.id,
 			timestamp: raw.timestamp,
 			displayId: raw.displayId,
@@ -251,12 +309,20 @@ export async function processRawCaptures(
 			originalPath,
 			stableHash: fingerprint.stableHash,
 			detailHash: fingerprint.detailHash,
-			width: raw.width,
-			height: raw.height,
-		});
-	}
+			width: raw.displayWidth,
+			height: raw.displayHeight,
+		};
+	});
 
-	return results;
+	return Promise.all(processPromises);
+}
+
+interface RawSourceData {
+	id: string;
+	displayId: string;
+	rgba: { buffer: Buffer; width: number; height: number };
+	displayWidth: number;
+	displayHeight: number;
 }
 
 export async function captureAllDisplays(options?: {
@@ -271,7 +337,6 @@ export async function captureAllDisplays(options?: {
 	const displays = screen.getAllDisplays();
 	logger.debug(`Found ${displays.length} displays`);
 
-	const results: CaptureResult[] = [];
 	const timestamp = Date.now();
 
 	const sources = await desktopCapturer.getSources({
@@ -281,17 +346,12 @@ export async function captureAllDisplays(options?: {
 
 	logger.debug(`Got ${sources.length} screen sources`);
 
+	const rawSources: RawSourceData[] = [];
+
 	for (const source of sources) {
 		logger.debug(
 			`Processing source: ${source.name}, display_id: ${source.display_id}`,
 		);
-
-		const display = displays.find((d) => source.display_id === String(d.id));
-
-		const id = uuid();
-		const thumbnailPath = join(thumbnailsDir, `${id}.webp`);
-		const originalPath = join(originalsDir, `${id}.webp`);
-		const highResPath = highResPathForId(id, originalsDir);
 
 		const nativeImage = source.thumbnail;
 		if (nativeImage.isEmpty()) {
@@ -299,15 +359,31 @@ export async function captureAllDisplays(options?: {
 			continue;
 		}
 
-		const pngBuffer = nativeImage.toPNG();
-		logger.debug(`PNG buffer size: ${pngBuffer.length} bytes`);
+		const display = displays.find((d) => source.display_id === String(d.id));
+		const rgba = nativeImageToRgba(nativeImage);
+
+		logger.debug(`Raw buffer size: ${rgba.buffer.length} bytes`);
+
+		rawSources.push({
+			id: uuid(),
+			displayId: source.display_id,
+			rgba,
+			displayWidth: display?.size.width ?? 1920,
+			displayHeight: display?.size.height ?? 1080,
+		});
+	}
+
+	const processPromises = rawSources.map(async (raw) => {
+		const thumbnailPath = join(thumbnailsDir, `${raw.id}.webp`);
+		const originalPath = join(originalsDir, `${raw.id}.webp`);
+		const highResPath = highResPathForId(raw.id, originalsDir);
 
 		const [original, thumbnail] = await Promise.all([
-			sharp(pngBuffer)
+			createSharpFromRgba(raw.rgba.buffer, raw.rgba.width, raw.rgba.height)
 				.resize(ORIGINAL_WIDTH, null, { withoutEnlargement: true })
 				.webp({ quality: WEBP_QUALITY })
 				.toBuffer(),
-			sharp(pngBuffer)
+			createSharpFromRgba(raw.rgba.buffer, raw.rgba.width, raw.rgba.height)
 				.resize(THUMBNAIL_WIDTH, null, { withoutEnlargement: true })
 				.webp({ quality: WEBP_QUALITY })
 				.toBuffer(),
@@ -318,7 +394,14 @@ export async function captureAllDisplays(options?: {
 			writeFile(thumbnailPath, thumbnail),
 		];
 
-		if (highResDisplayId && source.display_id === highResDisplayId) {
+		if (highResDisplayId && raw.displayId === highResDisplayId) {
+			const pngBuffer = await createSharpFromRgba(
+				raw.rgba.buffer,
+				raw.rgba.width,
+				raw.rgba.height,
+			)
+				.png()
+				.toBuffer();
 			writePromises.push(writeFile(highResPath, pngBuffer));
 		}
 
@@ -334,18 +417,20 @@ export async function captureAllDisplays(options?: {
 			thumbnailSize: thumbnail.length,
 		});
 
-		results.push({
-			id,
+		return {
+			id: raw.id,
 			timestamp,
-			displayId: source.display_id,
+			displayId: raw.displayId,
 			thumbnailPath,
 			originalPath,
 			stableHash: fingerprint.stableHash,
 			detailHash: fingerprint.detailHash,
-			width: display?.size.width ?? 1920,
-			height: display?.size.height ?? 1080,
-		});
-	}
+			width: raw.displayWidth,
+			height: raw.displayHeight,
+		};
+	});
+
+	const results = await Promise.all(processPromises);
 
 	logger.info(`Capture complete: ${results.length} results`);
 	return results;
@@ -372,9 +457,9 @@ export async function captureForClassification(): Promise<Buffer | null> {
 		return null;
 	}
 
-	const pngBuffer = nativeImage.toPNG();
+	const rgba = nativeImageToRgba(nativeImage);
 
-	const resized = await sharp(pngBuffer)
+	const resized = await createSharpFromRgba(rgba.buffer, rgba.width, rgba.height)
 		.resize(ORIGINAL_WIDTH, null, { withoutEnlargement: true })
 		.webp({ quality: WEBP_QUALITY })
 		.toBuffer();

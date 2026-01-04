@@ -1,5 +1,6 @@
 import { BrowserWindow, screen } from "electron";
 import { IpcChannels } from "../../../shared/ipc";
+import { getLastKnownCandidate } from "../../features/activityWindow";
 import {
 	getCapturePopupWindow,
 	sendEventIdToPopup,
@@ -9,7 +10,6 @@ import {
 } from "../../app/capturePopup";
 import { getPopupWindow, setPopupHeight } from "../../app/popup";
 import { captureInstant, processInstantCapture } from "../../features/capture";
-import { collectActivityContext } from "../../features/context";
 import { processCaptureGroup } from "../../features/events";
 import { checkScreenCapturePermission } from "../../features/permissions";
 import { updateEvent } from "../../infra/db/repositories/EventRepository";
@@ -60,6 +60,9 @@ export function registerPopupHandlers(): void {
 				return;
 			}
 
+			const lastKnown = getLastKnownCandidate();
+			const context = lastKnown?.context ?? null;
+
 			const senderWindow = BrowserWindow.fromWebContents(event.sender);
 			const anchor = senderWindow?.getBounds() ?? {
 				x: screen.getCursorScreenPoint().x,
@@ -91,12 +94,9 @@ export function registerPopupHandlers(): void {
 				project: null,
 			});
 
-			const [captures, context] = await Promise.all([
-				processInstantCapture(instantCapture, {
-					highResDisplayId: primaryDisplayId,
-				}),
-				collectActivityContext(),
-			]);
+			const captures = await processInstantCapture(instantCapture, {
+				highResDisplayId: primaryDisplayId,
+			});
 
 			const result = await processCaptureGroup({
 				captures,

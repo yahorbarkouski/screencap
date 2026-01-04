@@ -304,11 +304,13 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
 							<ReviewStep
 								eventId={sampleEventId}
 								isCapturingSample={isCapturingSample}
-								onRetake={async () => {
-									await captureSample();
-								}}
 								onBack={goBack}
 								onFinish={async () => {
+									if (sampleEventId) {
+										await window.api.storage.finalizeOnboardingEvent(
+											sampleEventId,
+										);
+									}
 									await handleComplete(pendingCompletionSettings ?? settings);
 								}}
 							/>
@@ -1142,16 +1144,22 @@ function AIChoiceStep({
 	);
 }
 
+const ONBOARDING_DEMO_META = {
+	appName: "Screencap",
+	category: "Chores",
+	subcategories: "Setup",
+	caption: "Completing onboarding — your journey with Screencap begins",
+	windowTitle: "Welcome to Screencap",
+} as const;
+
 function ReviewStep({
 	eventId,
 	isCapturingSample,
-	onRetake,
 	onBack,
 	onFinish,
 }: {
 	eventId: string | null;
 	isCapturingSample: boolean;
-	onRetake: () => Promise<void>;
 	onBack: () => void;
 	onFinish: () => Promise<void>;
 }) {
@@ -1183,15 +1191,6 @@ function ReviewStep({
 		void refresh();
 	}, [refresh]);
 
-	useEffect(() => {
-		if (!eventId) return;
-		const unsubscribe = window.api.on("event:updated", (id) => {
-			if (id !== eventId) return;
-			void refresh();
-		});
-		return unsubscribe;
-	}, [eventId, refresh]);
-
 	const primaryScreenshot =
 		screenshots.find((s) => s.isPrimary) ?? screenshots[0] ?? null;
 	const previewPath =
@@ -1199,15 +1198,15 @@ function ReviewStep({
 		event?.originalPath ??
 		event?.thumbnailPath ??
 		null;
-	const statusLabel = event?.status ?? (eventId ? "processing" : null);
 
 	return (
 		<div className="space-y-6 pb-24">
 			<FadeIn delay={0}>
 				<div className="text-center space-y-3">
-					<h1 className="text-2xl font-bold">Review your first capture</h1>
+					<h1 className="text-2xl font-bold">This is how Screencap sees</h1>
 					<p className="text-sm text-muted-foreground max-w-md mx-auto">
-						This is what will appear in your Timeline.
+						We just captured this moment. Every few minutes, this is exactly
+						what happens — automatically, in the background.
 					</p>
 				</div>
 			</FadeIn>
@@ -1223,44 +1222,45 @@ function ReviewStep({
 								loading="lazy"
 							/>
 						) : (
-							<div className="text-sm text-muted-foreground">
-								{eventId ? "Waiting for screenshot…" : "No capture yet"}
+							<div className="text-sm text-muted-foreground flex items-center gap-2">
+								{isCapturingSample || isLoading ? (
+									<>
+										<Loader2 className="h-4 w-4 animate-spin" />
+										Capturing this moment…
+									</>
+								) : (
+									"Waiting for screenshot…"
+								)}
 							</div>
 						)}
 					</div>
 					<div className="p-4 space-y-2">
 						<div className="flex items-center justify-between gap-2">
 							<div className="text-sm font-medium">
-								{event?.appName ?? "Unknown app"}
+								{ONBOARDING_DEMO_META.appName}
 							</div>
 							<div className="text-xs text-muted-foreground flex items-center gap-2">
 								{(isCapturingSample || isLoading) && (
 									<Loader2 className="h-3.5 w-3.5 animate-spin" />
 								)}
-								{statusLabel}
+								{isCapturingSample || isLoading ? "capturing" : "completed"}
 							</div>
 						</div>
-						{event?.caption && (
-							<div className="text-sm text-muted-foreground">
-								{event.caption}
-							</div>
-						)}
+						<div className="text-sm text-muted-foreground">
+							{ONBOARDING_DEMO_META.caption}
+						</div>
 						<div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
 							<div className="truncate">
 								<span className="text-foreground/80">Category:</span>{" "}
-								{event?.userLabel || event?.category || "—"}
+								{ONBOARDING_DEMO_META.category}
 							</div>
 							<div className="truncate">
-								<span className="text-foreground/80">Website:</span>{" "}
-								{event?.urlHost || "—"}
+								<span className="text-foreground/80">Subcategory:</span>{" "}
+								{ONBOARDING_DEMO_META.subcategories}
 							</div>
-							<div className="truncate">
+							<div className="truncate col-span-2">
 								<span className="text-foreground/80">Window:</span>{" "}
-								{event?.windowTitle || "—"}
-							</div>
-							<div className="truncate">
-								<span className="text-foreground/80">Project:</span>{" "}
-								{event?.project || "—"}
+								{ONBOARDING_DEMO_META.windowTitle}
 							</div>
 						</div>
 					</div>
@@ -1270,44 +1270,27 @@ function ReviewStep({
 			<BottomActions
 				left={<BackButton onClick={onBack} />}
 				right={
-					<div className="flex items-center gap-2">
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={async () => {
-								await onRetake();
-							}}
-							disabled={isCapturingSample || isLoading}
-						>
-							{isCapturingSample ? (
-								<Loader2 className="h-3.5 w-3.5 animate-spin" />
-							) : (
-								<RefreshCw className="h-3.5 w-3.5" />
-							)}
-							Retake
-						</Button>
-						<PrimaryButton
-							onClick={async () => {
-								setIsFinishing(true);
-								try {
-									await onFinish();
-								} finally {
-									setIsFinishing(false);
-								}
-							}}
-							className="h-9 px-4"
-							disabled={isFinishing}
-						>
-							{isFinishing ? (
-								<Loader2 className="h-4 w-4 animate-spin" />
-							) : (
-								<>
-									Start
-									<ArrowRight className="h-4 w-4" />
-								</>
-							)}
-						</PrimaryButton>
-					</div>
+					<PrimaryButton
+						onClick={async () => {
+							setIsFinishing(true);
+							try {
+								await onFinish();
+							} finally {
+								setIsFinishing(false);
+							}
+						}}
+						className="h-9 px-4"
+						disabled={isFinishing || isCapturingSample || isLoading || !eventId}
+					>
+						{isFinishing ? (
+							<Loader2 className="h-4 w-4 animate-spin" />
+						) : (
+							<>
+								Start
+								<ArrowRight className="h-4 w-4" />
+							</>
+						)}
+					</PrimaryButton>
 				}
 			/>
 		</div>

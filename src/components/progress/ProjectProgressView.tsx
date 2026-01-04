@@ -26,7 +26,6 @@ import type {
 	Friend,
 	GitCommit,
 	ProjectShare,
-	SharedEvent,
 	SharedProject,
 	SocialIdentity,
 } from "@/types";
@@ -85,7 +84,7 @@ export function ProjectProgressView() {
 
 	const [sharedProjects, setSharedProjects] = useState<SharedProject[]>([]);
 	const [sharedEvents, setSharedEvents] = useState<
-		Map<string, SharedEvent[]>
+		Map<string, Event[]>
 	>(new Map());
 	const [identity, setIdentity] = useState<SocialIdentity | null>(null);
 	const [isSyncing, setIsSyncing] = useState(false);
@@ -129,16 +128,62 @@ export function ProjectProgressView() {
 			setSharedProjects(projects);
 
 			const { startDate, endDate } = rangeBounds(preset);
-			const eventsMap = new Map<string, SharedEvent[]>();
+			const eventsMap = new Map<string, Event[]>();
 
 			for (const project of projects) {
-				const events = await window.api.sharedProjects.getEvents({
+				const sharedEvts = await window.api.sharedProjects.getEvents({
 					roomId: project.roomId,
 					startDate,
 					endDate,
 					limit: 5000,
 				});
-				eventsMap.set(project.roomId, events);
+				const unifiedEvents: Event[] = sharedEvts.map((se) => ({
+					id: se.id,
+					timestamp: se.timestampMs,
+					endTimestamp: se.endTimestampMs,
+					displayId: null,
+					category: se.category,
+					subcategories: null,
+					project: se.project ?? project.projectName,
+					projectProgress: se.projectProgress,
+					projectProgressConfidence: null,
+					projectProgressEvidence: null,
+					tags: null,
+					confidence: null,
+					caption: se.caption,
+					trackedAddiction: null,
+					addictionCandidate: null,
+					addictionConfidence: null,
+					addictionPrompt: null,
+					thumbnailPath: se.thumbnailPath,
+					originalPath: se.originalPath,
+					stableHash: null,
+					detailHash: null,
+					mergedCount: null,
+					dismissed: 0,
+					userLabel: null,
+					status: "completed",
+					appBundleId: se.appBundleId,
+					appName: se.appName,
+					appIconPath: null,
+					windowTitle: se.windowTitle,
+					urlHost: null,
+					urlCanonical: null,
+					faviconPath: null,
+					screenshotCount: null,
+					contentKind: se.contentKind,
+					contentId: null,
+					contentTitle: se.contentTitle,
+					isFullscreen: 0,
+					contextProvider: null,
+					contextConfidence: null,
+					contextKey: null,
+					contextJson: null,
+					authorUserId: se.authorUserId,
+					authorUsername: se.authorUsername,
+					isRemote: true,
+				}));
+				eventsMap.set(project.roomId, unifiedEvents);
 			}
 
 			setSharedEvents(eventsMap);
@@ -292,35 +337,23 @@ export function ProjectProgressView() {
 		[projectOptions, selectedProject],
 	);
 
-	const visibleSharedEvents = useMemo((): Array<{
-		event: SharedEvent;
-		projectName: string;
-	}> => {
+	const visibleSharedEvents = useMemo((): Event[] => {
 		if (!selectedProject) {
-			const result: Array<{ event: SharedEvent; projectName: string }> = [];
+			const result: Event[] = [];
 			for (const sp of sharedProjects) {
 				const events = sharedEvents.get(sp.roomId) ?? [];
-				for (const e of events) {
-					result.push({ event: e, projectName: sp.projectName });
-				}
+				result.push(...events);
 			}
 			return result;
 		}
 
 		if (selectedProject.startsWith("shared:")) {
 			const roomId = selectedProject.replace("shared:", "");
-			const sp = sharedProjects.find((p) => p.roomId === roomId);
-			if (!sp) return [];
-			const events = sharedEvents.get(roomId) ?? [];
-			return events.map((e) => ({ event: e, projectName: sp.projectName }));
+			return sharedEvents.get(roomId) ?? [];
 		}
 
 		if (currentProjectOption?.roomId) {
-			const events = sharedEvents.get(currentProjectOption.roomId) ?? [];
-			return events.map((e) => ({
-				event: e,
-				projectName: currentProjectOption.value,
-			}));
+			return sharedEvents.get(currentProjectOption.roomId) ?? [];
 		}
 
 		return [];
@@ -336,15 +369,15 @@ export function ProjectProgressView() {
 			kind: "event",
 			timestamp: e.timestamp,
 			event: e,
+			isMe: false,
 		}));
 
 		for (const se of visibleSharedEvents) {
 			items.push({
-				kind: "shared",
-				timestamp: se.event.timestampMs,
-				event: se.event,
-				projectName: se.projectName,
-				isMe: identity?.userId === se.event.authorUserId,
+				kind: "event",
+				timestamp: se.timestamp,
+				event: se,
+				isMe: identity?.userId === se.authorUserId,
 			});
 		}
 

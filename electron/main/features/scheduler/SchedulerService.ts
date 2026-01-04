@@ -14,6 +14,7 @@ import {
 import {
 	discardActivityWindow,
 	finalizeActivityWindow,
+	getLastKnownCandidate,
 	startActivityWindowTracking,
 	stopActivityWindowTracking,
 	type WindowedCaptureResult,
@@ -169,7 +170,10 @@ async function runCaptureCycle(
 			return { merged: false, eventId: null };
 		}
 
-		const context = await collectActivityContext();
+		const context =
+			reason === "manual"
+				? getLastKnownCandidate()?.context ?? null
+				: await collectActivityContext();
 
 		const isSelfCapture = context?.app.bundleId === SELF_APP_BUNDLE_ID;
 		if (reason === "scheduled" && isSelfCapture) {

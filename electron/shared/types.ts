@@ -52,6 +52,9 @@ export interface Event {
 	contextConfidence: number | null;
 	contextKey: string | null;
 	contextJson: string | null;
+	authorUserId?: string;
+	authorUsername?: string;
+	isRemote?: boolean;
 }
 
 export type LatestEventByDisplayId = Pick<
@@ -114,6 +117,12 @@ export interface ShortcutSettings {
 	endOfDay: string | null;
 }
 
+export interface SharingSettings {
+	includeAppName: boolean;
+	includeWindowTitle: boolean;
+	includeContentInfo: boolean;
+}
+
 export interface Settings {
 	apiKey: string | null;
 	captureInterval: number;
@@ -123,6 +132,7 @@ export interface Settings {
 	automationRules: AutomationRules;
 	onboarding: OnboardingState;
 	shortcuts: ShortcutSettings;
+	sharing: SharingSettings;
 	llmEnabled: boolean;
 	allowVisionUploads: boolean;
 	cloudLlmModel: string;
@@ -584,8 +594,18 @@ export interface SharedEvent {
 	authorUserId: string;
 	authorUsername: string;
 	timestampMs: number;
+	endTimestampMs: number | null;
+	project: string | null;
+	category: string | null;
 	caption: string | null;
-	imageCachePath: string | null;
+	projectProgress: number;
+	appBundleId: string | null;
+	appName: string | null;
+	windowTitle: string | null;
+	contentKind: string | null;
+	contentTitle: string | null;
+	thumbnailPath: string | null;
+	originalPath: string | null;
 }
 
 export interface AcceptRoomInviteParams {
@@ -593,4 +613,18 @@ export interface AcceptRoomInviteParams {
 	roomName: string;
 	ownerUserId: string;
 	ownerUsername: string;
+}
+
+export interface LogEntry {
+	timestamp: string;
+	level: string;
+	scope: string;
+	message: string;
+	data?: unknown;
+}
+
+export interface LogsCollectResult {
+	logs: string;
+	entryCount: number;
+	appInfo: AppInfo;
 }

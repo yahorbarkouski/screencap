@@ -25,6 +25,7 @@ import type {
 	GetTimelineFacetsOptions,
 	GitCommit,
 	LLMTestResult,
+	LogsCollectResult,
 	Memory,
 	OcrResult,
 	PeriodType,
@@ -113,6 +114,7 @@ export const IpcChannels = {
 		SubmitProjectProgressCapture: "storage:submit-project-progress-capture",
 		UnmarkProjectProgress: "storage:unmark-project-progress",
 		DeleteEvent: "storage:delete-event",
+		FinalizeOnboardingEvent: "storage:finalize-onboarding-event",
 		GetMemories: "storage:get-memories",
 		InsertMemory: "storage:insert-memory",
 		UpdateMemory: "storage:update-memory",
@@ -191,6 +193,11 @@ export const IpcChannels = {
 		GetEvents: "shared-projects:get-events",
 		Sync: "shared-projects:sync",
 		SyncAll: "shared-projects:sync-all",
+	},
+	Logs: {
+		Collect: "logs:collect",
+		CopyToClipboard: "logs:copy-to-clipboard",
+		SaveToFile: "logs:save-to-file",
 	},
 } as const;
 
@@ -277,6 +284,7 @@ export interface IpcInvokeHandlers {
 	}) => void;
 	[IpcChannels.Storage.UnmarkProjectProgress]: (id: string) => void;
 	[IpcChannels.Storage.DeleteEvent]: (id: string) => void;
+	[IpcChannels.Storage.FinalizeOnboardingEvent]: (id: string) => void;
 	[IpcChannels.Storage.GetMemories]: (type?: string) => Memory[];
 	[IpcChannels.Storage.InsertMemory]: (memory: Memory) => void;
 	[IpcChannels.Storage.UpdateMemory]: (
@@ -408,6 +416,10 @@ export interface IpcInvokeHandlers {
 	}) => SharedEvent[];
 	[IpcChannels.SharedProjects.Sync]: (roomId: string) => Promise<{ count: number }>;
 	[IpcChannels.SharedProjects.SyncAll]: () => Promise<void>;
+
+	[IpcChannels.Logs.Collect]: (rendererLogs?: string) => LogsCollectResult;
+	[IpcChannels.Logs.CopyToClipboard]: (rendererLogs?: string) => void;
+	[IpcChannels.Logs.SaveToFile]: (rendererLogs?: string) => Promise<string | null>;
 }
 
 export interface ProjectProgressPreview {

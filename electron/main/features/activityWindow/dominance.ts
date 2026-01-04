@@ -10,7 +10,7 @@ export type ActivitySegment = {
 export function computeDominantSegment(
 	segments: ActivitySegment[],
 	windowEnd: number,
-	interruptionMaxMs: number,
+	minTotalMs: number,
 ): {
 	key: string;
 	bundleId: string;
@@ -31,7 +31,6 @@ export function computeDominantSegment(
 		const endAt = s.endAt ?? windowEnd;
 		const durationMs = endAt - s.startAt;
 		if (durationMs <= 0) continue;
-		if (durationMs < interruptionMaxMs) continue;
 
 		const prev = totals.get(s.key);
 		if (prev) {
@@ -55,6 +54,7 @@ export function computeDominantSegment(
 	let bestDuration = 0;
 
 	for (const [key, data] of totals.entries()) {
+		if (data.durationMs < minTotalMs) continue;
 		if (data.durationMs > bestDuration) {
 			bestDuration = data.durationMs;
 			best = {

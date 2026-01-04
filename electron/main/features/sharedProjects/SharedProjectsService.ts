@@ -4,6 +4,7 @@ import {
 	type CachedRoomEvent,
 	getLatestCachedEventTimestamp,
 	listCachedRoomEvents,
+	listCachedRoomEventsByProject,
 	upsertCachedRoomEventsBatch,
 	updateCachedEventImagePath,
 } from "../../infra/db/repositories/RoomEventsCacheRepository";
@@ -11,6 +12,7 @@ import {
 	type RoomMembership,
 	listRoomMemberships,
 	updateRoomMembershipLastSynced,
+	getRoomMembership,
 } from "../../infra/db/repositories/RoomMembershipsRepository";
 import {
 	upsertRoomMembersBatch,
@@ -41,13 +43,22 @@ export type SharedEvent = {
 	authorUserId: string;
 	authorUsername: string;
 	timestampMs: number;
+	endTimestampMs: number | null;
+	project: string | null;
+	category: string | null;
 	caption: string | null;
-	imageCachePath: string | null;
+	projectProgress: number;
+	appBundleId: string | null;
+	appName: string | null;
+	windowTitle: string | null;
+	contentKind: string | null;
+	contentTitle: string | null;
+	thumbnailPath: string | null;
+	originalPath: string | null;
 };
 
 function membershipToSharedProject(
 	membership: RoomMembership,
-	myUserId: string,
 ): SharedProject {
 	return {
 		roomId: membership.roomId,
@@ -67,8 +78,18 @@ function cachedEventToSharedEvent(event: CachedRoomEvent): SharedEvent {
 		authorUserId: event.authorUserId,
 		authorUsername: event.authorUsername,
 		timestampMs: event.timestampMs,
+		endTimestampMs: event.endTimestampMs,
+		project: event.project,
+		category: event.category,
 		caption: event.caption,
-		imageCachePath: event.imageCachePath,
+		projectProgress: event.projectProgress,
+		appBundleId: event.appBundleId,
+		appName: event.appName,
+		windowTitle: event.windowTitle,
+		contentKind: event.contentKind,
+		contentTitle: event.contentTitle,
+		thumbnailPath: event.thumbnailPath,
+		originalPath: event.originalPath,
 	};
 }
 
@@ -77,7 +98,7 @@ export function listSharedProjects(): SharedProject[] {
 	if (!identity) return [];
 
 	const memberships = listRoomMemberships();
-	return memberships.map((m) => membershipToSharedProject(m, identity.userId));
+	return memberships.map((m) => membershipToSharedProject(m));
 }
 
 export function getSharedProjectEvents(params: {
@@ -100,16 +121,36 @@ export function getSharedProjectEvents(params: {
 	return events.map(cachedEventToSharedEvent);
 }
 
-export async function syncRoom(roomId: string): Promise<{ count: number }> {
+export function getSharedProjectEventsByProjectName(params: {
+	project: string;
+	startDate?: number;
+	endDate?: number;
+	limit?: number;
+}): SharedEvent[] {
+	const identity = getIdentity();
+	if (!identity) return [];
+
+	const events = listCachedRoomEventsByProject({
+		project: params.project,
+		excludeAuthorId: identity.userId,
+		startDate: params.startDate,
+		endDate: params.endDate,
+		limit: params.limit,
+	});
+
+	return events.map(cachedEventToSharedEvent);
+}
+
+export async function syncRoom(roomId: string, backfill = false): Promise<{ count: number }> {
 	const identity = getIdentity();
 	if (!identity) {
 		throw new Error("Not authenticated");
 	}
 
-	const since = getLatestCachedEventTimestamp(roomId);
+	const since = backfill ? undefined : (getLatestCachedEventTimestamp(roomId) ?? undefined);
 	const events = await fetchRoomEvents({
 		roomId,
-		since: since ?? undefined,
+		since,
 	});
 
 	if (events.length === 0) {
@@ -134,6 +175,9 @@ export async function syncRoom(roomId: string): Promise<{ count: number }> {
 		usernameMap.set(m.userId, m.username);
 	}
 
+	const membership = getRoomMembership(roomId);
+	const projectName = membership?.roomName ?? null;
+
 	const now = Date.now();
 	const cachedEvents: CachedRoomEvent[] = events.map((e) => ({
 		id: e.id,
@@ -141,8 +185,18 @@ export async function syncRoom(roomId: string): Promise<{ count: number }> {
 		authorUserId: e.authorUserId,
 		authorUsername: usernameMap.get(e.authorUserId) ?? "Unknown",
 		timestampMs: e.timestampMs,
+		endTimestampMs: e.endTimestampMs,
+		project: e.project ?? projectName,
+		category: e.category,
 		caption: e.caption,
-		imageCachePath: null,
+		projectProgress: e.projectProgress,
+		appBundleId: e.appBundleId,
+		appName: e.appName,
+		windowTitle: e.windowTitle,
+		contentKind: e.contentKind,
+		contentTitle: e.contentTitle,
+		thumbnailPath: null,
+		originalPath: null,
 		syncedAt: now,
 	}));
 
@@ -155,8 +209,12 @@ export async function syncRoom(roomId: string): Promise<{ count: number }> {
 
 	updateRoomMembershipLastSynced(roomId, now);
 
-	logger.info("Synced room", { roomId, count: events.length });
+	logger.info("Synced room", { roomId, count: events.length, backfill });
 	return { count: events.length };
+}
+
+export async function syncRoomWithBackfill(roomId: string): Promise<{ count: number }> {
+	return syncRoom(roomId, true);
 }
 
 export async function syncAllRooms(): Promise<void> {
@@ -214,9 +272,11 @@ async function downloadAndCacheImages(
 	for (const event of events) {
 		if (!event.imageRef) continue;
 
-		const imagePath = join(imagesDir, `${event.id}.png`);
-		if (existsSync(imagePath)) {
-			updateCachedEventImagePath(event.id, imagePath);
+		const thumbnailPath = join(imagesDir, `${event.id}.webp`);
+		const originalPath = join(imagesDir, `${event.id}.png`);
+
+		if (existsSync(originalPath)) {
+			updateCachedEventImagePath(event.id, thumbnailPath, originalPath);
 			continue;
 		}
 
@@ -240,10 +300,10 @@ async function downloadAndCacheImages(
 				ciphertextBytes: encryptedBytes,
 			});
 
-			writeFileSync(imagePath, decryptedBytes);
-			updateCachedEventImagePath(event.id, imagePath);
+			writeFileSync(originalPath, decryptedBytes);
+			updateCachedEventImagePath(event.id, originalPath, originalPath);
 
-			logger.debug("Cached image", { eventId: event.id, path: imagePath });
+			logger.debug("Cached image", { eventId: event.id, path: originalPath });
 		} catch (error) {
 			logger.warn("Error downloading/decrypting image", {
 				eventId: event.id,

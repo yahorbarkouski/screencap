@@ -23,7 +23,7 @@ const logger = createLogger({ scope: "ActivityWindow" });
 const POLL_MS = 1_000;
 const BROWSER_HOST_REFRESH_MS = 2_000;
 const MIN_STABLE_MS = 10_000;
-const INTERRUPTION_MAX_MS = 10_000;
+const MIN_DOMINANT_TOTAL_MS = 10_000;
 const IDLE_AWAY_SECONDS = 5 * 60;
 const IDLE_BUNDLE_ID = "__idle__";
 
@@ -471,6 +471,38 @@ export function isActivityWindowTracking(): boolean {
 	return state.status === "running";
 }
 
+export function getLastKnownSnapshot(): ForegroundSnapshot | null {
+	return state.lastSnapshot;
+}
+
+export function getLastKnownCandidate(): {
+	context: ActivityContext | null;
+	bundleId: string;
+} | null {
+	if (!state.current) return null;
+	if (state.current.bundleId === IDLE_BUNDLE_ID) return null;
+	if (state.current.bundleId === SELF_APP_BUNDLE_ID) return null;
+
+	const candidate = state.candidates.get(state.current.key);
+	if (candidate) {
+		return { context: candidate.context, bundleId: candidate.bundleId };
+	}
+
+	for (const segment of [...state.segments].reverse()) {
+		if (segment.bundleId === IDLE_BUNDLE_ID) continue;
+		if (segment.bundleId === SELF_APP_BUNDLE_ID) continue;
+		const segmentCandidate = state.candidates.get(segment.key);
+		if (segmentCandidate) {
+			return {
+				context: segmentCandidate.context,
+				bundleId: segmentCandidate.bundleId,
+			};
+		}
+	}
+
+	return null;
+}
+
 export async function discardActivityWindow(windowEnd: number): Promise<void> {
 	await withWindowLock(async () => {
 		const safeWindowEnd = Math.max(state.windowStart, windowEnd);
@@ -509,7 +541,7 @@ export async function finalizeActivityWindow(
 		const dominant = computeDominantSegment(
 			activeSegments,
 			safeWindowEnd,
-			INTERRUPTION_MAX_MS,
+			MIN_DOMINANT_TOTAL_MS,
 		);
 
 		const continuation = state.lastSnapshot;

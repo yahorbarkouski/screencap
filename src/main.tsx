@@ -4,7 +4,10 @@ import App from "./App";
 import { FpsGuard } from "./components/performance/FpsGuard";
 import { ProjectProgressCapturePopup } from "./components/popup/ProjectProgressCapturePopup";
 import { StreakPopup } from "./components/popup/StreakPopup";
+import { initRendererLogCapture } from "./lib/rendererLogBuffer";
 import "./styles/globals.css";
+
+initRendererLogCapture();
 
 const rootElement = document.getElementById("root")!;
 const hash = window.location.hash;

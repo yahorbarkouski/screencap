@@ -6,6 +6,7 @@ import {
 	registerChatHandlers,
 	registerEodHandlers,
 	registerLLMHandlers,
+	registerLogsHandlers,
 	registerOcrHandlers,
 	registerPermissionHandlers,
 	registerPopupHandlers,
@@ -46,6 +47,7 @@ export function registerAllHandlers(
 	registerShortcutsHandlers();
 	registerProjectJournalHandlers();
 	registerLLMHandlers();
+	registerLogsHandlers();
 	registerOcrHandlers();
 	registerPopupHandlers();
 	registerUpdateHandlers();

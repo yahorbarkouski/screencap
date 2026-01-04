@@ -2,6 +2,7 @@ import { app, globalShortcut, type Rectangle, screen } from "electron";
 import { getLogicalDayStart } from "../../../shared/dayBoundary";
 import { IpcEvents } from "../../../shared/ipc";
 import type { Settings, ShortcutSettings } from "../../../shared/types";
+import { getLastKnownCandidate } from "../activityWindow";
 import {
 	getCapturePopupWindow,
 	sendEventIdToPopup,
@@ -13,7 +14,6 @@ import { getMainWindow, showMainWindow } from "../../app/window";
 import { createLogger } from "../../infra/log";
 import { broadcast } from "../../infra/windows";
 import { captureInstant, processInstantCapture } from "../capture";
-import { collectActivityContext } from "../context";
 import { processCaptureGroup } from "../events";
 import { checkScreenCapturePermission } from "../permissions";
 import { triggerManualCaptureWithPrimaryDisplay } from "../scheduler";
@@ -156,6 +156,9 @@ async function handleCaptureProjectProgress(): Promise<void> {
 		return;
 	}
 
+	const lastKnown = getLastKnownCandidate();
+	const context = lastKnown?.context ?? null;
+
 	const primaryDisplayId = getPrimaryDisplayIdFromCursor();
 	const anchor = cursorAnchor();
 
@@ -179,12 +182,9 @@ async function handleCaptureProjectProgress(): Promise<void> {
 		project: null,
 	});
 
-	const [captures, context] = await Promise.all([
-		processInstantCapture(instantCapture, {
-			highResDisplayId: primaryDisplayId,
-		}),
-		collectActivityContext(),
-	]);
+	const captures = await processInstantCapture(instantCapture, {
+		highResDisplayId: primaryDisplayId,
+	});
 
 	const result = await processCaptureGroup({
 		captures,
