@@ -1,3 +1,10 @@
+## [1.8.3](https://github.com/yahorbarkouski/screencap/compare/v1.8.2...v1.8.3) (2026-01-04)
+
+
+### Bug Fixes
+
+* members endpoint ([c68af9f](https://github.com/yahorbarkouski/screencap/commit/c68af9f4656af6158ad989527b8e0614fd710af1))
+
 ## [1.8.2](https://github.com/yahorbarkouski/screencap/compare/v1.8.1...v1.8.2) (2026-01-04)
 
 
