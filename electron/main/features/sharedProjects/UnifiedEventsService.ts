@@ -1,4 +1,5 @@
-import type { Event } from "../../../shared/types";
+import type { Event, GetEventsOptions } from "../../../shared/types";
+import { getEvents } from "../../infra/db/repositories/EventRepository";
 import { getRoomIdForProject } from "../../infra/db/repositories/ProjectRoomLinkRepository";
 import type { CachedRoomEvent } from "../../infra/db/repositories/RoomEventsCacheRepository";
 import { listCachedRoomEventsByProject } from "../../infra/db/repositories/RoomEventsCacheRepository";
@@ -53,38 +54,32 @@ function cachedEventToUnifiedEvent(cached: CachedRoomEvent): Event {
 	};
 }
 
-export interface GetUnifiedProjectEventsParams {
-	project: string;
-	startDate?: number;
-	endDate?: number;
-	limit?: number;
+export interface GetUnifiedEventsOptions extends GetEventsOptions {
 	includeRemote?: boolean;
 }
 
-export function getUnifiedProjectEvents(
-	localEvents: Event[],
-	params: GetUnifiedProjectEventsParams,
-): Event[] {
+export function getUnifiedEvents(options: GetUnifiedEventsOptions): Event[] {
+	const localEvents = getEvents(options);
+
 	const identity = getIdentity();
-	if (!identity || params.includeRemote === false) {
+	if (!identity || options.includeRemote === false || !options.project) {
 		return localEvents;
 	}
 
-	const roomId = getRoomIdForProject(params.project);
+	const roomId = getRoomIdForProject(options.project);
 	if (!roomId) {
 		return localEvents;
 	}
 
 	const remoteEvents = listCachedRoomEventsByProject({
-		project: params.project,
+		project: options.project,
 		excludeAuthorId: identity.userId,
-		startDate: params.startDate,
-		endDate: params.endDate,
-		limit: params.limit,
+		startDate: options.startDate,
+		endDate: options.endDate,
+		limit: options.limit,
 	});
 
 	const unifiedRemoteEvents = remoteEvents.map(cachedEventToUnifiedEvent);
-
 	const localEventIds = new Set(localEvents.map((e) => e.id));
 	const filteredRemoteEvents = unifiedRemoteEvents.filter(
 		(e) => !localEventIds.has(e.id),
@@ -93,8 +88,8 @@ export function getUnifiedProjectEvents(
 	const combined = [...localEvents, ...filteredRemoteEvents];
 	combined.sort((a, b) => b.timestamp - a.timestamp);
 
-	if (params.limit !== undefined) {
-		return combined.slice(0, params.limit);
+	if (options.limit !== undefined) {
+		return combined.slice(0, options.limit);
 	}
 
 	return combined;

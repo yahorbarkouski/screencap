@@ -37,24 +37,30 @@ export const ipcCaptureTriggerArgs = z.union([
 	]),
 ]);
 
-export const ipcGetEventsArgs = z.tuple([
-	z
-		.object({
-			limit: zPositiveInt.max(5000).optional(),
-			offset: zNonNegativeInt.max(10_000_000).optional(),
-			category: zLimitedString(200).optional(),
-			project: zLimitedString(200).optional(),
-			projectProgress: z.boolean().optional(),
-			trackedAddiction: zLimitedString(200).optional(),
-			hasTrackedAddiction: z.boolean().optional(),
-			appBundleId: zLimitedString(500).optional(),
-			urlHost: zLimitedString(500).optional(),
-			startDate: z.number().int().optional(),
-			endDate: z.number().int().optional(),
-			search: zLimitedString(2000).optional(),
-			dismissed: z.boolean().optional(),
-		})
-		.strict(),
+const zGetEventsOptions = z
+	.object({
+		limit: zPositiveInt.max(5000).optional(),
+		offset: zNonNegativeInt.max(10_000_000).optional(),
+		category: zLimitedString(200).optional(),
+		project: zLimitedString(200).optional(),
+		projectProgress: z.boolean().optional(),
+		trackedAddiction: zLimitedString(200).optional(),
+		hasTrackedAddiction: z.boolean().optional(),
+		appBundleId: zLimitedString(500).optional(),
+		urlHost: zLimitedString(500).optional(),
+		startDate: z.number().int().optional(),
+		endDate: z.number().int().optional(),
+		search: zLimitedString(2000).optional(),
+		dismissed: z.boolean().optional(),
+	})
+	.strict();
+
+export const ipcGetEventsArgs = z.tuple([zGetEventsOptions]);
+
+export const ipcGetUnifiedEventsArgs = z.tuple([
+	zGetEventsOptions.extend({
+		includeRemote: z.boolean().optional(),
+	}),
 ]);
 
 export const ipcGetTimelineFacetsArgs = z.tuple([

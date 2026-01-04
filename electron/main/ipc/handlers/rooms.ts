@@ -10,6 +10,7 @@ import type {
 import {
 	acceptRoomInvite,
 	ensureRoomForProject,
+	fetchAndSyncRoomMembers,
 	getInviteStatusForFriend,
 	type InviteStatus,
 	inviteFriendToProjectRoom,
@@ -18,7 +19,6 @@ import {
 	listSentInvites,
 } from "../../features/rooms/RoomsService";
 import { fetchRoomEvents } from "../../features/sync/RoomSyncService";
-import { listRoomMembers } from "../../infra/db/repositories/RoomMembersCacheRepository";
 import { secureHandle } from "../secure";
 
 const noArgs = z.tuple([]);
@@ -120,12 +120,7 @@ export function registerRoomsHandlers(): void {
 		IpcChannels.Rooms.GetRoomMembers,
 		roomIdArg,
 		async (roomId: string): Promise<RoomMember[]> => {
-			const members = listRoomMembers(roomId);
-			return members.map((m) => ({
-				userId: m.userId,
-				username: m.username,
-				role: m.role,
-			}));
+			return await fetchAndSyncRoomMembers(roomId);
 		},
 	);
 

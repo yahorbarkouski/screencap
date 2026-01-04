@@ -13,6 +13,7 @@ import { ensureFavicon } from "../../features/favicons/FaviconService";
 import { normalizeProjectsInDb } from "../../features/projects";
 import { publishEvent } from "../../features/publishing/PublishingService";
 import { triggerQueueProcess } from "../../features/queue";
+import { getUnifiedEvents } from "../../features/sharedProjects/UnifiedEventsService";
 import { publishProgressEventToRoom } from "../../features/sync/RoomSyncService";
 import {
 	confirmAddiction,
@@ -77,6 +78,7 @@ import {
 	ipcGetStatsBatchArgs,
 	ipcGetStoriesArgs,
 	ipcGetTimelineFacetsArgs,
+	ipcGetUnifiedEventsArgs,
 	ipcIdArgs,
 	ipcInsertMemoryArgs,
 	ipcInsertStoryArgs,
@@ -98,6 +100,31 @@ export function registerStorageHandlers(): void {
 		ipcGetEventsArgs,
 		(options: GetEventsOptions) => {
 			const result = getEvents(options);
+			const missing = new Map<string, string | null>();
+			const missingApps = new Set<string>();
+			for (const e of result) {
+				if (e.urlHost && !e.faviconPath) {
+					missing.set(e.urlHost, e.urlCanonical ?? null);
+				}
+				if (e.appBundleId && !e.appIconPath) {
+					missingApps.add(e.appBundleId);
+				}
+			}
+			missing.forEach((urlCanonical, host) => {
+				void ensureFavicon(host, urlCanonical);
+			});
+			missingApps.forEach((bundleId) => {
+				void ensureAppIcon(bundleId);
+			});
+			return result;
+		},
+	);
+
+	secureHandle(
+		IpcChannels.Storage.GetUnifiedEvents,
+		ipcGetUnifiedEventsArgs,
+		(options: GetEventsOptions & { includeRemote?: boolean }) => {
+			const result = getUnifiedEvents(options);
 			const missing = new Map<string, string | null>();
 			const missingApps = new Set<string>();
 			for (const e of result) {

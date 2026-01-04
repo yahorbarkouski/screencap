@@ -10,6 +10,7 @@ import {
 import {
 	hasPendingInvite,
 	listSentInvitesForRoom,
+	markInviteAccepted,
 	type SentInvite,
 	upsertSentInvite,
 } from "../../infra/db/repositories/RoomInvitesSentRepository";
@@ -17,7 +18,10 @@ import {
 	getRoomKeyCache,
 	upsertRoomKeyCache,
 } from "../../infra/db/repositories/RoomKeysCacheRepository";
-import { listRoomMembers } from "../../infra/db/repositories/RoomMembersCacheRepository";
+import {
+	listRoomMembers,
+	upsertRoomMembersBatch,
+} from "../../infra/db/repositories/RoomMembersCacheRepository";
 import { upsertRoomMembership } from "../../infra/db/repositories/RoomMembershipsRepository";
 import { createLogger } from "../../infra/log";
 import { normalizeProjectBase, projectKeyFromBase } from "../projects";
@@ -192,6 +196,71 @@ export function getInviteStatusForFriend(
 
 export function listSentInvites(roomId: string): SentInvite[] {
 	return listSentInvitesForRoom(roomId);
+}
+
+export type RoomMember = {
+	userId: string;
+	username: string;
+	role: string;
+};
+
+export async function fetchAndSyncRoomMembers(
+	roomId: string,
+): Promise<RoomMember[]> {
+	const identity = getIdentity();
+	if (!identity) {
+		return listRoomMembers(roomId);
+	}
+
+	try {
+		const res = await signedFetch(`/api/rooms/${roomId}/members`, {
+			method: "GET",
+		});
+
+		if (!res.ok) {
+			logger.warn("Failed to fetch room members from server", {
+				roomId,
+				status: res.status,
+			});
+			return listRoomMembers(roomId);
+		}
+
+		const serverMembers = (await res.json()) as RoomMember[];
+
+		if (serverMembers.length > 0) {
+			upsertRoomMembersBatch(
+				serverMembers.map((m) => ({
+					roomId,
+					userId: m.userId,
+					username: m.username,
+					role: m.role,
+				})),
+			);
+
+			const memberUserIds = new Set(serverMembers.map((m) => m.userId));
+			const pendingInvites = listSentInvitesForRoom(roomId).filter(
+				(i) => i.status === "pending",
+			);
+
+			for (const invite of pendingInvites) {
+				if (memberUserIds.has(invite.toUserId)) {
+					markInviteAccepted(roomId, invite.toUserId);
+					logger.info("Marked invite as accepted - user is now member", {
+						roomId,
+						userId: invite.toUserId,
+					});
+				}
+			}
+		}
+
+		return serverMembers;
+	} catch (error) {
+		logger.warn("Error fetching room members from server", {
+			roomId,
+			error: String(error),
+		});
+		return listRoomMembers(roomId);
+	}
 }
 
 export async function inviteFriendToProjectRoom(params: {

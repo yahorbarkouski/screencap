@@ -232,7 +232,7 @@ export function ProjectDetailView({
 		if (!window.api) return;
 		setProgress((s) => ({ ...s, isLoading: true, error: null }));
 		try {
-			const events = await window.api.storage.getEvents({
+			const events = await window.api.storage.getUnifiedEvents({
 				project: project.content,
 				projectProgress: true,
 				dismissed: false,
@@ -288,26 +288,32 @@ export function ProjectDetailView({
 
 	useEffect(() => {
 		if (!window.api) return;
-		const offCreated = window.api.on("event:created", fetchProgress);
-		const offUpdated = window.api.on("event:updated", fetchProgress);
-		const offChanged = window.api.on("events:changed", fetchProgress);
-		const offProjects = window.api.on("projects:normalized", fetchProgress);
+		const offCreated = window.api.on("event:created", refreshProgress);
+		const offUpdated = window.api.on("event:updated", refreshProgress);
+		const offChanged = window.api.on("events:changed", refreshProgress);
+		const offProjects = window.api.on("projects:normalized", refreshProgress);
 		return () => {
 			offCreated();
 			offUpdated();
 			offChanged();
 			offProjects();
 		};
-	}, [fetchProgress]);
+	}, [refreshProgress]);
+
+	const allProgressEvents = progress.events;
 
 	const progressItems = useMemo(() => {
 		const items: ProgressTimelineItem[] = [];
-		for (const e of progress.events) {
-			items.push({ kind: "event", timestamp: e.timestamp, event: e });
+		for (const e of allProgressEvents) {
+			items.push({
+				kind: "event",
+				timestamp: e.timestamp,
+				event: e,
+				isMe: e.isRemote ? identity?.userId === e.authorUserId : true,
+			});
 		}
-		items.sort((a, b) => b.timestamp - a.timestamp);
 		return items;
-	}, [progress.events]);
+	}, [allProgressEvents, identity?.userId]);
 
 	const groupedProgress = useMemo(
 		() => groupEventsByDate(progressItems),
@@ -316,16 +322,18 @@ export function ProjectDetailView({
 
 	const progressActiveDays = useMemo(() => {
 		const set = new Set<string>();
-		for (const e of progress.events) {
+		for (const e of allProgressEvents) {
 			set.add(new Date(e.timestamp).toDateString());
 		}
 		return set.size;
-	}, [progress.events]);
+	}, [allProgressEvents]);
 
 	const latestProgressAt = useMemo(
-		() => progress.events[0]?.timestamp ?? null,
-		[progress.events],
+		() => allProgressEvents[0]?.timestamp ?? null,
+		[allProgressEvents],
 	);
+
+	const isProgressLoading = progress.isLoading;
 
 	const commitItems = useMemo(() => {
 		const items: ProgressTimelineItem[] = [];
@@ -1029,7 +1037,7 @@ export function ProjectDetailView({
 													variant="outline"
 													size="sm"
 													onClick={refreshProgress}
-													disabled={progress.isLoading}
+													disabled={isProgressLoading}
 												>
 													<RefreshCcw className="h-4 w-4 mr-2" />
 													Refresh
@@ -1051,7 +1059,7 @@ export function ProjectDetailView({
 													Progress captures
 												</div>
 												<div className="mt-1 text-lg font-semibold">
-													{progress.events.length}
+													{allProgressEvents.length}
 												</div>
 											</div>
 											<div className="rounded-lg border border-border bg-muted/10 p-3">
@@ -1118,14 +1126,14 @@ export function ProjectDetailView({
 											variant="outline"
 											size="sm"
 											onClick={refreshProgress}
-											disabled={progress.isLoading}
+											disabled={isProgressLoading}
 										>
 											<RefreshCcw className="h-4 w-4 mr-2" />
 											Refresh
 										</Button>
 									</div>
 									<div className="flex items-center gap-2 text-xs text-muted-foreground">
-										<span>{progress.events.length} captures</span>
+										<span>{allProgressEvents.length} captures</span>
 										<span>•</span>
 										<span>{progressActiveDays} days</span>
 									</div>
@@ -1137,7 +1145,7 @@ export function ProjectDetailView({
 									</div>
 								) : null}
 
-								{progress.isLoading ? (
+								{isProgressLoading ? (
 									<div className="h-[50vh] flex items-center justify-center">
 										<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
 									</div>

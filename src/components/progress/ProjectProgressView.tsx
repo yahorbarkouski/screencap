@@ -4,7 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn, groupEventsByDate, normalizeProjectName } from "@/lib/utils";
+import {
+	cn,
+	groupEventsByDate,
+	normalizeProjectName,
+	sharedEventToEvent,
+} from "@/lib/utils";
 import type { Event, GitCommit, SharedProject, SocialIdentity } from "@/types";
 import {
 	ProgressTimelineGroup,
@@ -60,9 +65,6 @@ export function ProjectProgressView() {
 	}>({ repoCount: 0, commits: [], isLoading: false, error: null });
 
 	const [sharedProjects, setSharedProjects] = useState<SharedProject[]>([]);
-	const [sharedEvents, setSharedEvents] = useState<Map<string, Event[]>>(
-		new Map(),
-	);
 	const [identity, setIdentity] = useState<SocialIdentity | null>(null);
 	const [isSyncing, setIsSyncing] = useState(false);
 
@@ -76,71 +78,10 @@ export function ProjectProgressView() {
 		try {
 			const projects = await window.api.sharedProjects.list();
 			setSharedProjects(projects);
-
-			const { startDate, endDate } = rangeBounds(preset);
-			const eventsMap = new Map<string, Event[]>();
-
-			for (const project of projects) {
-				const sharedEvts = await window.api.sharedProjects.getEvents({
-					roomId: project.roomId,
-					startDate,
-					endDate,
-					limit: 5000,
-				});
-				const unifiedEvents: Event[] = sharedEvts.map((se) => ({
-					id: se.id,
-					timestamp: se.timestampMs,
-					endTimestamp: se.endTimestampMs,
-					displayId: null,
-					category: se.category,
-					subcategories: null,
-					project: se.project ?? project.projectName,
-					projectProgress: se.projectProgress,
-					projectProgressConfidence: null,
-					projectProgressEvidence: null,
-					tags: null,
-					confidence: null,
-					caption: se.caption,
-					trackedAddiction: null,
-					addictionCandidate: null,
-					addictionConfidence: null,
-					addictionPrompt: null,
-					thumbnailPath: se.thumbnailPath,
-					originalPath: se.originalPath,
-					stableHash: null,
-					detailHash: null,
-					mergedCount: null,
-					dismissed: 0,
-					userLabel: null,
-					status: "completed",
-					appBundleId: se.appBundleId,
-					appName: se.appName,
-					appIconPath: null,
-					windowTitle: se.windowTitle,
-					urlHost: null,
-					urlCanonical: null,
-					faviconPath: null,
-					screenshotCount: null,
-					contentKind: se.contentKind,
-					contentId: null,
-					contentTitle: se.contentTitle,
-					isFullscreen: 0,
-					contextProvider: null,
-					contextConfidence: null,
-					contextKey: null,
-					contextJson: null,
-					authorUserId: se.authorUserId,
-					authorUsername: se.authorUsername,
-					isRemote: true,
-				}));
-				eventsMap.set(project.roomId, unifiedEvents);
-			}
-
-			setSharedEvents(eventsMap);
 		} catch (error) {
 			console.error("Failed to fetch shared projects:", error);
 		}
-	}, [preset]);
+	}, []);
 
 	const syncAllSharedProjects = useCallback(async () => {
 		if (!window.api?.sharedProjects) return;
@@ -162,18 +103,32 @@ export function ProjectProgressView() {
 		setIsLoading(true);
 		try {
 			const { startDate, endDate } = rangeBounds(preset);
-			const events = await window.api.storage.getEvents({
+
+			if (selectedProject?.startsWith("shared:")) {
+				const roomId = selectedProject.replace("shared:", "");
+				const sharedEvts = await window.api.sharedProjects.getEvents({
+					roomId,
+					startDate,
+					endDate,
+					limit: 5000,
+				});
+				setAllEvents(sharedEvts.map(sharedEventToEvent));
+				return;
+			}
+
+			const events = await window.api.storage.getUnifiedEvents({
 				startDate,
 				endDate,
 				projectProgress: true,
 				dismissed: false,
 				limit: 5000,
+				...(selectedProject ? { project: selectedProject } : {}),
 			});
 			setAllEvents(events);
 		} finally {
 			setIsLoading(false);
 		}
-	}, [preset]);
+	}, [preset, selectedProject]);
 
 	useEffect(() => {
 		void fetchEvents();
@@ -277,55 +232,13 @@ export function ProjectProgressView() {
 		}
 	}, [projectOptions, selectedProject]);
 
-	const visibleEvents = useMemo(() => {
-		if (!selectedProject) return allEvents;
-		if (selectedProject.startsWith("shared:")) return [];
-		return allEvents.filter((e) => e.project === selectedProject);
-	}, [allEvents, selectedProject]);
-
-	const currentProjectOption = useMemo(
-		() => projectOptions.find((p) => p.value === selectedProject),
-		[projectOptions, selectedProject],
-	);
-
-	const visibleSharedEvents = useMemo((): Event[] => {
-		if (!selectedProject) {
-			const result: Event[] = [];
-			for (const sp of sharedProjects) {
-				const events = sharedEvents.get(sp.roomId) ?? [];
-				result.push(...events);
-			}
-			return result;
-		}
-
-		if (selectedProject.startsWith("shared:")) {
-			const roomId = selectedProject.replace("shared:", "");
-			return sharedEvents.get(roomId) ?? [];
-		}
-
-		if (currentProjectOption?.roomId) {
-			return sharedEvents.get(currentProjectOption.roomId) ?? [];
-		}
-
-		return [];
-	}, [selectedProject, sharedProjects, sharedEvents, currentProjectOption]);
-
 	const timelineItems = useMemo(() => {
-		const items: ProgressTimelineItem[] = visibleEvents.map((e) => ({
+		const items: ProgressTimelineItem[] = allEvents.map((e) => ({
 			kind: "event",
 			timestamp: e.timestamp,
 			event: e,
-			isMe: false,
+			isMe: e.isRemote ? identity?.userId === e.authorUserId : true,
 		}));
-
-		for (const se of visibleSharedEvents) {
-			items.push({
-				kind: "event",
-				timestamp: se.timestamp,
-				event: se,
-				isMe: identity?.userId === se.authorUserId,
-			});
-		}
 
 		for (const c of git.commits) {
 			items.push({ kind: "commit", timestamp: c.timestamp, commit: c });
@@ -333,7 +246,7 @@ export function ProjectProgressView() {
 
 		items.sort((a, b) => b.timestamp - a.timestamp);
 		return items;
-	}, [git.commits, visibleEvents, visibleSharedEvents, identity]);
+	}, [git.commits, allEvents, identity]);
 
 	const groupedItems = useMemo(
 		() => groupEventsByDate(timelineItems),

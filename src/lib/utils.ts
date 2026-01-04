@@ -130,3 +130,114 @@ export function getConfidenceColor(confidence: number | null): string {
 export function normalizeProjectName(name: string): string {
 	return name.toLowerCase().trim();
 }
+
+export function sharedEventToEvent(se: {
+	id: string;
+	timestampMs: number;
+	endTimestampMs?: number | null;
+	category?: string | null;
+	project?: string | null;
+	projectProgress?: number | null;
+	caption?: string | null;
+	thumbnailPath?: string | null;
+	originalPath?: string | null;
+	appBundleId?: string | null;
+	appName?: string | null;
+	windowTitle?: string | null;
+	contentKind?: string | null;
+	contentTitle?: string | null;
+	authorUserId?: string | null;
+	authorUsername?: string | null;
+}): {
+	id: string;
+	timestamp: number;
+	endTimestamp: number | null;
+	displayId: null;
+	category: string | null;
+	subcategories: null;
+	project: string | null;
+	projectProgress: number | null;
+	projectProgressConfidence: null;
+	projectProgressEvidence: null;
+	tags: null;
+	confidence: null;
+	caption: string | null;
+	trackedAddiction: null;
+	addictionCandidate: null;
+	addictionConfidence: null;
+	addictionPrompt: null;
+	thumbnailPath: string | null;
+	originalPath: string | null;
+	stableHash: null;
+	detailHash: null;
+	mergedCount: null;
+	dismissed: number;
+	userLabel: null;
+	status: string;
+	appBundleId: string | null;
+	appName: string | null;
+	appIconPath: null;
+	windowTitle: string | null;
+	urlHost: null;
+	urlCanonical: null;
+	faviconPath: null;
+	screenshotCount: null;
+	contentKind: string | null;
+	contentId: null;
+	contentTitle: string | null;
+	isFullscreen: number;
+	contextProvider: null;
+	contextConfidence: null;
+	contextKey: null;
+	contextJson: null;
+	authorUserId: string | null;
+	authorUsername: string | null;
+	isRemote: true;
+} {
+	return {
+		id: se.id,
+		timestamp: se.timestampMs,
+		endTimestamp: se.endTimestampMs ?? null,
+		displayId: null,
+		category: se.category ?? null,
+		subcategories: null,
+		project: se.project ?? null,
+		projectProgress: se.projectProgress ?? null,
+		projectProgressConfidence: null,
+		projectProgressEvidence: null,
+		tags: null,
+		confidence: null,
+		caption: se.caption ?? null,
+		trackedAddiction: null,
+		addictionCandidate: null,
+		addictionConfidence: null,
+		addictionPrompt: null,
+		thumbnailPath: se.thumbnailPath ?? null,
+		originalPath: se.originalPath ?? null,
+		stableHash: null,
+		detailHash: null,
+		mergedCount: null,
+		dismissed: 0,
+		userLabel: null,
+		status: "completed",
+		appBundleId: se.appBundleId ?? null,
+		appName: se.appName ?? null,
+		appIconPath: null,
+		windowTitle: se.windowTitle ?? null,
+		urlHost: null,
+		urlCanonical: null,
+		faviconPath: null,
+		screenshotCount: null,
+		contentKind: se.contentKind ?? null,
+		contentId: null,
+		contentTitle: se.contentTitle ?? null,
+		isFullscreen: 0,
+		contextProvider: null,
+		contextConfidence: null,
+		contextKey: null,
+		contextJson: null,
+		authorUserId: se.authorUserId ?? null,
+		authorUsername: se.authorUsername ?? null,
+		isRemote: true,
+	};
+}
