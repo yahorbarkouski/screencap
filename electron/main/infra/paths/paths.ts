@@ -53,3 +53,11 @@ export function getAppIconsDir(): string {
 export function getTempCapturesDir(): string {
 	return ensureDir(join(getScreenshotsDir(), "tmp"));
 }
+
+export function getSharedImagesDir(): string {
+	return ensureDir(join(getScreenshotsDir(), "shared"));
+}
+
+export function getSharedRoomImagesDir(roomId: string): string {
+	return ensureDir(join(getSharedImagesDir(), roomId));
+}

@@ -1,4 +1,5 @@
 import type {
+	AcceptRoomInviteParams,
 	AddictionStatsItem,
 	AppInfo,
 	AutomationStatus,
@@ -36,6 +37,8 @@ import type {
 	RoomInvite,
 	RoomTimelineEvent,
 	Settings,
+	SharedEvent,
+	SharedProject,
 	SocialIdentity,
 	StorageUsageBreakdown,
 	Story,
@@ -182,6 +185,12 @@ export const IpcChannels = {
 		ListInvites: "rooms:list-invites",
 		AcceptProjectInvite: "rooms:accept-project-invite",
 		FetchRoomEvents: "rooms:fetch-room-events",
+	},
+	SharedProjects: {
+		List: "shared-projects:list",
+		GetEvents: "shared-projects:get-events",
+		Sync: "shared-projects:sync",
+		SyncAll: "shared-projects:sync-all",
 	},
 } as const;
 
@@ -383,13 +392,22 @@ export interface IpcInvokeHandlers {
 	[IpcChannels.Rooms.ListRooms]: () => Promise<Room[]>;
 	[IpcChannels.Rooms.ListInvites]: () => Promise<RoomInvite[]>;
 	[IpcChannels.Rooms.AcceptProjectInvite]: (
-		roomId: string,
-		projectName: string,
+		params: AcceptRoomInviteParams,
 	) => Promise<void>;
 	[IpcChannels.Rooms.FetchRoomEvents]: (
 		roomId: string,
 		since?: number,
 	) => Promise<RoomTimelineEvent[]>;
+
+	[IpcChannels.SharedProjects.List]: () => SharedProject[];
+	[IpcChannels.SharedProjects.GetEvents]: (params: {
+		roomId: string;
+		startDate?: number;
+		endDate?: number;
+		limit?: number;
+	}) => SharedEvent[];
+	[IpcChannels.SharedProjects.Sync]: (roomId: string) => Promise<{ count: number }>;
+	[IpcChannels.SharedProjects.SyncAll]: () => Promise<void>;
 }
 
 export interface ProjectProgressPreview {

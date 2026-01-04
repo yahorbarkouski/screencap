@@ -158,15 +158,33 @@ export function createTables(db: Database.Database): void {
       last_seen INTEGER
     );
 
+    CREATE TABLE IF NOT EXISTS room_memberships (
+      room_id TEXT PRIMARY KEY,
+      room_name TEXT NOT NULL,
+      role TEXT NOT NULL,
+      owner_user_id TEXT NOT NULL,
+      owner_username TEXT NOT NULL,
+      joined_at INTEGER NOT NULL,
+      last_synced_at INTEGER
+    );
+
     CREATE TABLE IF NOT EXISTS room_events_cache (
+      id TEXT PRIMARY KEY,
       room_id TEXT NOT NULL,
-      event_id TEXT NOT NULL,
+      author_user_id TEXT NOT NULL,
+      author_username TEXT NOT NULL,
       timestamp_ms INTEGER NOT NULL,
-      author_id TEXT NOT NULL,
-      payload_ciphertext TEXT NOT NULL,
+      caption TEXT,
       image_cache_path TEXT,
-      updated_at INTEGER NOT NULL,
-      PRIMARY KEY(room_id, event_id)
+      synced_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS room_members_cache (
+      room_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      username TEXT NOT NULL,
+      role TEXT NOT NULL,
+      PRIMARY KEY(room_id, user_id)
     );
 
     CREATE TABLE IF NOT EXISTS chat_threads_cache (
@@ -228,7 +246,9 @@ export function createIndexes(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_project_room_links_room_id ON project_room_links(room_id);
     CREATE INDEX IF NOT EXISTS idx_room_keys_cache_updated_at ON room_keys_cache(updated_at);
     CREATE INDEX IF NOT EXISTS idx_friends_cache_last_seen ON friends_cache(last_seen);
+    CREATE INDEX IF NOT EXISTS idx_room_memberships_role ON room_memberships(role);
     CREATE INDEX IF NOT EXISTS idx_room_events_cache_room_timestamp ON room_events_cache(room_id, timestamp_ms);
+    CREATE INDEX IF NOT EXISTS idx_room_events_cache_author ON room_events_cache(author_user_id);
     CREATE INDEX IF NOT EXISTS idx_chat_messages_cache_thread_timestamp ON chat_messages_cache(thread_id, timestamp_ms);
   `);
 

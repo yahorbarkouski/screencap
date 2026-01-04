@@ -180,6 +180,79 @@ export function runMigrations(db: Database.Database): void {
 	addColumnIfMissing(db, "memory", "description", "TEXT", memoryColumns);
 
 	migrateQueue(db);
+	migrateRoomTables(db);
 
 	logger.info("Migrations complete");
+}
+
+function tableExists(db: Database.Database, table: string): boolean {
+	const row = db
+		.prepare(
+			"SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+		)
+		.get(table) as { name: string } | undefined;
+	return row !== undefined;
+}
+
+function migrateRoomTables(db: Database.Database): void {
+	if (!tableExists(db, "room_memberships")) {
+		db.exec(`
+			CREATE TABLE room_memberships (
+				room_id TEXT PRIMARY KEY,
+				room_name TEXT NOT NULL,
+				role TEXT NOT NULL,
+				owner_user_id TEXT NOT NULL,
+				owner_username TEXT NOT NULL,
+				joined_at INTEGER NOT NULL,
+				last_synced_at INTEGER
+			)
+		`);
+		db.exec(
+			"CREATE INDEX idx_room_memberships_role ON room_memberships(role)",
+		);
+		logger.info("Created room_memberships table");
+	}
+
+	if (!tableExists(db, "room_members_cache")) {
+		db.exec(`
+			CREATE TABLE room_members_cache (
+				room_id TEXT NOT NULL,
+				user_id TEXT NOT NULL,
+				username TEXT NOT NULL,
+				role TEXT NOT NULL,
+				PRIMARY KEY(room_id, user_id)
+			)
+		`);
+		logger.info("Created room_members_cache table");
+	}
+
+	if (tableExists(db, "room_events_cache")) {
+		const columns = getExistingColumns(db, "room_events_cache");
+		if (columns.has("payload_ciphertext")) {
+			db.exec("DROP TABLE room_events_cache");
+			logger.info("Dropped old room_events_cache table with ciphertext schema");
+		}
+	}
+
+	if (!tableExists(db, "room_events_cache")) {
+		db.exec(`
+			CREATE TABLE room_events_cache (
+				id TEXT PRIMARY KEY,
+				room_id TEXT NOT NULL,
+				author_user_id TEXT NOT NULL,
+				author_username TEXT NOT NULL,
+				timestamp_ms INTEGER NOT NULL,
+				caption TEXT,
+				image_cache_path TEXT,
+				synced_at INTEGER NOT NULL
+			)
+		`);
+		db.exec(
+			"CREATE INDEX idx_room_events_cache_room_timestamp ON room_events_cache(room_id, timestamp_ms)",
+		);
+		db.exec(
+			"CREATE INDEX idx_room_events_cache_author ON room_events_cache(author_user_id)",
+		);
+		logger.info("Created room_events_cache table with decrypted schema");
+	}
 }

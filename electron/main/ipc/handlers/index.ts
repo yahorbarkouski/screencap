@@ -11,6 +11,7 @@ export { registerPublishingHandlers } from "./publishing";
 export { registerRoomsHandlers } from "./rooms";
 export { registerSchedulerHandlers } from "./scheduler";
 export { registerSettingsHandlers } from "./settings";
+export { registerSharedProjectsHandlers } from "./sharedProjects";
 export { registerShortcutsHandlers } from "./shortcuts";
 export { registerSocialHandlers } from "./social";
 export { registerStorageHandlers } from "./storage";

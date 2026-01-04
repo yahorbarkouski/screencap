@@ -14,6 +14,7 @@ import {
 	registerRoomsHandlers,
 	registerSchedulerHandlers,
 	registerSettingsHandlers,
+	registerSharedProjectsHandlers,
 	registerShortcutsHandlers,
 	registerSocialHandlers,
 	registerStorageHandlers,
@@ -53,6 +54,7 @@ export function registerAllHandlers(
 	registerSocialHandlers();
 	registerChatHandlers();
 	registerRoomsHandlers();
+	registerSharedProjectsHandlers();
 
 	registered = true;
 	logger.info("IPC handlers registered");

@@ -55,10 +55,12 @@ export function FriendsTab() {
 			setBusy(true);
 			setError(null);
 			try {
-				await window.api.rooms.acceptProjectInvite(
-					invite.roomId,
-					invite.roomName,
-				);
+				await window.api.rooms.acceptProjectInvite({
+					roomId: invite.roomId,
+					roomName: invite.roomName,
+					ownerUserId: invite.fromUserId,
+					ownerUsername: invite.fromUsername,
+				});
 				await refresh();
 			} catch (e) {
 				setError(String(e));

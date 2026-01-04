@@ -6,7 +6,7 @@ import type {
 	RoomTimelineEvent,
 } from "../../../shared/types";
 import {
-	acceptProjectRoomInvite,
+	acceptRoomInvite,
 	ensureRoomForProject,
 	inviteFriendToProjectRoom,
 	listIncomingRoomInvites,
@@ -22,8 +22,12 @@ const inviteArgs = z.tuple([
 	z.string().trim().min(1).max(256),
 ]);
 const acceptInviteArgs = z.tuple([
-	z.string().trim().min(1).max(256),
-	z.string().trim().min(1).max(200),
+	z.object({
+		roomId: z.string().trim().min(1).max(256),
+		roomName: z.string().trim().min(1).max(200),
+		ownerUserId: z.string().trim().min(1).max(256),
+		ownerUsername: z.string().trim().min(1).max(200),
+	}),
 ]);
 const roomEventsArgs = z.union([
 	z.tuple([z.string().trim().min(1).max(256)]),
@@ -66,8 +70,13 @@ export function registerRoomsHandlers(): void {
 	secureHandle(
 		IpcChannels.Rooms.AcceptProjectInvite,
 		acceptInviteArgs,
-		async (roomId: string, projectName: string): Promise<void> => {
-			await acceptProjectRoomInvite({ roomId, projectName });
+		async (params: {
+			roomId: string;
+			roomName: string;
+			ownerUserId: string;
+			ownerUsername: string;
+		}): Promise<void> => {
+			await acceptRoomInvite(params);
 		},
 	);
 

@@ -1,5 +1,6 @@
 import { safeStorage } from "electron";
 import type { RoomInvite } from "../../../shared/types";
+import { getDistinctProjects } from "../../infra/db/repositories/EventRepository";
 import {
 	getRoomIdForProject,
 	upsertProjectRoomLink,
@@ -8,9 +9,13 @@ import {
 	getRoomKeyCache,
 	upsertRoomKeyCache,
 } from "../../infra/db/repositories/RoomKeysCacheRepository";
+import {
+	upsertRoomMembership,
+} from "../../infra/db/repositories/RoomMembershipsRepository";
 import { createLogger } from "../../infra/log";
 import {
 	getDhPrivateKeyPkcs8DerB64,
+	getIdentity,
 	signedFetch,
 } from "../social/IdentityService";
 import {
@@ -91,21 +96,38 @@ export async function ensureRoomForProject(params: {
 	const existing = getRoomIdForProject(params.projectName);
 	if (existing) return existing;
 
+	const identity = getIdentity();
+	if (!identity) {
+		throw new Error("Not authenticated");
+	}
+
 	const roomKey = generateRoomKey();
 	const { roomId } = await createRoomOnServer({
 		name: params.projectName,
 		visibility: params.visibility ?? "private",
 	});
 
+	const now = Date.now();
+
 	upsertProjectRoomLink({
 		projectName: params.projectName,
 		roomId,
-		createdAt: Date.now(),
+		createdAt: now,
+	});
+
+	upsertRoomMembership({
+		roomId,
+		roomName: params.projectName,
+		role: "owner",
+		ownerUserId: identity.userId,
+		ownerUsername: identity.username,
+		joinedAt: now,
+		lastSyncedAt: null,
 	});
 
 	const roomKeyB64 = encodeRoomKeyB64(roomKey);
 	const roomKeyEnc = encodeSecretJson(encryptSecret(roomKeyB64));
-	upsertRoomKeyCache({ roomId, roomKeyEnc, updatedAt: Date.now() });
+	upsertRoomKeyCache({ roomId, roomKeyEnc, updatedAt: now });
 
 	logger.info("Created room for project", {
 		projectName: params.projectName,
@@ -227,18 +249,63 @@ export async function listIncomingRoomInvites(): Promise<RoomInvite[]> {
 	return (await res.json()) as RoomInvite[];
 }
 
+export async function acceptRoomInvite(params: {
+	roomId: string;
+	roomName: string;
+	ownerUserId: string;
+	ownerUsername: string;
+}): Promise<void> {
+	await getRoomKey(params.roomId);
+
+	const now = Date.now();
+
+	upsertRoomMembership({
+		roomId: params.roomId,
+		roomName: params.roomName,
+		role: "member",
+		ownerUserId: params.ownerUserId,
+		ownerUsername: params.ownerUsername,
+		joinedAt: now,
+		lastSyncedAt: null,
+	});
+
+	const localProjects = getDistinctProjects();
+	const normalizedRoomName = params.roomName.toLowerCase().trim();
+	const matchingLocalProject = localProjects.find(
+		(p) => p.toLowerCase().trim() === normalizedRoomName,
+	);
+
+	if (matchingLocalProject) {
+		const existingRoomId = getRoomIdForProject(matchingLocalProject);
+		if (!existingRoomId) {
+			upsertProjectRoomLink({
+				projectName: matchingLocalProject,
+				roomId: params.roomId,
+				createdAt: now,
+			});
+			logger.info("Auto-linked local project to room", {
+				projectName: matchingLocalProject,
+				roomId: params.roomId,
+			});
+		}
+	}
+
+	logger.info("Accepted room invite", {
+		roomId: params.roomId,
+		roomName: params.roomName,
+		ownerUsername: params.ownerUsername,
+		linkedLocalProject: matchingLocalProject ?? null,
+	});
+}
+
 export async function acceptProjectRoomInvite(params: {
 	roomId: string;
 	projectName: string;
 }): Promise<void> {
-	await getRoomKey(params.roomId);
-	upsertProjectRoomLink({
-		projectName: params.projectName,
+	await acceptRoomInvite({
 		roomId: params.roomId,
-		createdAt: Date.now(),
-	});
-	logger.info("Accepted room invite", {
-		roomId: params.roomId,
-		projectName: params.projectName,
+		roomName: params.projectName,
+		ownerUserId: "",
+		ownerUsername: "Unknown",
 	});
 }

@@ -21,13 +21,28 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, groupEventsByDate } from "@/lib/utils";
-import type { Event, Friend, GitCommit, ProjectShare } from "@/types";
+import type {
+	Event,
+	Friend,
+	GitCommit,
+	ProjectShare,
+	SharedEvent,
+	SharedProject,
+	SocialIdentity,
+} from "@/types";
 import {
 	ProgressTimelineGroup,
 	type ProgressTimelineItem,
 } from "./ProgressTimelineGroup";
 
 type RangePreset = "today" | "7d" | "30d" | "all";
+
+type ProjectOption = {
+	value: string;
+	label: string;
+	isShared: boolean;
+	roomId?: string;
+};
 
 function rangeBounds(preset: RangePreset): {
 	startDate?: number;
@@ -68,6 +83,13 @@ export function ProjectProgressView() {
 		error: string | null;
 	}>({ repoCount: 0, commits: [], isLoading: false, error: null });
 
+	const [sharedProjects, setSharedProjects] = useState<SharedProject[]>([]);
+	const [sharedEvents, setSharedEvents] = useState<
+		Map<string, SharedEvent[]>
+	>(new Map());
+	const [identity, setIdentity] = useState<SocialIdentity | null>(null);
+	const [isSyncing, setIsSyncing] = useState(false);
+
 	const [shareDialogOpen, setShareDialogOpen] = useState(false);
 	const [shareState, setShareState] = useState<{
 		status: "idle" | "loading" | "creating" | "syncing" | "error";
@@ -95,6 +117,51 @@ export function ProjectProgressView() {
 		error: null,
 	});
 
+	useEffect(() => {
+		if (!window.api?.social) return;
+		void window.api.social.getIdentity().then(setIdentity);
+	}, []);
+
+	const fetchSharedProjects = useCallback(async () => {
+		if (!window.api?.sharedProjects) return;
+		try {
+			const projects = await window.api.sharedProjects.list();
+			setSharedProjects(projects);
+
+			const { startDate, endDate } = rangeBounds(preset);
+			const eventsMap = new Map<string, SharedEvent[]>();
+
+			for (const project of projects) {
+				const events = await window.api.sharedProjects.getEvents({
+					roomId: project.roomId,
+					startDate,
+					endDate,
+					limit: 5000,
+				});
+				eventsMap.set(project.roomId, events);
+			}
+
+			setSharedEvents(eventsMap);
+		} catch (error) {
+			console.error("Failed to fetch shared projects:", error);
+		}
+	}, [preset]);
+
+	const syncAllSharedProjects = useCallback(async () => {
+		if (!window.api?.sharedProjects) return;
+		setIsSyncing(true);
+		try {
+			await window.api.sharedProjects.syncAll();
+			await fetchSharedProjects();
+		} finally {
+			setIsSyncing(false);
+		}
+	}, [fetchSharedProjects]);
+
+	useEffect(() => {
+		void fetchSharedProjects();
+	}, [fetchSharedProjects]);
+
 	const fetchEvents = useCallback(async () => {
 		if (!window.api) return;
 		setIsLoading(true);
@@ -117,7 +184,40 @@ export function ProjectProgressView() {
 		void fetchEvents();
 	}, [fetchEvents]);
 
-	const projects = useMemo(() => uniqueProjects(allEvents), [allEvents]);
+	const localProjects = useMemo(() => uniqueProjects(allEvents), [allEvents]);
+
+	const projectOptions = useMemo((): ProjectOption[] => {
+		const options: ProjectOption[] = [];
+		const seenNames = new Set<string>();
+
+		for (const name of localProjects) {
+			const sharedProject = sharedProjects.find(
+				(sp) => sp.projectName.toLowerCase() === name.toLowerCase(),
+			);
+			options.push({
+				value: name,
+				label: sharedProject ? `${name} [shared]` : name,
+				isShared: !!sharedProject,
+				roomId: sharedProject?.roomId,
+			});
+			seenNames.add(name.toLowerCase());
+		}
+
+		for (const sp of sharedProjects) {
+			if (!seenNames.has(sp.projectName.toLowerCase())) {
+				options.push({
+					value: `shared:${sp.roomId}`,
+					label: `${sp.projectName} [shared]`,
+					isShared: true,
+					roomId: sp.roomId,
+				});
+			}
+		}
+
+		return options.sort((a, b) =>
+			a.value.localeCompare(b.value, undefined, { sensitivity: "base" }),
+		);
+	}, [localProjects, sharedProjects]);
 
 	const fetchGit = useCallback(async () => {
 		if (!window.api) {
@@ -129,7 +229,11 @@ export function ProjectProgressView() {
 		const startAt = startDate ?? 0;
 		const endAt = endDate ?? 0;
 
-		const projectsToFetch = selectedProject ? [selectedProject] : projects;
+		const projectsToFetch = selectedProject
+			? selectedProject.startsWith("shared:")
+				? []
+				: [selectedProject]
+			: localProjects;
 		if (projectsToFetch.length === 0) {
 			setGit({ repoCount: 0, commits: [], isLoading: false, error: null });
 			return;
@@ -158,31 +262,74 @@ export function ProjectProgressView() {
 		} catch (error) {
 			setGit((s) => ({ ...s, isLoading: false, error: String(error) }));
 		}
-	}, [preset, selectedProject, projects]);
+	}, [preset, selectedProject, localProjects]);
 
 	useEffect(() => {
 		void fetchGit();
 	}, [fetchGit]);
 
 	useEffect(() => {
-		if (!selectedProject && projects.length === 1) {
-			setSelectedProject(projects[0]);
+		if (!selectedProject && projectOptions.length === 1) {
+			setSelectedProject(projectOptions[0].value);
 		}
-	}, [projects, selectedProject]);
+	}, [projectOptions, selectedProject]);
 
 	useEffect(() => {
-		if (selectedProject && !projects.includes(selectedProject)) {
+		const allValues = projectOptions.map((p) => p.value);
+		if (selectedProject && !allValues.includes(selectedProject)) {
 			setSelectedProject(undefined);
 		}
-	}, [projects, selectedProject]);
+	}, [projectOptions, selectedProject]);
 
-	const visibleEvents = useMemo(
-		() =>
-			selectedProject
-				? allEvents.filter((e) => e.project === selectedProject)
-				: allEvents,
-		[allEvents, selectedProject],
+	const visibleEvents = useMemo(() => {
+		if (!selectedProject) return allEvents;
+		if (selectedProject.startsWith("shared:")) return [];
+		return allEvents.filter((e) => e.project === selectedProject);
+	}, [allEvents, selectedProject]);
+
+	const currentProjectOption = useMemo(
+		() => projectOptions.find((p) => p.value === selectedProject),
+		[projectOptions, selectedProject],
 	);
+
+	const visibleSharedEvents = useMemo((): Array<{
+		event: SharedEvent;
+		projectName: string;
+	}> => {
+		if (!selectedProject) {
+			const result: Array<{ event: SharedEvent; projectName: string }> = [];
+			for (const sp of sharedProjects) {
+				const events = sharedEvents.get(sp.roomId) ?? [];
+				for (const e of events) {
+					result.push({ event: e, projectName: sp.projectName });
+				}
+			}
+			return result;
+		}
+
+		if (selectedProject.startsWith("shared:")) {
+			const roomId = selectedProject.replace("shared:", "");
+			const sp = sharedProjects.find((p) => p.roomId === roomId);
+			if (!sp) return [];
+			const events = sharedEvents.get(roomId) ?? [];
+			return events.map((e) => ({ event: e, projectName: sp.projectName }));
+		}
+
+		if (currentProjectOption?.roomId) {
+			const events = sharedEvents.get(currentProjectOption.roomId) ?? [];
+			return events.map((e) => ({
+				event: e,
+				projectName: currentProjectOption.value,
+			}));
+		}
+
+		return [];
+	}, [
+		selectedProject,
+		sharedProjects,
+		sharedEvents,
+		currentProjectOption,
+	]);
 
 	const timelineItems = useMemo(() => {
 		const items: ProgressTimelineItem[] = visibleEvents.map((e) => ({
@@ -191,13 +338,23 @@ export function ProjectProgressView() {
 			event: e,
 		}));
 
+		for (const se of visibleSharedEvents) {
+			items.push({
+				kind: "shared",
+				timestamp: se.event.timestampMs,
+				event: se.event,
+				projectName: se.projectName,
+				isMe: identity?.userId === se.event.authorUserId,
+			});
+		}
+
 		for (const c of git.commits) {
 			items.push({ kind: "commit", timestamp: c.timestamp, commit: c });
 		}
 
 		items.sort((a, b) => b.timestamp - a.timestamp);
 		return items;
-	}, [git.commits, visibleEvents]);
+	}, [git.commits, visibleEvents, visibleSharedEvents, identity]);
 
 	const groupedItems = useMemo(
 		() => groupEventsByDate(timelineItems),
@@ -395,17 +552,34 @@ export function ProjectProgressView() {
 				</div>
 
 				<div className="flex items-center gap-2 no-drag pt-2">
-					{selectedProject && window.api?.publishing && (
+					{sharedProjects.length > 0 && (
 						<Button
 							variant="outline"
 							size="sm"
 							className="h-7 px-2 text-xs gap-1.5"
-							onClick={openShareDialog}
+							onClick={syncAllSharedProjects}
+							disabled={isSyncing}
 						>
-							<Share2 className="h-3.5 w-3.5" />
-							Share
+							<RefreshCw
+								className={cn("h-3.5 w-3.5", isSyncing && "animate-spin")}
+							/>
+							Sync
 						</Button>
 					)}
+
+					{selectedProject &&
+						!selectedProject.startsWith("shared:") &&
+						window.api?.publishing && (
+							<Button
+								variant="outline"
+								size="sm"
+								className="h-7 px-2 text-xs gap-1.5"
+								onClick={openShareDialog}
+							>
+								<Share2 className="h-3.5 w-3.5" />
+								Share
+							</Button>
+						)}
 
 					<Combobox
 						value={selectedProject}
@@ -415,7 +589,7 @@ export function ProjectProgressView() {
 						searchable
 						searchPlaceholder="Search projects..."
 						emptyText="No projects."
-						options={projects.map((p) => ({ value: p, label: p }))}
+						options={projectOptions}
 						className="w-[200px] no-drag"
 					/>
 

@@ -567,3 +567,30 @@ export interface RoomTimelineEvent {
 	caption: string | null;
 	imageRef: string | null;
 }
+
+export interface SharedProject {
+	roomId: string;
+	projectName: string;
+	ownerUserId: string;
+	ownerUsername: string;
+	isOwner: boolean;
+	joinedAt: number;
+	lastSyncedAt: number | null;
+}
+
+export interface SharedEvent {
+	id: string;
+	roomId: string;
+	authorUserId: string;
+	authorUsername: string;
+	timestampMs: number;
+	caption: string | null;
+	imageCachePath: string | null;
+}
+
+export interface AcceptRoomInviteParams {
+	roomId: string;
+	roomName: string;
+	ownerUserId: string;
+	ownerUsername: string;
+}

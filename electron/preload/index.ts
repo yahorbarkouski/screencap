@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { IpcChannels, IpcEvents } from "../shared/ipc";
 import type {
+	AcceptRoomInviteParams,
 	AddictionStatsItem,
 	AppInfo,
 	AutomationStatus,
@@ -38,6 +39,8 @@ import type {
 	RoomInvite,
 	RoomTimelineEvent,
 	Settings,
+	SharedEvent,
+	SharedProject,
 	SocialIdentity,
 	StorageUsageBreakdown,
 	Story,
@@ -349,12 +352,8 @@ const api = {
 			ipcRenderer.invoke(IpcChannels.Rooms.ListRooms),
 		listInvites: (): Promise<RoomInvite[]> =>
 			ipcRenderer.invoke(IpcChannels.Rooms.ListInvites),
-		acceptProjectInvite: (roomId: string, projectName: string): Promise<void> =>
-			ipcRenderer.invoke(
-				IpcChannels.Rooms.AcceptProjectInvite,
-				roomId,
-				projectName,
-			),
+		acceptProjectInvite: (params: AcceptRoomInviteParams): Promise<void> =>
+			ipcRenderer.invoke(IpcChannels.Rooms.AcceptProjectInvite, params),
 		fetchRoomEvents: (
 			roomId: string,
 			since?: number,
@@ -368,6 +367,22 @@ const api = {
 			}
 			return ipcRenderer.invoke(IpcChannels.Rooms.FetchRoomEvents, roomId);
 		},
+	},
+
+	sharedProjects: {
+		list: (): Promise<SharedProject[]> =>
+			ipcRenderer.invoke(IpcChannels.SharedProjects.List),
+		getEvents: (params: {
+			roomId: string;
+			startDate?: number;
+			endDate?: number;
+			limit?: number;
+		}): Promise<SharedEvent[]> =>
+			ipcRenderer.invoke(IpcChannels.SharedProjects.GetEvents, params),
+		sync: (roomId: string): Promise<{ count: number }> =>
+			ipcRenderer.invoke(IpcChannels.SharedProjects.Sync, roomId),
+		syncAll: (): Promise<void> =>
+			ipcRenderer.invoke(IpcChannels.SharedProjects.SyncAll),
 	},
 
 	on: (channel: string, callback: (...args: unknown[]) => void) => {
@@ -390,6 +405,7 @@ export type API = typeof api;
 export {
 	IpcChannels,
 	IpcEvents,
+	type AcceptRoomInviteParams,
 	type Event,
 	type EventScreenshot,
 	type GitCommit,
@@ -397,6 +413,8 @@ export {
 	type ProjectRepo,
 	type ProjectShare,
 	type CreateShareResult,
+	type SharedProject,
+	type SharedEvent,
 	type SocialIdentity,
 	type Friend,
 	type FriendRequest,

@@ -483,6 +483,33 @@ export interface RoomTimelineEvent {
 	imageRef: string | null;
 }
 
+export interface SharedProject {
+	roomId: string;
+	projectName: string;
+	ownerUserId: string;
+	ownerUsername: string;
+	isOwner: boolean;
+	joinedAt: number;
+	lastSyncedAt: number | null;
+}
+
+export interface SharedEvent {
+	id: string;
+	roomId: string;
+	authorUserId: string;
+	authorUsername: string;
+	timestampMs: number;
+	caption: string | null;
+	imageCachePath: string | null;
+}
+
+export interface AcceptRoomInviteParams {
+	roomId: string;
+	roomName: string;
+	ownerUserId: string;
+	ownerUsername: string;
+}
+
 declare global {
 	interface Window {
 		api: {
@@ -695,14 +722,22 @@ declare global {
 				) => Promise<void>;
 				listRooms: () => Promise<Room[]>;
 				listInvites: () => Promise<RoomInvite[]>;
-				acceptProjectInvite: (
-					roomId: string,
-					projectName: string,
-				) => Promise<void>;
+				acceptProjectInvite: (params: AcceptRoomInviteParams) => Promise<void>;
 				fetchRoomEvents: (
 					roomId: string,
 					since?: number,
 				) => Promise<RoomTimelineEvent[]>;
+			};
+			sharedProjects: {
+				list: () => Promise<SharedProject[]>;
+				getEvents: (params: {
+					roomId: string;
+					startDate?: number;
+					endDate?: number;
+					limit?: number;
+				}) => Promise<SharedEvent[]>;
+				sync: (roomId: string) => Promise<{ count: number }>;
+				syncAll: () => Promise<void>;
 			};
 			on: (
 				channel:

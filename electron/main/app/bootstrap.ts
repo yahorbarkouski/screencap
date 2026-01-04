@@ -5,6 +5,7 @@ import { checkScreenCapturePermission } from "../features/permissions";
 import { startQueueProcessor } from "../features/queue";
 import { startRetentionService } from "../features/retention";
 import { startScheduler } from "../features/scheduler";
+import { startBackgroundSync } from "../features/sharedProjects";
 import { startShortcuts } from "../features/shortcuts";
 import { initializeUpdater } from "../features/update";
 import { createLogger } from "../infra/log";
@@ -98,6 +99,7 @@ export async function bootstrap(): Promise<void> {
 	}
 
 	initializeUpdater();
+	startBackgroundSync();
 
 	setupLifecycleHandlers();
 
