@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/yahorbarkouski/screencap/compare/v1.7.0...v1.8.0) (2026-01-04)
+
+
+### Features
+
+* actually shared projects, full multiplayer mode ([42ae673](https://github.com/yahorbarkouski/screencap/commit/42ae673852a83d9f0cd54d0a645916a7b154beea))
+
 # [1.7.0](https://github.com/yahorbarkouski/screencap/compare/v1.6.0...v1.7.0) (2026-01-04)
 
 
