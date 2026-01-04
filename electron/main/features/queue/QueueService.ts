@@ -58,7 +58,7 @@ const aiRouter = createAiRouter([
 function includesPornTag(tags: string[]): boolean {
 	return tags.some((tag) => {
 		const t = tag.trim().toLowerCase();
-		return t === "porn" || t === "nsfw";
+		return t === "porn" || t === "nsfw" || t === "adult";
 	});
 }
 

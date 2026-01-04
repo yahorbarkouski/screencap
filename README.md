@@ -14,7 +14,7 @@ Inside:
 
 LLM classification is optional and can run locally or via a cloud provider
 
-[Download](https://github.com/yahorbarkouski/screencap/releases) · [Changelog](CHANGELOG.md) · [Security](docs/security.md) · [Local LLM](docs/local-llm.md) · [Context providers](docs/adding-context-providers.md)
+[Download](https://github.com/yahorbarkouski/screencap/releases) · [Changelog](CHANGELOG.md) · [Security](docs/security.md) · [Sharing & E2EE](docs/security-sharing.md) · [Local LLM](docs/local-llm.md) · [Context providers](docs/adding-context-providers.md)
 
 ## Tour
 

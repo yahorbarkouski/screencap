@@ -14,7 +14,7 @@ function parseStringArrayJson(value: string | null): string[] {
 
 function includesPornTerm(value: string | null | undefined): boolean {
 	const v = (value ?? "").toLowerCase();
-	return v.includes("porn") || v.includes("nsfw");
+	return v.includes("porn") || v.includes("nsfw") || v.includes("adult");
 }
 
 export function isNsfwEvent(
@@ -27,7 +27,7 @@ export function isNsfwEvent(
 	if (
 		tags.some((tag) => {
 			const t = tag.toLowerCase();
-			return t === "porn" || t === "nsfw";
+			return t === "porn" || t === "nsfw" || t === "adult";
 		})
 	) {
 		return true;

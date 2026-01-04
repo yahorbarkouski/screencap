@@ -1,5 +1,6 @@
 import {
 	AlertCircle,
+	AlertTriangle,
 	Bug,
 	Check,
 	Copy,
@@ -10,6 +11,7 @@ import {
 	Loader2,
 	RefreshCw,
 	RotateCcw,
+	Trash2,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { getRendererLogs, getRendererLogCount } from "@/lib/rendererLogBuffer";
@@ -224,6 +226,8 @@ export function SystemTab({
 		status: "idle" | "copying" | "saving" | "copied" | "saved" | "error";
 		message?: string;
 	}>({ status: "idle" });
+	const [showResetConfirm, setShowResetConfirm] = useState(false);
+	const [isResetting, setIsResetting] = useState(false);
 
 	useEffect(() => {
 		if (!window.api) return;
@@ -297,6 +301,12 @@ export function SystemTab({
 		});
 		window.location.reload();
 	}, [settings, saveSettings]);
+
+	const handleFactoryReset = useCallback(async () => {
+		if (!window.api) return;
+		setIsResetting(true);
+		await window.api.app.factoryReset();
+	}, []);
 
 	const handleCopySha = useCallback(() => {
 		if (!appInfo?.gitSha) return;
@@ -701,6 +711,69 @@ export function SystemTab({
 							Loading app info...
 						</div>
 					)}
+				</Panel>
+
+				<Panel
+					title="Danger Zone"
+					meta="Irreversible actions"
+					className="max-w-3xl border-destructive/50"
+				>
+					<div className="space-y-4">
+						<div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
+							<AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+							<div className="space-y-1">
+								<p className="text-sm font-medium text-destructive">
+									Factory Reset
+								</p>
+								<p className="text-xs text-muted-foreground">
+									Delete all data including screenshots, database, settings, and
+									account information. The app will restart as if freshly
+									installed. This action cannot be undone.
+								</p>
+							</div>
+						</div>
+
+						{showResetConfirm ? (
+							<div className="flex items-center justify-between p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+								<p className="text-sm text-destructive font-medium">
+									Are you sure? All data will be permanently deleted.
+								</p>
+								<div className="flex items-center gap-2">
+									<Button
+										variant="destructive"
+										size="sm"
+										onClick={handleFactoryReset}
+										disabled={isResetting}
+									>
+										{isResetting ? (
+											<Loader2 className="h-4 w-4 animate-spin" />
+										) : (
+											<Trash2 className="h-4 w-4" />
+										)}
+										{isResetting ? "Resetting..." : "Yes, delete everything"}
+									</Button>
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={() => setShowResetConfirm(false)}
+										disabled={isResetting}
+									>
+										Cancel
+									</Button>
+								</div>
+							</div>
+						) : (
+							<Button
+								variant="outline"
+								size="sm"
+								className="border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
+								onClick={() => setShowResetConfirm(true)}
+							>
+								<Trash2 className="h-4 w-4" />
+								Factory Reset
+							</Button>
+						)}
+					</div>
 				</Panel>
 			</div>
 		</TabsContent>

@@ -34,9 +34,12 @@ import type {
 	ProjectShare,
 	ProjectStatsItem,
 	RecordedApp,
+	InviteStatus,
 	Room,
 	RoomInvite,
+	RoomMember,
 	RoomTimelineEvent,
+	SentInvite,
 	Settings,
 	SharedEvent,
 	SharedProject,
@@ -57,6 +60,7 @@ export const IpcChannels = {
 		OpenExternal: "app:open-external",
 		RevealInFinder: "app:reveal-in-finder",
 		PickDirectory: "app:pick-directory",
+		FactoryReset: "app:factory-reset",
 	},
 	Update: {
 		GetState: "update:get-state",
@@ -187,6 +191,9 @@ export const IpcChannels = {
 		ListInvites: "rooms:list-invites",
 		AcceptProjectInvite: "rooms:accept-project-invite",
 		FetchRoomEvents: "rooms:fetch-room-events",
+		GetRoomMembers: "rooms:get-room-members",
+		ListSentInvites: "rooms:list-sent-invites",
+		GetInviteStatus: "rooms:get-invite-status",
 	},
 	SharedProjects: {
 		List: "shared-projects:list",
@@ -222,6 +229,7 @@ export interface IpcInvokeHandlers {
 	[IpcChannels.App.OpenExternal]: (url: string) => void;
 	[IpcChannels.App.RevealInFinder]: () => void;
 	[IpcChannels.App.PickDirectory]: () => Promise<string | null>;
+	[IpcChannels.App.FactoryReset]: () => Promise<void>;
 
 	[IpcChannels.Update.GetState]: () => UpdateState;
 	[IpcChannels.Update.Check]: () => void;
@@ -393,10 +401,11 @@ export interface IpcInvokeHandlers {
 	[IpcChannels.Rooms.EnsureProjectRoom]: (
 		projectName: string,
 	) => Promise<string>;
-	[IpcChannels.Rooms.InviteFriendToProjectRoom]: (
-		projectName: string,
-		friendUserId: string,
-	) => Promise<void>;
+	[IpcChannels.Rooms.InviteFriendToProjectRoom]: (params: {
+		projectName: string;
+		friendUserId: string;
+		friendUsername?: string;
+	}) => Promise<{ status: "invited" | "already_member" | "already_invited" }>;
 	[IpcChannels.Rooms.ListRooms]: () => Promise<Room[]>;
 	[IpcChannels.Rooms.ListInvites]: () => Promise<RoomInvite[]>;
 	[IpcChannels.Rooms.AcceptProjectInvite]: (
@@ -406,6 +415,12 @@ export interface IpcInvokeHandlers {
 		roomId: string,
 		since?: number,
 	) => Promise<RoomTimelineEvent[]>;
+	[IpcChannels.Rooms.GetRoomMembers]: (roomId: string) => Promise<RoomMember[]>;
+	[IpcChannels.Rooms.ListSentInvites]: (roomId: string) => Promise<SentInvite[]>;
+	[IpcChannels.Rooms.GetInviteStatus]: (
+		roomId: string,
+		friendUserId: string,
+	) => Promise<InviteStatus>;
 
 	[IpcChannels.SharedProjects.List]: () => SharedProject[];
 	[IpcChannels.SharedProjects.GetEvents]: (params: {

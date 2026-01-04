@@ -3,23 +3,32 @@ import { IpcChannels } from "../../../shared/ipc";
 import type {
 	Room,
 	RoomInvite,
+	RoomMember,
 	RoomTimelineEvent,
+	SentInvite,
 } from "../../../shared/types";
 import {
 	acceptRoomInvite,
 	ensureRoomForProject,
+	getInviteStatusForFriend,
 	inviteFriendToProjectRoom,
 	listIncomingRoomInvites,
 	listRooms,
+	listSentInvites,
+	type InviteStatus,
 } from "../../features/rooms/RoomsService";
+import { listRoomMembers } from "../../infra/db/repositories/RoomMembersCacheRepository";
 import { fetchRoomEvents } from "../../features/sync/RoomSyncService";
 import { secureHandle } from "../secure";
 
 const noArgs = z.tuple([]);
 const projectNameArg = z.tuple([z.string().trim().min(1).max(200)]);
 const inviteArgs = z.tuple([
-	z.string().trim().min(1).max(200),
-	z.string().trim().min(1).max(256),
+	z.object({
+		projectName: z.string().trim().min(1).max(200),
+		friendUserId: z.string().trim().min(1).max(256),
+		friendUsername: z.string().trim().min(1).max(200).optional(),
+	}),
 ]);
 const acceptInviteArgs = z.tuple([
 	z.object({
@@ -32,6 +41,11 @@ const acceptInviteArgs = z.tuple([
 const roomEventsArgs = z.union([
 	z.tuple([z.string().trim().min(1).max(256)]),
 	z.tuple([z.string().trim().min(1).max(256), z.number().int().optional()]),
+]);
+const roomIdArg = z.tuple([z.string().trim().min(1).max(256)]);
+const inviteStatusArgs = z.tuple([
+	z.string().trim().min(1).max(256),
+	z.string().trim().min(1).max(256),
 ]);
 
 export function registerRoomsHandlers(): void {
@@ -46,8 +60,12 @@ export function registerRoomsHandlers(): void {
 	secureHandle(
 		IpcChannels.Rooms.InviteFriendToProjectRoom,
 		inviteArgs,
-		async (projectName: string, friendUserId: string): Promise<void> => {
-			await inviteFriendToProjectRoom({ projectName, friendUserId });
+		async (params: {
+			projectName: string;
+			friendUserId: string;
+			friendUsername?: string;
+		}): Promise<{ status: "invited" | "already_member" | "already_invited" }> => {
+			return await inviteFriendToProjectRoom(params);
 		},
 	);
 
@@ -93,6 +111,43 @@ export function registerRoomsHandlers(): void {
 				caption: e.caption,
 				imageRef: e.imageRef,
 			}));
+		},
+	);
+
+	secureHandle(
+		IpcChannels.Rooms.GetRoomMembers,
+		roomIdArg,
+		async (roomId: string): Promise<RoomMember[]> => {
+			const members = listRoomMembers(roomId);
+			return members.map((m) => ({
+				userId: m.userId,
+				username: m.username,
+				role: m.role,
+			}));
+		},
+	);
+
+	secureHandle(
+		IpcChannels.Rooms.ListSentInvites,
+		roomIdArg,
+		async (roomId: string): Promise<SentInvite[]> => {
+			const invites = listSentInvites(roomId);
+			return invites.map((i) => ({
+				id: i.id,
+				roomId: i.roomId,
+				toUserId: i.toUserId,
+				toUsername: i.toUsername,
+				sentAt: i.sentAt,
+				status: i.status,
+			}));
+		},
+	);
+
+	secureHandle(
+		IpcChannels.Rooms.GetInviteStatus,
+		inviteStatusArgs,
+		async (roomId: string, friendUserId: string): Promise<InviteStatus> => {
+			return getInviteStatusForFriend(roomId, friendUserId);
 		},
 	);
 }

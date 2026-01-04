@@ -36,9 +36,12 @@ import type {
 	ProjectShare,
 	ProjectStatsItem,
 	RecordedApp,
+	InviteStatus,
 	Room,
 	RoomInvite,
+	RoomMember,
 	RoomTimelineEvent,
+	SentInvite,
 	Settings,
 	SharedEvent,
 	SharedProject,
@@ -66,6 +69,8 @@ const api = {
 			ipcRenderer.invoke(IpcChannels.App.RevealInFinder),
 		pickDirectory: (): Promise<string | null> =>
 			ipcRenderer.invoke(IpcChannels.App.PickDirectory),
+		factoryReset: (): Promise<void> =>
+			ipcRenderer.invoke(IpcChannels.App.FactoryReset),
 	},
 	update: {
 		getState: (): Promise<UpdateState> =>
@@ -342,15 +347,12 @@ const api = {
 	rooms: {
 		ensureProjectRoom: (projectName: string): Promise<string> =>
 			ipcRenderer.invoke(IpcChannels.Rooms.EnsureProjectRoom, projectName),
-		inviteFriendToProjectRoom: (
-			projectName: string,
-			friendUserId: string,
-		): Promise<void> =>
-			ipcRenderer.invoke(
-				IpcChannels.Rooms.InviteFriendToProjectRoom,
-				projectName,
-				friendUserId,
-			),
+		inviteFriendToProjectRoom: (params: {
+			projectName: string;
+			friendUserId: string;
+			friendUsername?: string;
+		}): Promise<{ status: "invited" | "already_member" | "already_invited" }> =>
+			ipcRenderer.invoke(IpcChannels.Rooms.InviteFriendToProjectRoom, params),
 		listRooms: (): Promise<Room[]> =>
 			ipcRenderer.invoke(IpcChannels.Rooms.ListRooms),
 		listInvites: (): Promise<RoomInvite[]> =>
@@ -370,6 +372,15 @@ const api = {
 			}
 			return ipcRenderer.invoke(IpcChannels.Rooms.FetchRoomEvents, roomId);
 		},
+		getRoomMembers: (roomId: string): Promise<RoomMember[]> =>
+			ipcRenderer.invoke(IpcChannels.Rooms.GetRoomMembers, roomId),
+		listSentInvites: (roomId: string): Promise<SentInvite[]> =>
+			ipcRenderer.invoke(IpcChannels.Rooms.ListSentInvites, roomId),
+		getInviteStatus: (
+			roomId: string,
+			friendUserId: string,
+		): Promise<InviteStatus> =>
+			ipcRenderer.invoke(IpcChannels.Rooms.GetInviteStatus, roomId, friendUserId),
 	},
 
 	sharedProjects: {

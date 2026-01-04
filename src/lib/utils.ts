@@ -126,3 +126,7 @@ export function getConfidenceColor(confidence: number | null): string {
 	if (confidence >= 0.5) return "text-yellow-400";
 	return "text-red-400";
 }
+
+export function normalizeProjectName(name: string): string {
+	return name.toLowerCase().trim();
+}

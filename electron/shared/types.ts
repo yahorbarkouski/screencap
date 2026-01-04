@@ -569,6 +569,25 @@ export interface RoomInvite {
 	createdAt: number;
 }
 
+export interface RoomMember {
+	userId: string;
+	username: string;
+	role: string;
+}
+
+export type InviteStatus = "pending" | "member" | "none";
+
+export type SentInviteStatus = "pending" | "accepted" | "declined" | "expired";
+
+export interface SentInvite {
+	id: string;
+	roomId: string;
+	toUserId: string;
+	toUsername: string;
+	sentAt: number;
+	status: SentInviteStatus;
+}
+
 export interface RoomTimelineEvent {
 	id: string;
 	roomId: string;

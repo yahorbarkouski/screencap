@@ -1,34 +1,11 @@
 import { endOfDay, startOfDay, subDays } from "date-fns";
-import {
-	Calendar,
-	Check,
-	Copy,
-	ExternalLink,
-	Loader2,
-	RefreshCw,
-	Share2,
-	X,
-} from "lucide-react";
+import { Calendar, Loader2, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn, groupEventsByDate } from "@/lib/utils";
-import type {
-	Event,
-	Friend,
-	GitCommit,
-	ProjectShare,
-	SharedProject,
-	SocialIdentity,
-} from "@/types";
+import { cn, groupEventsByDate, normalizeProjectName } from "@/lib/utils";
+import type { Event, GitCommit, SharedProject, SocialIdentity } from "@/types";
 import {
 	ProgressTimelineGroup,
 	type ProgressTimelineItem,
@@ -83,38 +60,11 @@ export function ProjectProgressView() {
 	}>({ repoCount: 0, commits: [], isLoading: false, error: null });
 
 	const [sharedProjects, setSharedProjects] = useState<SharedProject[]>([]);
-	const [sharedEvents, setSharedEvents] = useState<
-		Map<string, Event[]>
-	>(new Map());
+	const [sharedEvents, setSharedEvents] = useState<Map<string, Event[]>>(
+		new Map(),
+	);
 	const [identity, setIdentity] = useState<SocialIdentity | null>(null);
 	const [isSyncing, setIsSyncing] = useState(false);
-
-	const [shareDialogOpen, setShareDialogOpen] = useState(false);
-	const [shareState, setShareState] = useState<{
-		status: "idle" | "loading" | "creating" | "syncing" | "error";
-		share: ProjectShare | null;
-		error: string | null;
-		copied: boolean;
-		syncedCount: number | null;
-	}>({
-		status: "idle",
-		share: null,
-		error: null,
-		copied: false,
-		syncedCount: null,
-	});
-
-	const [friendsShareState, setFriendsShareState] = useState<{
-		status: "idle" | "loading" | "creating" | "inviting" | "error";
-		roomId: string | null;
-		friends: Friend[];
-		error: string | null;
-	}>({
-		status: "idle",
-		roomId: null,
-		friends: [],
-		error: null,
-	});
 
 	useEffect(() => {
 		if (!window.api?.social) return;
@@ -236,8 +186,9 @@ export function ProjectProgressView() {
 		const seenNames = new Set<string>();
 
 		for (const name of localProjects) {
+			const normalized = normalizeProjectName(name);
 			const sharedProject = sharedProjects.find(
-				(sp) => sp.projectName.toLowerCase() === name.toLowerCase(),
+				(sp) => normalizeProjectName(sp.projectName) === normalized,
 			);
 			options.push({
 				value: name,
@@ -245,11 +196,11 @@ export function ProjectProgressView() {
 				isShared: !!sharedProject,
 				roomId: sharedProject?.roomId,
 			});
-			seenNames.add(name.toLowerCase());
+			seenNames.add(normalized);
 		}
 
 		for (const sp of sharedProjects) {
-			if (!seenNames.has(sp.projectName.toLowerCase())) {
+			if (!seenNames.has(normalizeProjectName(sp.projectName))) {
 				options.push({
 					value: `shared:${sp.roomId}`,
 					label: `${sp.projectName} [shared]`,
@@ -357,12 +308,7 @@ export function ProjectProgressView() {
 		}
 
 		return [];
-	}, [
-		selectedProject,
-		sharedProjects,
-		sharedEvents,
-		currentProjectOption,
-	]);
+	}, [selectedProject, sharedProjects, sharedEvents, currentProjectOption]);
 
 	const timelineItems = useMemo(() => {
 		const items: ProgressTimelineItem[] = visibleEvents.map((e) => ({
@@ -395,185 +341,6 @@ export function ProjectProgressView() {
 	);
 	const showProject = selectedProject == null;
 
-	const openShareDialog = useCallback(async () => {
-		if (!selectedProject || !window.api?.publishing) return;
-
-		setShareDialogOpen(true);
-		setShareState({
-			status: "loading",
-			share: null,
-			error: null,
-			copied: false,
-			syncedCount: null,
-		});
-
-		try {
-			const existing = await window.api.publishing.getShare(selectedProject);
-			if (existing) {
-				setShareState({
-					status: "idle",
-					share: existing,
-					error: null,
-					copied: false,
-					syncedCount: null,
-				});
-			} else {
-				setShareState({
-					status: "idle",
-					share: null,
-					error: null,
-					copied: false,
-					syncedCount: null,
-				});
-			}
-		} catch (error) {
-			setShareState({
-				status: "error",
-				share: null,
-				error: String(error),
-				copied: false,
-				syncedCount: null,
-			});
-		}
-	}, [selectedProject]);
-
-	const createShare = useCallback(async () => {
-		if (!selectedProject || !window.api?.publishing) return;
-
-		setShareState((s) => ({ ...s, status: "creating", error: null }));
-
-		try {
-			const result = await window.api.publishing.createShare(selectedProject);
-			const share: ProjectShare = {
-				projectName: selectedProject,
-				publicId: result.publicId,
-				writeKey: result.writeKey,
-				shareUrl: result.shareUrl,
-				createdAt: Date.now(),
-				updatedAt: Date.now(),
-				lastPublishedAt: null,
-			};
-			setShareState({
-				status: "idle",
-				share,
-				error: null,
-				copied: false,
-				syncedCount: null,
-			});
-		} catch (error) {
-			setShareState((s) => ({ ...s, status: "error", error: String(error) }));
-		}
-	}, [selectedProject]);
-
-	const disableShare = useCallback(async () => {
-		if (!selectedProject || !window.api?.publishing) return;
-
-		setShareState((s) => ({ ...s, status: "loading" }));
-
-		try {
-			await window.api.publishing.disableShare(selectedProject);
-			setShareState({
-				status: "idle",
-				share: null,
-				error: null,
-				copied: false,
-				syncedCount: null,
-			});
-		} catch (error) {
-			setShareState((s) => ({ ...s, status: "error", error: String(error) }));
-		}
-	}, [selectedProject]);
-
-	const syncShare = useCallback(async () => {
-		if (!selectedProject || !window.api?.publishing) return;
-
-		setShareState((s) => ({ ...s, status: "syncing", syncedCount: null }));
-
-		try {
-			const count = await window.api.publishing.syncShare(selectedProject);
-			setShareState((s) => ({ ...s, status: "idle", syncedCount: count }));
-		} catch (error) {
-			setShareState((s) => ({ ...s, status: "error", error: String(error) }));
-		}
-	}, [selectedProject]);
-
-	const copyShareUrl = useCallback(() => {
-		if (!shareState.share) return;
-		void navigator.clipboard.writeText(shareState.share.shareUrl);
-		setShareState((s) => ({ ...s, copied: true }));
-		setTimeout(() => {
-			setShareState((s) => ({ ...s, copied: false }));
-		}, 2000);
-	}, [shareState.share]);
-
-	const openShareUrl = useCallback(() => {
-		if (!shareState.share || !window.api?.app) return;
-		void window.api.app.openExternal(shareState.share.shareUrl);
-	}, [shareState.share]);
-
-	const loadFriendsForSharing = useCallback(async () => {
-		if (!window.api?.social) return;
-		setFriendsShareState((s) => ({ ...s, status: "loading", error: null }));
-		try {
-			const friends = await window.api.social.listFriends();
-			setFriendsShareState((s) => ({
-				...s,
-				status: "idle",
-				friends,
-				error: null,
-			}));
-		} catch (error) {
-			setFriendsShareState((s) => ({
-				...s,
-				status: "error",
-				error: String(error),
-			}));
-		}
-	}, []);
-
-	useEffect(() => {
-		if (!shareDialogOpen) return;
-		if (!selectedProject) return;
-		if (!window.api?.social) return;
-		void loadFriendsForSharing();
-	}, [loadFriendsForSharing, selectedProject, shareDialogOpen]);
-
-	const ensureProjectRoom = useCallback(async () => {
-		if (!selectedProject || !window.api?.rooms) return;
-		setFriendsShareState((s) => ({ ...s, status: "creating", error: null }));
-		try {
-			const roomId = await window.api.rooms.ensureProjectRoom(selectedProject);
-			setFriendsShareState((s) => ({ ...s, roomId, status: "idle" }));
-		} catch (error) {
-			setFriendsShareState((s) => ({
-				...s,
-				status: "error",
-				error: String(error),
-			}));
-		}
-	}, [selectedProject]);
-
-	const inviteFriend = useCallback(
-		async (friendUserId: string) => {
-			if (!selectedProject || !window.api?.rooms) return;
-			setFriendsShareState((s) => ({ ...s, status: "inviting", error: null }));
-			try {
-				await window.api.rooms.inviteFriendToProjectRoom(
-					selectedProject,
-					friendUserId,
-				);
-				setFriendsShareState((s) => ({ ...s, status: "idle" }));
-			} catch (error) {
-				setFriendsShareState((s) => ({
-					...s,
-					status: "error",
-					error: String(error),
-				}));
-			}
-		},
-		[selectedProject],
-	);
-
 	return (
 		<div className="h-full flex flex-col">
 			<div className="drag-region flex items-start justify-between gap-4 border-b border-border p-2 px-4">
@@ -599,20 +366,6 @@ export function ProjectProgressView() {
 							Sync
 						</Button>
 					)}
-
-					{selectedProject &&
-						!selectedProject.startsWith("shared:") &&
-						window.api?.publishing && (
-							<Button
-								variant="outline"
-								size="sm"
-								className="h-7 px-2 text-xs gap-1.5"
-								onClick={openShareDialog}
-							>
-								<Share2 className="h-3.5 w-3.5" />
-								Share
-							</Button>
-						)}
 
 					<Combobox
 						value={selectedProject}
@@ -694,255 +447,6 @@ export function ProjectProgressView() {
 					)}
 				</div>
 			</ScrollArea>
-
-			<Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
-				<DialogContent className="max-w-md">
-					<DialogHeader>
-						<DialogTitle>Share progress</DialogTitle>
-						<DialogDescription>
-							{selectedProject
-								? `Share "${selectedProject}" progress publicly`
-								: "Select a project to share"}
-						</DialogDescription>
-					</DialogHeader>
-
-					{shareState.status === "loading" ||
-					shareState.status === "creating" ||
-					shareState.status === "syncing" ? (
-						<div className="flex flex-col items-center justify-center py-8 gap-2">
-							<Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-							{shareState.status === "syncing" && (
-								<p className="text-xs text-muted-foreground">
-									Syncing progress...
-								</p>
-							)}
-						</div>
-					) : shareState.error ? (
-						<div className="space-y-4">
-							<div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-								{shareState.error}
-							</div>
-							<div className="flex justify-end gap-2">
-								<Button
-									variant="outline"
-									onClick={() => setShareDialogOpen(false)}
-								>
-									Close
-								</Button>
-							</div>
-						</div>
-					) : shareState.share ? (
-						<div className="space-y-4">
-							<div className="rounded-lg border border-border bg-muted/30 p-3">
-								<div className="flex items-center gap-2">
-									<input
-										type="text"
-										readOnly
-										value={shareState.share.shareUrl}
-										className="flex-1 bg-transparent text-sm text-foreground outline-none"
-									/>
-									<Button
-										variant="ghost"
-										size="sm"
-										className="h-8 w-8 p-0"
-										onClick={copyShareUrl}
-									>
-										{shareState.copied ? (
-											<Check className="h-4 w-4 text-emerald-500" />
-										) : (
-											<Copy className="h-4 w-4" />
-										)}
-									</Button>
-									<Button
-										variant="ghost"
-										size="sm"
-										className="h-8 w-8 p-0"
-										onClick={openShareUrl}
-									>
-										<ExternalLink className="h-4 w-4" />
-									</Button>
-								</div>
-							</div>
-
-							<p className="text-xs text-muted-foreground">
-								New progress captures for this project will be automatically
-								published to this page.
-							</p>
-
-							{shareState.syncedCount !== null && (
-								<p className="text-xs text-emerald-500">
-									Synced {shareState.syncedCount} events
-								</p>
-							)}
-
-							<div className="flex justify-between gap-2">
-								<div className="flex gap-2">
-									<Button
-										variant="ghost"
-										size="sm"
-										className="text-destructive hover:text-destructive"
-										onClick={disableShare}
-									>
-										<X className="h-4 w-4 mr-1.5" />
-										Stop sharing
-									</Button>
-									<Button variant="ghost" size="sm" onClick={syncShare}>
-										<RefreshCw className="h-4 w-4 mr-1.5" />
-										Sync
-									</Button>
-								</div>
-								<Button onClick={() => setShareDialogOpen(false)}>Done</Button>
-							</div>
-
-							<div className="pt-4 border-t border-border/60 space-y-3">
-								<div className="text-xs font-mono tracking-[0.18em] text-muted-foreground">
-									FRIENDS
-								</div>
-
-								{friendsShareState.error && (
-									<div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-										{friendsShareState.error}
-									</div>
-								)}
-
-								{friendsShareState.roomId ? (
-									<div className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-foreground/90">
-										Room linked:{" "}
-										<span className="font-mono text-xs">
-											{friendsShareState.roomId}
-										</span>
-									</div>
-								) : (
-									<Button
-										variant="outline"
-										onClick={ensureProjectRoom}
-										disabled={
-											friendsShareState.status === "creating" ||
-											!window.api?.rooms
-										}
-									>
-										Enable friend sharing
-									</Button>
-								)}
-
-								{friendsShareState.friends.length === 0 ? (
-									<div className="text-sm text-muted-foreground">
-										Add friends from the tray popup to invite them here.
-									</div>
-								) : (
-									<div className="space-y-2">
-										{friendsShareState.friends.map((f) => (
-											<div
-												key={f.userId}
-												className="flex items-center justify-between rounded-lg border border-border bg-muted/10 px-3 py-2"
-											>
-												<div className="text-sm text-foreground">
-													@{f.username}
-												</div>
-												<Button
-													size="sm"
-													variant="outline"
-													onClick={() => inviteFriend(f.userId)}
-													disabled={
-														!window.api?.rooms ||
-														!friendsShareState.roomId ||
-														friendsShareState.status === "inviting"
-													}
-												>
-													Invite
-												</Button>
-											</div>
-										))}
-									</div>
-								)}
-							</div>
-						</div>
-					) : (
-						<div className="space-y-4">
-							<p className="text-sm text-muted-foreground">
-								Create a public page to share your project progress. Anyone with
-								the link can view your progress updates.
-							</p>
-
-							<div className="flex justify-end gap-2">
-								<Button
-									variant="outline"
-									onClick={() => setShareDialogOpen(false)}
-								>
-									Cancel
-								</Button>
-								<Button onClick={createShare}>
-									<Share2 className="h-4 w-4 mr-1.5" />
-									Create share link
-								</Button>
-							</div>
-
-							<div className="pt-4 border-t border-border/60 space-y-3">
-								<div className="text-xs font-mono tracking-[0.18em] text-muted-foreground">
-									FRIENDS
-								</div>
-
-								{friendsShareState.error && (
-									<div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-										{friendsShareState.error}
-									</div>
-								)}
-
-								{friendsShareState.roomId ? (
-									<div className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-foreground/90">
-										Room linked:{" "}
-										<span className="font-mono text-xs">
-											{friendsShareState.roomId}
-										</span>
-									</div>
-								) : (
-									<Button
-										variant="outline"
-										onClick={ensureProjectRoom}
-										disabled={
-											friendsShareState.status === "creating" ||
-											!window.api?.rooms
-										}
-									>
-										Enable friend sharing
-									</Button>
-								)}
-
-								{friendsShareState.friends.length === 0 ? (
-									<div className="text-sm text-muted-foreground">
-										Add friends from the tray popup to invite them here.
-									</div>
-								) : (
-									<div className="space-y-2">
-										{friendsShareState.friends.map((f) => (
-											<div
-												key={f.userId}
-												className="flex items-center justify-between rounded-lg border border-border bg-muted/10 px-3 py-2"
-											>
-												<div className="text-sm text-foreground">
-													@{f.username}
-												</div>
-												<Button
-													size="sm"
-													variant="outline"
-													onClick={() => inviteFriend(f.userId)}
-													disabled={
-														!window.api?.rooms ||
-														!friendsShareState.roomId ||
-														friendsShareState.status === "inviting"
-													}
-												>
-													Invite
-												</Button>
-											</div>
-										))}
-									</div>
-								)}
-							</div>
-						</div>
-					)}
-				</DialogContent>
-			</Dialog>
 		</div>
 	);
 }

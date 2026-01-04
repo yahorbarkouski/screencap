@@ -1,4 +1,6 @@
 import { existsSync, readFileSync, realpathSync } from "node:fs";
+import { rm } from "node:fs/promises";
+import { execSync } from "node:child_process";
 import { release } from "node:os";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import {
@@ -12,13 +14,18 @@ import {
 import sharp from "sharp";
 import { IpcChannels } from "../../../shared/ipc";
 import type { AppInfo } from "../../../shared/types";
+import { setIsQuitting } from "../../app/lifecycle";
+import { closeDatabase } from "../../infra/db";
 import { getScreenshotsDir } from "../../infra/paths";
+import { createLogger } from "../../infra/log";
 import { secureHandle } from "../secure";
 import {
 	ipcCopyImageArgs,
 	ipcNoArgs,
 	ipcOpenExternalArgs,
 } from "../validation";
+
+const logger = createLogger({ scope: "AppIPC" });
 
 declare const __BUILD_DATE__: string | undefined;
 declare const __GIT_SHA__: string | undefined;
@@ -116,5 +123,35 @@ export function registerAppHandlers(): void {
 
 	secureHandle(IpcChannels.App.RevealInFinder, ipcNoArgs, async () => {
 		await shell.openPath(app.getPath("userData"));
+	});
+
+	secureHandle(IpcChannels.App.FactoryReset, ipcNoArgs, async () => {
+		const userDataDir = app.getPath("userData");
+		const appName = app.getName();
+		logger.info("Factory reset initiated", { userDataDir, appName });
+
+		closeDatabase();
+
+		try {
+			await rm(userDataDir, { recursive: true, force: true });
+			logger.info("User data directory deleted");
+		} catch (error) {
+			logger.error("Failed to delete user data directory", { error });
+		}
+
+		if (process.platform === "darwin") {
+			try {
+				execSync(
+					`security delete-generic-password -s "${appName} Safe Storage" 2>/dev/null || true`,
+				);
+				logger.info("Keychain entry deleted");
+			} catch {
+				logger.info("No keychain entry to delete or already removed");
+			}
+		}
+
+		setIsQuitting(true);
+		app.relaunch();
+		app.exit(0);
 	});
 }

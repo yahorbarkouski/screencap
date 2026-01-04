@@ -220,6 +220,16 @@ export function createTables(db: Database.Database): void {
       last_read_timestamp_ms INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS room_invites_sent (
+      id TEXT PRIMARY KEY,
+      room_id TEXT NOT NULL,
+      to_user_id TEXT NOT NULL,
+      to_username TEXT NOT NULL,
+      sent_at INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      UNIQUE(room_id, to_user_id)
+    );
   `);
 
 	logger.info("Tables created");
@@ -261,6 +271,8 @@ export function createIndexes(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_room_events_cache_author ON room_events_cache(author_user_id);
     CREATE INDEX IF NOT EXISTS idx_room_events_cache_project ON room_events_cache(project);
     CREATE INDEX IF NOT EXISTS idx_chat_messages_cache_thread_timestamp ON chat_messages_cache(thread_id, timestamp_ms);
+    CREATE INDEX IF NOT EXISTS idx_room_invites_sent_room_id ON room_invites_sent(room_id);
+    CREATE INDEX IF NOT EXISTS idx_room_invites_sent_to_user_id ON room_invites_sent(to_user_id);
   `);
 
 	logger.info("Indexes created");

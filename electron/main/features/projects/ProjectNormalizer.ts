@@ -51,7 +51,6 @@ function baseTokens(raw: string): string[] {
 		.replace(/[·•]/g, " ")
 		.replace(/[_/\\|]+/g, " ")
 		.replace(/[()[\]{}<>]+/g, " ")
-		.replace(/[–—−-]+/g, " ")
 		.replace(/[.,:;!?]+/g, " ");
 
 	const tokens = normalizeWhitespace(cleaned).split(" ").filter(Boolean);

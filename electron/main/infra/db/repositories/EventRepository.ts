@@ -4,6 +4,7 @@ import type {
 	GetEventsOptions,
 	LatestEventByDisplayId,
 } from "../../../../shared/types";
+import { canonicalizeProject } from "../../../features/projects/ProjectNormalizer";
 import { createLogger } from "../../log";
 import { getDatabase, isDbOpen } from "../connection";
 import { toSnakeCase, transformRow, transformRows } from "../transformers";
@@ -736,8 +737,15 @@ export function getProjectStatsBatch(
 ): Record<string, ProjectStatsRow> {
 	if (!isDbOpen() || names.length === 0) return {};
 
+	const canonicalizedNames = names.map((n) => canonicalizeProject(n) ?? n);
+	const canonicalToOriginal = new Map<string, string>();
+	for (let i = 0; i < names.length; i++) {
+		canonicalToOriginal.set(canonicalizedNames[i], names[i]);
+	}
+	const uniqueCanonical = [...new Set(canonicalizedNames)];
+
 	const db = getDatabase();
-	const placeholders = names.map(() => "?").join(",");
+	const placeholders = uniqueCanonical.map(() => "?").join(",");
 
 	const countRows = db
 		.prepare(
@@ -752,7 +760,7 @@ export function getProjectStatsBatch(
 		GROUP BY e.project
 	`,
 		)
-		.all(...names) as Array<{
+		.all(...uniqueCanonical) as Array<{
 		name: string;
 		event_count: number;
 		last_event_at: number | null;
@@ -778,7 +786,7 @@ export function getProjectStatsBatch(
 		)
 	`,
 		)
-		.all(...names) as Array<{
+		.all(...uniqueCanonical) as Array<{
 		name: string;
 		original_path: string | null;
 		thumbnail_path: string | null;
@@ -805,7 +813,7 @@ export function getProjectStatsBatch(
 		)
 	`,
 		)
-		.all(...names) as Array<{
+		.all(...uniqueCanonical) as Array<{
 		name: string;
 		original_path: string | null;
 		thumbnail_path: string | null;
@@ -817,8 +825,9 @@ export function getProjectStatsBatch(
 
 	const result: Record<string, ProjectStatsRow> = {};
 	for (const name of names) {
-		const stats = countRows.find((r) => r.name === name);
-		const cover = progressMap.get(name) ?? fallbackMap.get(name);
+		const canonical = canonicalizeProject(name) ?? name;
+		const stats = countRows.find((r) => r.name === canonical);
+		const cover = progressMap.get(canonical) ?? fallbackMap.get(canonical);
 		result[name] = {
 			name,
 			eventCount: stats?.event_count ?? 0,

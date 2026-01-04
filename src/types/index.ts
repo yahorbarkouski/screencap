@@ -484,6 +484,25 @@ export interface RoomInvite {
 	createdAt: number;
 }
 
+export interface RoomMember {
+	userId: string;
+	username: string;
+	role: string;
+}
+
+export type InviteStatus = "pending" | "member" | "none";
+
+export type SentInviteStatus = "pending" | "accepted" | "declined" | "expired";
+
+export interface SentInvite {
+	id: string;
+	roomId: string;
+	toUserId: string;
+	toUsername: string;
+	sentAt: number;
+	status: SentInviteStatus;
+}
+
 export interface RoomTimelineEvent {
 	id: string;
 	roomId: string;
@@ -743,10 +762,11 @@ declare global {
 			};
 			rooms: {
 				ensureProjectRoom: (projectName: string) => Promise<string>;
-				inviteFriendToProjectRoom: (
-					projectName: string,
-					friendUserId: string,
-				) => Promise<void>;
+				inviteFriendToProjectRoom: (params: {
+					projectName: string;
+					friendUserId: string;
+					friendUsername?: string;
+				}) => Promise<{ status: "invited" | "already_member" | "already_invited" }>;
 				listRooms: () => Promise<Room[]>;
 				listInvites: () => Promise<RoomInvite[]>;
 				acceptProjectInvite: (params: AcceptRoomInviteParams) => Promise<void>;
@@ -754,6 +774,12 @@ declare global {
 					roomId: string,
 					since?: number,
 				) => Promise<RoomTimelineEvent[]>;
+				getRoomMembers: (roomId: string) => Promise<RoomMember[]>;
+				listSentInvites: (roomId: string) => Promise<SentInvite[]>;
+				getInviteStatus: (
+					roomId: string,
+					friendUserId: string,
+				) => Promise<InviteStatus>;
 			};
 			sharedProjects: {
 				list: () => Promise<SharedProject[]>;

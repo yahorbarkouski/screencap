@@ -1,6 +1,9 @@
+import { randomUUID } from "node:crypto";
 import { safeStorage } from "electron";
 import type { RoomInvite } from "../../../shared/types";
 import { getDistinctProjects } from "../../infra/db/repositories/EventRepository";
+import { insertMemory } from "../../infra/db/repositories/MemoryRepository";
+import { projectKeyFromBase, normalizeProjectBase } from "../projects";
 import {
 	getRoomIdForProject,
 	upsertProjectRoomLink,
@@ -12,6 +15,15 @@ import {
 import {
 	upsertRoomMembership,
 } from "../../infra/db/repositories/RoomMembershipsRepository";
+import {
+	getSentInvite,
+	hasPendingInvite,
+	listSentInvitesForRoom,
+	markInviteAccepted,
+	upsertSentInvite,
+	type SentInvite,
+} from "../../infra/db/repositories/RoomInvitesSentRepository";
+import { listRoomMembers } from "../../infra/db/repositories/RoomMembersCacheRepository";
 import { createLogger } from "../../infra/log";
 import {
 	getDhPrivateKeyPkcs8DerB64,
@@ -164,13 +176,54 @@ export async function getRoomKey(roomId: string): Promise<Buffer> {
 	return roomKey;
 }
 
+export type InviteStatus = "pending" | "member" | "none";
+
+export function getInviteStatusForFriend(
+	roomId: string,
+	friendUserId: string,
+): InviteStatus {
+	const members = listRoomMembers(roomId);
+	if (members.some((m) => m.userId === friendUserId)) {
+		return "member";
+	}
+
+	if (hasPendingInvite(roomId, friendUserId)) {
+		return "pending";
+	}
+
+	return "none";
+}
+
+export function listSentInvites(roomId: string): SentInvite[] {
+	return listSentInvitesForRoom(roomId);
+}
+
 export async function inviteFriendToProjectRoom(params: {
 	projectName: string;
 	friendUserId: string;
-}): Promise<void> {
+	friendUsername?: string;
+}): Promise<{ status: "invited" | "already_member" | "already_invited" }> {
 	const roomId = await ensureRoomForProject({
 		projectName: params.projectName,
 	});
+
+	const existingStatus = getInviteStatusForFriend(roomId, params.friendUserId);
+	if (existingStatus === "member") {
+		logger.info("Friend is already a member", {
+			projectName: params.projectName,
+			friendUserId: params.friendUserId,
+		});
+		return { status: "already_member" };
+	}
+
+	if (existingStatus === "pending") {
+		logger.info("Friend already has pending invite", {
+			projectName: params.projectName,
+			friendUserId: params.friendUserId,
+		});
+		return { status: "already_invited" };
+	}
+
 	const roomKey = await getRoomKey(roomId);
 
 	const inviteRes = await signedFetch(`/api/rooms/${roomId}/invites`, {
@@ -214,11 +267,23 @@ export async function inviteFriendToProjectRoom(params: {
 		throw new Error(`upload envelopes failed: ${keyRes.status} ${text}`);
 	}
 
+	upsertSentInvite({
+		id: invite.inviteId,
+		roomId,
+		toUserId: params.friendUserId,
+		toUsername: params.friendUsername ?? "unknown",
+		sentAt: Date.now(),
+		status: "pending",
+	});
+
 	logger.info("Invited friend to room", {
 		projectName: params.projectName,
 		roomId,
 		inviteId: invite.inviteId,
+		friendUserId: params.friendUserId,
 	});
+
+	return { status: "invited" };
 }
 
 export type Room = {
@@ -270,12 +335,15 @@ export async function acceptRoomInvite(params: {
 	});
 
 	const localProjects = getDistinctProjects();
-	const normalizedRoomName = params.roomName.toLowerCase().trim();
+	const roomNameKey = projectKeyFromBase(normalizeProjectBase(params.roomName));
 	const matchingLocalProject = localProjects.find(
-		(p) => p.toLowerCase().trim() === normalizedRoomName,
+		(p) => projectKeyFromBase(normalizeProjectBase(p)) === roomNameKey,
 	);
 
+	let linkedProjectName: string;
+
 	if (matchingLocalProject) {
+		linkedProjectName = matchingLocalProject;
 		const existingRoomId = getRoomIdForProject(matchingLocalProject);
 		if (!existingRoomId) {
 			upsertProjectRoomLink({
@@ -283,18 +351,41 @@ export async function acceptRoomInvite(params: {
 				roomId: params.roomId,
 				createdAt: now,
 			});
-			logger.info("Auto-linked local project to room", {
+			logger.info("Auto-linked existing local project to room", {
 				projectName: matchingLocalProject,
 				roomId: params.roomId,
 			});
 		}
+	} else {
+		linkedProjectName = params.roomName;
+
+		insertMemory({
+			id: randomUUID(),
+			type: "project",
+			content: params.roomName,
+			description: `Shared by @${params.ownerUsername}`,
+			createdAt: now,
+			updatedAt: now,
+		});
+
+		upsertProjectRoomLink({
+			projectName: params.roomName,
+			roomId: params.roomId,
+			createdAt: now,
+		});
+
+		logger.info("Created new local project from room invite", {
+			projectName: params.roomName,
+			roomId: params.roomId,
+			ownerUsername: params.ownerUsername,
+		});
 	}
 
 	logger.info("Accepted room invite", {
 		roomId: params.roomId,
 		roomName: params.roomName,
 		ownerUsername: params.ownerUsername,
-		linkedLocalProject: matchingLocalProject ?? null,
+		linkedLocalProject: linkedProjectName,
 	});
 
 	void triggerBackfillSync(params.roomId);

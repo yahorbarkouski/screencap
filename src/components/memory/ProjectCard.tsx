@@ -1,4 +1,4 @@
-import { Briefcase, Calendar } from "lucide-react";
+import { Briefcase, Calendar, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import type { ProjectStats } from "@/hooks/useProjectStats";
@@ -8,10 +8,18 @@ import type { Memory } from "@/types";
 interface ProjectCardProps {
 	project: Memory;
 	stats?: ProjectStats;
+	isShared?: boolean;
+	sharedWith?: string;
 	onClick: () => void;
 }
 
-export function ProjectCard({ project, stats, onClick }: ProjectCardProps) {
+export function ProjectCard({
+	project,
+	stats,
+	isShared = false,
+	sharedWith,
+	onClick,
+}: ProjectCardProps) {
 	const candidates = useMemo(
 		() => stats?.coverCandidates ?? [],
 		[stats?.coverCandidates],
@@ -48,8 +56,17 @@ export function ProjectCard({ project, stats, onClick }: ProjectCardProps) {
 					<div />
 				)}
 
-				{stats?.eventCount ? (
-					<div className="absolute top-3 right-3">
+				<div className="absolute top-3 right-3 flex items-center gap-2">
+					{isShared && (
+						<Badge
+							variant="secondary"
+							className="bg-primary/90 backdrop-blur-md border-0 text-primary-foreground font-medium"
+						>
+							<Users className="w-3 h-3 mr-1.5" />
+							Shared
+						</Badge>
+					)}
+					{stats?.eventCount ? (
 						<Badge
 							variant="secondary"
 							className="bg-black/60 backdrop-blur-md border border-white/10 text-white font-medium"
@@ -57,8 +74,8 @@ export function ProjectCard({ project, stats, onClick }: ProjectCardProps) {
 							<Calendar className="w-3 h-3 mr-1.5 opacity-80" />
 							{stats.eventCount}
 						</Badge>
-					</div>
-				) : null}
+					) : null}
+				</div>
 			</div>
 
 			<div className="p-5 flex flex-col flex-1 gap-2">

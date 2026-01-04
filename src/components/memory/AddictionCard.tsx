@@ -7,7 +7,7 @@ import type { Memory } from "@/types";
 
 function isNsfwAddiction(content: string): boolean {
 	const v = content.toLowerCase();
-	return v.includes("porn") || v.includes("nsfw");
+	return v.includes("porn") || v.includes("nsfw") || v.includes("adult");
 }
 
 interface AddictionCardProps {

@@ -14,6 +14,7 @@ import { normalizeProjectsInDb } from "../../features/projects";
 import { publishEvent } from "../../features/publishing/PublishingService";
 import { triggerQueueProcess } from "../../features/queue";
 import { publishProgressEventToRoom } from "../../features/sync/RoomSyncService";
+import { getRoomIdForProject } from "../../infra/db/repositories/ProjectRoomLinkRepository";
 import {
 	confirmAddiction,
 	deleteEvent,
@@ -204,9 +205,38 @@ export function registerStorageHandlers(): void {
 		IpcChannels.Storage.SetEventProject,
 		ipcSetEventProjectArgs,
 		(id: string, project: string | null) => {
+			const event = getEventById(id);
+			const previousProject = event?.project;
 			const next = project?.trim() || null;
+
 			updateEvent(id, { project: next });
 			broadcastEventUpdated(id);
+
+			if (!event) return;
+
+			const isProgressEvent = event.projectProgress && event.projectProgress > 0;
+			if (!isProgressEvent) return;
+
+			const previousRoomId = previousProject
+				? getRoomIdForProject(previousProject)
+				: null;
+			const newRoomId = next ? getRoomIdForProject(next) : null;
+
+			if (newRoomId && newRoomId !== previousRoomId) {
+				void publishProgressEventToRoom(id).catch((error) => {
+					logger.warn("Publish to room on project change failed", {
+						eventId: id,
+						newProject: next,
+						error: String(error),
+					});
+				});
+				void publishEvent(id).catch((error) => {
+					logger.warn("Publish to public share on project change failed", {
+						eventId: id,
+						error: String(error),
+					});
+				});
+			}
 		},
 	);
 
