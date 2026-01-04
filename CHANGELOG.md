@@ -1,3 +1,12 @@
+## [1.8.1](https://github.com/yahorbarkouski/screencap/compare/v1.8.0...v1.8.1) (2026-01-04)
+
+
+### Bug Fixes
+
+* better shared progress view ([82e448d](https://github.com/yahorbarkouski/screencap/commit/82e448dab6a50215564e06abc5eb89d0aceac931))
+* tests ([a39b1ca](https://github.com/yahorbarkouski/screencap/commit/a39b1ca02e4c487db08740165acd09cd2ec55b40))
+* tests ([a4138d3](https://github.com/yahorbarkouski/screencap/commit/a4138d322042bad82777c260f1fcbe9857f2e67d))
+
 # [1.8.0](https://github.com/yahorbarkouski/screencap/compare/v1.7.0...v1.8.0) (2026-01-04)
 
 
