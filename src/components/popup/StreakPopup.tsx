@@ -92,6 +92,7 @@ export function StreakPopup() {
 	const titleDate = format(day, "EEE, MMM d");
 
 	const isToday = dayStartMs === todayStartMs;
+	const isEvening = useMemo(() => new Date().getHours() >= 19, []);
 	const currentSlotIdx = useMemo(() => {
 		if (!isToday) return null;
 		const now = new Date();
@@ -128,7 +129,7 @@ export function StreakPopup() {
 	return (
 		<div
 			ref={rootRef}
-			className="relative w-full bg-background/95 backdrop-blur-xl p-4 rounded-xl border border-border"
+			className="relative w-full bg-background/95 backdrop-blur-xl p-4 pt-2 pr-3 rounded-xl border border-border"
 		>
 			{isQuitConfirmOpen && (
 				<div className="absolute inset-0 z-50 flex items-center justify-center rounded-xl bg-background/70 backdrop-blur-sm">
@@ -162,49 +163,13 @@ export function StreakPopup() {
 				</div>
 			)}
 
-			<div className="absolute right-2 top-2 flex items-center gap-1">
-				<button
-					type="button"
-					aria-label="Quit app"
-					className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
-					onClick={() => {
-						if (!window.api) return;
-						setIsQuitConfirmOpen(true);
-					}}
-				>
-					<Power className="size-3" />
-				</button>
-
-				<button
-					type="button"
-					aria-label={`View: ${view === "day" ? "My Day" : "Social"}`}
-					className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
-					onClick={() => setView((v) => (v === "day" ? "social" : "day"))}
-				>
-					{view === "day" ? (
-						<User className="size-3.5" />
-					) : (
-						<Users className="size-3.5" />
-					)}
-				</button>
-
-				<button
-					type="button"
-					aria-label="Close"
-					className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
-					onClick={() => window.close()}
-				>
-					<X className="size-3" />
-				</button>
-			</div>
-
-			{view === "day" ? (
-				<div className="mt-4">
-					<div className="mb-3">
-						<div className="flex items-center gap-1.5">
-							<div className="font-mono text-[10px] tracking-[0.28em] text-muted-foreground">
-								DAY WRAPPED
-							</div>
+			<div className="flex items-center justify-between pr-0.5">
+				<div className="flex items-center gap-1.5">
+					<div className="font-mono text-[10px] tracking-[0.28em] text-muted-foreground">
+						{view === "day" ? "DAY WRAPPED" : "FEED"}
+					</div>
+					{view === "day" && (
+						<>
 							<button
 								type="button"
 								aria-label="Previous day"
@@ -213,7 +178,6 @@ export function StreakPopup() {
 							>
 								<ChevronLeft className="size-2" />
 							</button>
-
 							<button
 								type="button"
 								aria-label="Next day"
@@ -223,30 +187,67 @@ export function StreakPopup() {
 							>
 								<ChevronRight className="size-2" />
 							</button>
-						</div>
-						<div className="flex mt-0.5 items-center gap-1.5 justify-between w-full">
-							<div className="text-sm font-medium text-foreground/90 text-center">
-								{titleDate}
-							</div>
+						</>
+					)}
+				</div>
+				<div className="flex items-center gap-1">
+					<button
+						type="button"
+						aria-label="Quit app"
+						className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
+						onClick={() => {
+							if (!window.api) return;
+							setIsQuitConfirmOpen(true);
+						}}
+					>
+						<Power className="size-3" />
+					</button>
+					<button
+						type="button"
+						aria-label={`View: ${view === "day" ? "My Day" : "Social"}`}
+						className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
+						onClick={() => setView((v) => (v === "day" ? "social" : "day"))}
+					>
+						{view === "day" ? (
+							<User className="size-3.5" />
+						) : (
+							<Users className="size-3.5" />
+						)}
+					</button>
+					<button
+						type="button"
+						aria-label="Close"
+						className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
+						onClick={() => window.close()}
+					>
+						<X className="size-3" />
+					</button>
+				</div>
+			</div>
 
-							<button
-								type="button"
-								aria-label={`View: ${daylineMode}`}
-								style={view === "day" ? undefined : { display: "none" }}
-								className="ml-auto inline-flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
-								onClick={() =>
-									setDaylineMode((m) => {
-										const idx = VIEW_MODE_ORDER.indexOf(m);
-										return VIEW_MODE_ORDER[(idx + 1) % VIEW_MODE_ORDER.length];
-									})
-								}
-							>
-								{daylineMode === "categories" && <Flame className="size-3" />}
-								{daylineMode === "addiction" && <AppWindow className="size-3" />}
-								{daylineMode === "apps" && <LayoutGrid className="size-3" />}
-							</button>
-
+			<div style={{ display: view === "day" ? "block" : "none" }}>
+				<div className="mt-1 pr-1">
+					<div className="flex items-center justify-between mb-3">
+						<div className="text-sm font-medium text-foreground/90">
+							{titleDate}
 						</div>
+						<button
+							type="button"
+							aria-label={`View: ${daylineMode}`}
+							className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
+							onClick={() =>
+								setDaylineMode((m) => {
+									const idx = VIEW_MODE_ORDER.indexOf(m);
+									return VIEW_MODE_ORDER[(idx + 1) % VIEW_MODE_ORDER.length];
+								})
+							}
+						>
+							{daylineMode === "categories" && (
+								<LayoutGrid className="size-3" />
+							)}
+							{daylineMode === "addiction" && <Flame className="size-3" />}
+							{daylineMode === "apps" && <AppWindow className="size-3" />}
+						</button>
 					</div>
 
 					<Dayline
@@ -268,80 +269,93 @@ export function StreakPopup() {
 						onLabelToggle={handleLabelToggle}
 					/>
 
-					<div className="mt-4 space-y-2">
+					<div className="mt-4 grid grid-cols-2 gap-2">
 						<Button
 							size="sm"
-							className="w-full justify-between bg-primary/15 text-primary hover:bg-primary/20"
-							onClick={triggerEndOfDay}
+							variant="outline"
+							className="w-full hover:bg-primary/10"
+							onClick={() => {
+								window.api?.window.show();
+								window.close();
+							}}
 							disabled={!window.api}
 						>
-							<span>End of day</span>
-							<ShortcutKbd
-								accelerator={settings.shortcuts.endOfDay}
-								className="h-4 px-1 text-[9px] rounded-sm"
-							/>
+							Open app
 						</Button>
 
-						<div className="grid grid-cols-2 gap-2">
-							<Button
-								size="sm"
-								variant="outline"
-								className="w-full hover:bg-primary/10"
-								onClick={() => {
-									window.api?.window.show();
-									window.close();
-								}}
-								disabled={!window.api}
-							>
-								Open app
-							</Button>
-
-							<DropdownMenu>
-								<div className="flex w-full">
+						<DropdownMenu>
+							<div className="flex w-full">
+								<Button
+									size="sm"
+									className={`flex-1 justify-center rounded-r-none ${
+										isEvening
+											? "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+											: "bg-green-800/20 text-green-500 hover:bg-green-800/30"
+									}`}
+									onClick={
+										isEvening ? triggerEndOfDay : triggerProjectProgressCapture
+									}
+									disabled={!window.api}
+								>
+									<span>{isEvening ? "End of day" : "Capture progress"}</span>
+								</Button>
+								<DropdownMenuTrigger asChild>
 									<Button
 										size="sm"
-										className="flex-1 justify-center rounded-r-none bg-accent/20 text-accent-foreground hover:bg-accent/30"
-										onClick={triggerCaptureNow}
+										className={`rounded-l-none px-2 border-l border-green-800/10 ${
+											isEvening
+												? "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+												: "bg-green-800/20 text-green-500 hover:bg-green-800/30"
+										}`}
 										disabled={!window.api}
+										aria-label="More actions"
 									>
-										<span>Capture now</span>
+										<ChevronDown className="size-3" />
 									</Button>
-									<DropdownMenuTrigger asChild>
-										<Button
-											size="sm"
-											className="rounded-l-none px-2 bg-accent/20 text-accent-foreground hover:bg-accent/30 border-l border-border/40"
-											disabled={!window.api}
-											aria-label="Capture options"
-										>
-											<ChevronDown className="size-3" />
-										</Button>
-									</DropdownMenuTrigger>
-								</div>
-								<DropdownMenuContent
-									align="end"
-									side="top"
-									avoidCollisions={false}
+								</DropdownMenuTrigger>
+							</div>
+							<DropdownMenuContent
+								align="end"
+								side="top"
+								avoidCollisions={false}
+							>
+								<DropdownMenuItem
+									onSelect={
+										isEvening ? triggerProjectProgressCapture : triggerEndOfDay
+									}
+									className="flex items-center justify-between gap-3"
 								>
-									<DropdownMenuItem
-										onSelect={triggerProjectProgressCapture}
-										className="flex items-center justify-between gap-3"
-									>
-										<span>Capture project progress</span>
-										<ShortcutKbd
-											accelerator={settings.shortcuts.captureProjectProgress}
-											className="h-4 px-1 text-[9px] rounded-sm"
-										/>
-									</DropdownMenuItem>
-								</DropdownMenuContent>
-							</DropdownMenu>
-						</div>
+									<span>{isEvening ? "Capture progress" : "End of day"}</span>
+									<ShortcutKbd
+										accelerator={
+											isEvening
+												? settings.shortcuts.captureProjectProgress
+												: settings.shortcuts.endOfDay
+										}
+										className="h-4 px-1 text-[9px] rounded-sm"
+									/>
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									onSelect={triggerCaptureNow}
+									className="flex items-center justify-between gap-3"
+								>
+									<span>Capture now</span>
+									<ShortcutKbd
+										accelerator={settings.shortcuts.captureNow}
+										className="h-4 px-1 text-[9px] rounded-sm"
+									/>
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
 					</div>
 				</div>
-			) : (
-				<div className="mt-4">
-					<SocialTray />
-				</div>
-			)}
+			</div>
+			<div
+				className="mt-4"
+				style={{ display: view === "social" ? "block" : "none" }}
+			>
+				<SocialTray />
+			</div>
 		</div>
 	);
 }

@@ -39,6 +39,7 @@ import { ShortcutKbd } from "@/components/ui/shortcut-kbd";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import type { ProjectStats } from "@/hooks/useProjectStats";
+import { useSettings } from "@/hooks/useSettings";
 import {
 	formatRelativeTime,
 	groupEventsByDate,
@@ -139,6 +140,7 @@ export function ProjectDetailView({
 	const nameInputRef = useRef<HTMLInputElement | null>(null);
 
 	const [identity, setIdentity] = useState<SocialIdentity | null>(null);
+	const { settings } = useSettings();
 	const [shareState, setShareState] = useState<{
 		status: "idle" | "loading" | "creating" | "syncing" | "error";
 		share: ProjectShare | null;
@@ -1165,6 +1167,7 @@ export function ProjectDetailView({
 													items={items}
 													showProject={false}
 													onUnmark={fetchProgress}
+													avatarSettings={settings.avatar}
 												/>
 											),
 										)}
@@ -1248,6 +1251,7 @@ export function ProjectDetailView({
 																date={date}
 																items={items}
 																showProject={false}
+																avatarSettings={settings.avatar}
 															/>
 														),
 													)}

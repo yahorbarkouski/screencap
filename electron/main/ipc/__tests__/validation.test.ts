@@ -27,6 +27,11 @@ const VALID_SETTINGS: Settings = {
 			includeAddiction: false,
 		},
 	},
+	avatar: {
+		pattern: "pixelLetter",
+		backgroundColor: "#0a0a0a",
+		foregroundColor: "#ffffff",
+	},
 	llmEnabled: true,
 	allowVisionUploads: true,
 	cloudLlmModel: "openai/gpt-5",

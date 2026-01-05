@@ -3,6 +3,7 @@ import type {
 	AddictionStatsItem,
 	AppInfo,
 	AutomationStatus,
+	AvatarSettings,
 	CaptureResult,
 	CaptureTriggerOptions,
 	CaptureTriggerResult,
@@ -59,6 +60,8 @@ export const IpcChannels = {
 		CopyImage: "app:copy-image",
 		GetInfo: "app:get-info",
 		OpenExternal: "app:open-external",
+		OpenNative: "app:open-native",
+		PreviewEvent: "app:preview-event",
 		RevealInFinder: "app:reveal-in-finder",
 		PickDirectory: "app:pick-directory",
 		FactoryReset: "app:factory-reset",
@@ -181,6 +184,7 @@ export const IpcChannels = {
 		ListFriendRequests: "social:list-friend-requests",
 		AcceptFriendRequest: "social:accept-friend-request",
 		RejectFriendRequest: "social:reject-friend-request",
+		SyncAvatarSettings: "social:sync-avatar-settings",
 	},
 	Chat: {
 		ListThreads: "chat:list-threads",
@@ -231,6 +235,7 @@ export const IpcEvents = {
 		"shortcut:capture-project-progress-preview",
 	ShortcutCaptureProjectProgress: "shortcut:capture-project-progress",
 	ShortcutEndOfDay: "shortcut:end-of-day",
+	PreviewEvent: "preview:event",
 } as const;
 
 export interface IpcInvokeHandlers {
@@ -238,6 +243,8 @@ export interface IpcInvokeHandlers {
 	[IpcChannels.App.CopyImage]: (path: string) => boolean;
 	[IpcChannels.App.GetInfo]: () => AppInfo;
 	[IpcChannels.App.OpenExternal]: (url: string) => void;
+	[IpcChannels.App.OpenNative]: (path: string) => void;
+	[IpcChannels.App.PreviewEvent]: (event: SharedEvent) => void;
 	[IpcChannels.App.RevealInFinder]: () => void;
 	[IpcChannels.App.PickDirectory]: () => Promise<string | null>;
 	[IpcChannels.App.FactoryReset]: () => Promise<void>;
@@ -405,6 +412,9 @@ export interface IpcInvokeHandlers {
 	[IpcChannels.Social.RejectFriendRequest]: (
 		requestId: string,
 	) => Promise<void>;
+	[IpcChannels.Social.SyncAvatarSettings]: (
+		avatarSettings: AvatarSettings,
+	) => Promise<void>;
 
 	[IpcChannels.Chat.ListThreads]: () => Promise<ChatThread[]>;
 	[IpcChannels.Chat.OpenDmThread]: (friendUserId: string) => Promise<string>;
@@ -461,6 +471,7 @@ export interface IpcInvokeHandlers {
 		startDate?: number;
 		endDate?: number;
 		limit?: number;
+		includeOwnEvents?: boolean;
 	}) => Promise<SharedEvent[]>;
 	[IpcChannels.SocialFeed.GetFriendDayWrapped]: (
 		friendUserId: string,
@@ -492,4 +503,5 @@ export interface IpcEventPayloads {
 	[IpcEvents.ShortcutCaptureProjectProgressPreview]: ProjectProgressPreview;
 	[IpcEvents.ShortcutCaptureProjectProgress]: string | null;
 	[IpcEvents.ShortcutEndOfDay]: { dayStart: number } | undefined;
+	[IpcEvents.PreviewEvent]: SharedEvent;
 }

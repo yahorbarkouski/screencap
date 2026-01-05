@@ -49,6 +49,7 @@ function cachedEventToUnifiedEvent(cached: CachedRoomEvent): Event {
 		contextConfidence: null,
 		contextKey: null,
 		contextJson: null,
+		sharedToFriends: 0,
 		authorUserId: cached.authorUserId,
 		authorUsername: cached.authorUsername,
 		isRemote: true,

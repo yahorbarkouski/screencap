@@ -6,6 +6,7 @@ import type {
 	Memory,
 	Settings,
 	SettingsTab,
+	SharedEvent,
 	Story,
 	View,
 } from "@/types";
@@ -93,6 +94,9 @@ interface AppState {
 	eodDayStart: number | null;
 	openEod: (dayStart: number) => void;
 	closeEod: () => void;
+
+	previewEvent: SharedEvent | null;
+	setPreviewEvent: (event: SharedEvent | null) => void;
 }
 
 export const useAppStore = create<AppState>((set, _get) => ({
@@ -246,6 +250,11 @@ export const useAppStore = create<AppState>((set, _get) => ({
 				includeAddiction: false,
 			},
 		},
+		avatar: {
+			pattern: "pixelLetter",
+			backgroundColor: "#0a0a0a",
+			foregroundColor: "#ffffff",
+		},
 		llmEnabled: true,
 		allowVisionUploads: true,
 		cloudLlmModel: "openai/gpt-5",
@@ -283,4 +292,7 @@ export const useAppStore = create<AppState>((set, _get) => ({
 				: { eodOpen: true, eodDayStart: dayStart },
 		),
 	closeEod: () => set((state) => (state.eodOpen ? { eodOpen: false } : {})),
+
+	previewEvent: null,
+	setPreviewEvent: (event) => set({ previewEvent: event }),
 }));

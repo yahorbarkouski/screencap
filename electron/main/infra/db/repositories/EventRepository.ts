@@ -59,8 +59,8 @@ export function insertEvent(event: Partial<Event>): void {
       merged_count, dismissed, user_label, status,
       app_bundle_id, app_name, window_title, url_host, url_canonical,
       content_kind, content_id, content_title, is_fullscreen,
-      context_provider, context_confidence, context_key, context_json
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      context_provider, context_confidence, context_key, context_json, shared_to_friends
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
 	stmt.run(
@@ -103,6 +103,7 @@ export function insertEvent(event: Partial<Event>): void {
 		event.contextConfidence ?? null,
 		event.contextKey ?? null,
 		event.contextJson ?? null,
+		event.sharedToFriends ?? 0,
 	);
 }
 

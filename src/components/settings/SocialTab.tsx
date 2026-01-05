@@ -1,3 +1,5 @@
+import { useCallback, useEffect, useState } from "react";
+import { AvatarPicker } from "@/components/settings/AvatarPicker";
 import {
 	SettingsRow,
 	SettingsRows,
@@ -7,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { TabsContent } from "@/components/ui/tabs";
 import { Panel } from "@/components/wrapped/Panel";
 import { cn } from "@/lib/utils";
-import type { Settings } from "@/types";
+import type { AvatarSettings, Settings, SocialIdentity } from "@/types";
 
 interface SocialTabProps {
 	settings: Settings;
@@ -18,6 +20,22 @@ interface SocialTabProps {
 }
 
 export function SocialTab({ settings, updateSetting }: SocialTabProps) {
+	const [identity, setIdentity] = useState<SocialIdentity | null>(null);
+
+	useEffect(() => {
+		window.api?.social.getIdentity().then(setIdentity);
+	}, []);
+
+	const handleAvatarChange = useCallback(
+		async (avatar: AvatarSettings) => {
+			await updateSetting("avatar", avatar);
+			try {
+				await window.api?.social.syncAvatarSettings(avatar);
+			} catch {}
+		},
+		[updateSetting],
+	);
+
 	return (
 		<TabsContent value="social" className="p-6 m-0">
 			<div className="space-y-6">
@@ -25,6 +43,20 @@ export function SocialTab({ settings, updateSetting }: SocialTabProps) {
 					title="Social"
 					description="Control sharing preferences and what friends can see"
 				/>
+
+				{identity && (
+					<Panel
+						title="Avatar"
+						meta="Customize your profile appearance"
+						className="max-w-3xl"
+					>
+						<AvatarPicker
+							username={identity.username}
+							settings={settings.avatar}
+							onChange={handleAvatarChange}
+						/>
+					</Panel>
+				)}
 
 				<Panel
 					title="Friend Sharing Privacy"

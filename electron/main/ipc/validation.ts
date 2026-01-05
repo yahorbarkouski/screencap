@@ -23,6 +23,10 @@ export const ipcCopyImageArgs = z.tuple([zLimitedString(10_000)]);
 
 export const ipcOpenExternalArgs = z.tuple([zLimitedString(2000)]);
 
+export const ipcOpenNativeArgs = z.tuple([zLimitedString(10_000)]);
+
+export const ipcPreviewEventArgs = z.tuple([z.any()]);
+
 export const ipcPickDirectoryArgs = ipcNoArgs;
 
 export const ipcCaptureTriggerArgs = z.union([
@@ -279,6 +283,20 @@ const zSocialSharingSettings = z
 	})
 	.strict();
 
+const zAvatarSettings = z
+	.object({
+		pattern: z.enum([
+			"letter",
+			"letterBold",
+			"letterMonospace",
+			"pixelLetter",
+			"ascii",
+		]),
+		backgroundColor: z.string().max(100),
+		foregroundColor: z.string().max(100),
+	})
+	.strict();
+
 export const ipcSetSettingsArgs = z.tuple([
 	z
 		.object({
@@ -292,6 +310,7 @@ export const ipcSetSettingsArgs = z.tuple([
 			shortcuts: zShortcutSettings,
 			sharing: zSharingSettings,
 			social: zSocialSharingSettings,
+			avatar: zAvatarSettings,
 			llmEnabled: z.boolean(),
 			allowVisionUploads: z.boolean(),
 			cloudLlmModel: zLimitedString(500),

@@ -7,6 +7,24 @@ import { getIdentity } from "../social/IdentityService";
 import { isFriendsFeedRoomName } from "./constants";
 
 function cachedEventToSharedEvent(event: CachedRoomEvent): SharedEvent {
+	let background: {
+		provider: string;
+		kind: string;
+		id: string;
+		title: string | null;
+		subtitle: string | null;
+		imageUrl: string | null;
+		actionUrl: string | null;
+	}[] = [];
+	if (event.backgroundContext) {
+		try {
+			const parsed = JSON.parse(event.backgroundContext);
+			if (Array.isArray(parsed)) background = parsed;
+		} catch {
+			// ignore parse errors
+		}
+	}
+
 	return {
 		id: event.id,
 		roomId: event.roomId,
@@ -25,6 +43,9 @@ function cachedEventToSharedEvent(event: CachedRoomEvent): SharedEvent {
 		contentTitle: event.contentTitle,
 		thumbnailPath: event.thumbnailPath,
 		originalPath: event.originalPath,
+		imageRef: null, // imageRef is not stored in cache, images are downloaded locally
+		url: event.url,
+		background,
 	};
 }
 
@@ -32,12 +53,13 @@ export function getSocialFeedEvents(params?: {
 	startDate?: number;
 	endDate?: number;
 	limit?: number;
+	includeOwnEvents?: boolean;
 }): SharedEvent[] {
 	const identity = getIdentity();
 	if (!identity) return [];
 
 	const events = listLatestCachedRoomEvents({
-		excludeAuthorId: identity.userId,
+		excludeAuthorId: params?.includeOwnEvents ? undefined : identity.userId,
 		startDate: params?.startDate,
 		endDate: params?.endDate,
 		limit: params?.limit,

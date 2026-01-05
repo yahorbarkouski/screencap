@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { IpcChannels } from "../../../shared/ipc";
 import type {
+	AvatarSettings,
 	Friend,
 	FriendRequest,
 	SocialIdentity,
@@ -15,12 +16,26 @@ import {
 import {
 	getIdentity,
 	registerUsername,
+	syncAvatarSettings,
 } from "../../features/social/IdentityService";
 import { secureHandle } from "../secure";
 
 const noArgs = z.tuple([]);
 const usernameArg = z.tuple([z.string().trim().min(3).max(32)]);
 const idArg = z.tuple([z.string().trim().min(1).max(256)]);
+const avatarSettingsArg = z.tuple([
+	z.object({
+		pattern: z.enum([
+			"letter",
+			"letterBold",
+			"letterMonospace",
+			"pixelLetter",
+			"ascii",
+		]),
+		backgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+		foregroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+	}),
+]);
 
 export function registerSocialHandlers(): void {
 	secureHandle(
@@ -89,6 +104,14 @@ export function registerSocialHandlers(): void {
 		idArg,
 		async (requestId: string): Promise<void> => {
 			await rejectFriendRequest(requestId);
+		},
+	);
+
+	secureHandle(
+		IpcChannels.Social.SyncAvatarSettings,
+		avatarSettingsArg,
+		async (avatarSettings: AvatarSettings): Promise<void> => {
+			await syncAvatarSettings(avatarSettings);
 		},
 	);
 }

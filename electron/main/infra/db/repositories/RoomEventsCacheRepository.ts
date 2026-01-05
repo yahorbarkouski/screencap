@@ -16,6 +16,8 @@ export type CachedRoomEvent = {
 	windowTitle: string | null;
 	contentKind: string | null;
 	contentTitle: string | null;
+	url: string | null;
+	backgroundContext: string | null;
 	thumbnailPath: string | null;
 	originalPath: string | null;
 	syncedAt: number;
@@ -37,6 +39,8 @@ type CachedRoomEventRow = {
 	window_title: string | null;
 	content_kind: string | null;
 	content_title: string | null;
+	url: string | null;
+	background_context: string | null;
 	thumbnail_path: string | null;
 	original_path: string | null;
 	synced_at: number;
@@ -59,6 +63,8 @@ function rowToEvent(row: CachedRoomEventRow): CachedRoomEvent {
 		windowTitle: row.window_title,
 		contentKind: row.content_kind,
 		contentTitle: row.content_title,
+		url: row.url,
+		backgroundContext: row.background_context,
 		thumbnailPath: row.thumbnail_path,
 		originalPath: row.original_path,
 		syncedAt: row.synced_at,
@@ -67,7 +73,7 @@ function rowToEvent(row: CachedRoomEventRow): CachedRoomEvent {
 
 const ALL_COLUMNS = `id, room_id, author_user_id, author_username, timestamp_ms, end_timestamp_ms,
 	project, category, caption, project_progress, app_bundle_id, app_name, window_title,
-	content_kind, content_title, thumbnail_path, original_path, synced_at`;
+	content_kind, content_title, url, background_context, thumbnail_path, original_path, synced_at`;
 
 export function getCachedRoomEvent(eventId: string): CachedRoomEvent | null {
 	if (!isDbOpen()) return null;
@@ -168,9 +174,9 @@ export function upsertCachedRoomEvent(event: CachedRoomEvent): void {
 		`INSERT INTO room_events_cache (
 			id, room_id, author_user_id, author_username, timestamp_ms, end_timestamp_ms,
 			project, category, caption, project_progress, app_bundle_id, app_name, window_title,
-			content_kind, content_title, thumbnail_path, original_path, synced_at
+			content_kind, content_title, url, background_context, thumbnail_path, original_path, synced_at
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT (id) DO UPDATE SET
 			room_id = excluded.room_id,
 			author_user_id = excluded.author_user_id,
@@ -186,6 +192,8 @@ export function upsertCachedRoomEvent(event: CachedRoomEvent): void {
 			window_title = excluded.window_title,
 			content_kind = excluded.content_kind,
 			content_title = excluded.content_title,
+			url = excluded.url,
+			background_context = excluded.background_context,
 			thumbnail_path = excluded.thumbnail_path,
 			original_path = excluded.original_path,
 			synced_at = excluded.synced_at`,
@@ -205,6 +213,8 @@ export function upsertCachedRoomEvent(event: CachedRoomEvent): void {
 		event.windowTitle,
 		event.contentKind,
 		event.contentTitle,
+		event.url,
+		event.backgroundContext,
 		event.thumbnailPath,
 		event.originalPath,
 		event.syncedAt,
@@ -219,9 +229,9 @@ export function upsertCachedRoomEventsBatch(events: CachedRoomEvent[]): void {
 		`INSERT INTO room_events_cache (
 			id, room_id, author_user_id, author_username, timestamp_ms, end_timestamp_ms,
 			project, category, caption, project_progress, app_bundle_id, app_name, window_title,
-			content_kind, content_title, thumbnail_path, original_path, synced_at
+			content_kind, content_title, url, background_context, thumbnail_path, original_path, synced_at
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT (id) DO UPDATE SET
 			room_id = excluded.room_id,
 			author_user_id = excluded.author_user_id,
@@ -237,6 +247,8 @@ export function upsertCachedRoomEventsBatch(events: CachedRoomEvent[]): void {
 			window_title = excluded.window_title,
 			content_kind = excluded.content_kind,
 			content_title = excluded.content_title,
+			url = excluded.url,
+			background_context = excluded.background_context,
 			thumbnail_path = excluded.thumbnail_path,
 			original_path = excluded.original_path,
 			synced_at = excluded.synced_at`,
@@ -260,6 +272,8 @@ export function upsertCachedRoomEventsBatch(events: CachedRoomEvent[]): void {
 				event.windowTitle,
 				event.contentKind,
 				event.contentTitle,
+				event.url,
+				event.backgroundContext,
 				event.thumbnailPath,
 				event.originalPath,
 				event.syncedAt,

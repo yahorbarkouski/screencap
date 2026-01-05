@@ -56,6 +56,7 @@ export interface Event {
 	contextConfidence: number | null;
 	contextKey: string | null;
 	contextJson: string | null;
+	sharedToFriends: number;
 	authorUserId?: string;
 	authorUsername?: string;
 	isRemote?: boolean;
@@ -146,6 +147,19 @@ export interface DayWrappedSharingSettings {
 	includeAddiction: boolean;
 }
 
+export type AvatarPattern =
+	| "letter"
+	| "letterBold"
+	| "letterMonospace"
+	| "pixelLetter"
+	| "ascii";
+
+export interface AvatarSettings {
+	pattern: AvatarPattern;
+	backgroundColor: string;
+	foregroundColor: string;
+}
+
 export interface SocialSharingSettings {
 	dayWrapped: DayWrappedSharingSettings;
 }
@@ -161,6 +175,7 @@ export interface Settings {
 	shortcuts: ShortcutSettings;
 	sharing: SharingSettings;
 	social: SocialSharingSettings;
+	avatar: AvatarSettings;
 	llmEnabled: boolean;
 	allowVisionUploads: boolean;
 	cloudLlmModel: string;
@@ -458,6 +473,7 @@ export interface Friend {
 	username: string;
 	deviceId: string | null;
 	dhPubKey: string | null;
+	avatarSettings: AvatarSettings | null;
 	createdAt: number;
 }
 
@@ -563,6 +579,9 @@ export interface SharedEvent {
 	contentTitle: string | null;
 	thumbnailPath: string | null;
 	originalPath: string | null;
+	imageRef: string | null;
+	url: string | null;
+	background: BackgroundContext[];
 }
 
 export interface DayWrappedSlot {
@@ -603,6 +622,8 @@ declare global {
 				copyImage: (path: string) => Promise<boolean>;
 				getInfo: () => Promise<AppInfo>;
 				openExternal: (url: string) => Promise<void>;
+				openNative: (path: string) => Promise<void>;
+				previewEvent: (event: SharedEvent) => Promise<void>;
 				revealInFinder: () => Promise<void>;
 				pickDirectory: () => Promise<string | null>;
 				factoryReset: () => Promise<void>;
@@ -812,6 +833,7 @@ declare global {
 				listFriendRequests: () => Promise<FriendRequest[]>;
 				acceptFriendRequest: (requestId: string) => Promise<void>;
 				rejectFriendRequest: (requestId: string) => Promise<void>;
+				syncAvatarSettings: (avatarSettings: AvatarSettings) => Promise<void>;
 			};
 			chat: {
 				listThreads: () => Promise<ChatThread[]>;
@@ -863,6 +885,7 @@ declare global {
 					startDate?: number;
 					endDate?: number;
 					limit?: number;
+					includeOwnEvents?: boolean;
 				}) => Promise<SharedEvent[]>;
 				getFriendDayWrapped: (
 					friendUserId: string,
@@ -885,7 +908,8 @@ declare global {
 					| "shortcut:capture-now"
 					| "shortcut:capture-project-progress-preview"
 					| "shortcut:capture-project-progress"
-					| "shortcut:end-of-day",
+					| "shortcut:end-of-day"
+					| "preview:event",
 				callback: (...args: unknown[]) => void,
 			) => () => void;
 		};

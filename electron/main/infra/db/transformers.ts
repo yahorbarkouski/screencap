@@ -51,6 +51,7 @@ export const CAMEL_TO_SNAKE_MAP: Record<string, string> = {
 	contextConfidence: "context_confidence",
 	contextKey: "context_key",
 	contextJson: "context_json",
+	sharedToFriends: "shared_to_friends",
 };
 
 export function toSnakeCase(key: string): string {

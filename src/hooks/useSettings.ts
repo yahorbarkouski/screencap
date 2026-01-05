@@ -57,6 +57,12 @@ function mergeSettings(base: Settings, incoming: unknown): Settings {
 		},
 	};
 
+	const incomingAvatar = partial.avatar;
+	next.avatar = {
+		...base.avatar,
+		...(incomingAvatar ?? {}),
+	};
+
 	return next;
 }
 

@@ -1,3 +1,4 @@
+import type { AvatarSettings } from "../../../shared/types";
 import { signedFetch } from "./IdentityService";
 
 export type Friend = {
@@ -5,6 +6,7 @@ export type Friend = {
 	username: string;
 	deviceId: string | null;
 	dhPubKey: string | null;
+	avatarSettings: AvatarSettings | null;
 	createdAt: number;
 };
 

@@ -5,6 +5,7 @@ import type {
 	AddictionStatsItem,
 	AppInfo,
 	AutomationStatus,
+	AvatarSettings,
 	CaptureResult,
 	CaptureTriggerOptions,
 	CaptureTriggerResult,
@@ -66,6 +67,10 @@ const api = {
 			ipcRenderer.invoke(IpcChannels.App.GetInfo),
 		openExternal: (url: string): Promise<void> =>
 			ipcRenderer.invoke(IpcChannels.App.OpenExternal, url),
+		openNative: (path: string): Promise<void> =>
+			ipcRenderer.invoke(IpcChannels.App.OpenNative, path),
+		previewEvent: (event: SharedEvent): Promise<void> =>
+			ipcRenderer.invoke(IpcChannels.App.PreviewEvent, event),
 		revealInFinder: (): Promise<void> =>
 			ipcRenderer.invoke(IpcChannels.App.RevealInFinder),
 		pickDirectory: (): Promise<string | null> =>
@@ -329,6 +334,8 @@ const api = {
 			ipcRenderer.invoke(IpcChannels.Social.AcceptFriendRequest, requestId),
 		rejectFriendRequest: (requestId: string): Promise<void> =>
 			ipcRenderer.invoke(IpcChannels.Social.RejectFriendRequest, requestId),
+		syncAvatarSettings: (avatarSettings: AvatarSettings): Promise<void> =>
+			ipcRenderer.invoke(IpcChannels.Social.SyncAvatarSettings, avatarSettings),
 	},
 
 	chat: {
@@ -421,6 +428,7 @@ const api = {
 			startDate?: number;
 			endDate?: number;
 			limit?: number;
+			includeOwnEvents?: boolean;
 		}): Promise<SharedEvent[]> => {
 			if (!params) return ipcRenderer.invoke(IpcChannels.SocialFeed.GetFeed);
 			return ipcRenderer.invoke(IpcChannels.SocialFeed.GetFeed, params);

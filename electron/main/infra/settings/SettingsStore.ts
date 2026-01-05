@@ -40,6 +40,11 @@ const DEFAULT_SETTINGS: Settings = {
 			includeAddiction: false,
 		},
 	},
+	avatar: {
+		pattern: "pixelLetter",
+		backgroundColor: "#0a0a0a",
+		foregroundColor: "#ffffff",
+	},
 	llmEnabled: true,
 	allowVisionUploads: true,
 	cloudLlmModel: "openai/gpt-5",
@@ -138,6 +143,23 @@ const zSocialSharingSettings = z
 	.strip()
 	.catch(DEFAULT_SETTINGS.social);
 
+const zAvatarSettings = z
+	.object({
+		pattern: z
+			.enum(["letter", "letterBold", "letterMonospace", "pixelLetter", "ascii"])
+			.catch(DEFAULT_SETTINGS.avatar.pattern),
+		backgroundColor: z
+			.string()
+			.max(100)
+			.catch(DEFAULT_SETTINGS.avatar.backgroundColor),
+		foregroundColor: z
+			.string()
+			.max(100)
+			.catch(DEFAULT_SETTINGS.avatar.foregroundColor),
+	})
+	.strip()
+	.catch(DEFAULT_SETTINGS.avatar);
+
 const settingsFileSchema: z.ZodType<Settings, z.ZodTypeDef, unknown> = z
 	.object({
 		apiKey: z
@@ -160,6 +182,7 @@ const settingsFileSchema: z.ZodType<Settings, z.ZodTypeDef, unknown> = z
 		shortcuts: zShortcutSettings,
 		sharing: zSharingSettings,
 		social: zSocialSharingSettings,
+		avatar: zAvatarSettings,
 		llmEnabled: z.boolean().catch(DEFAULT_SETTINGS.llmEnabled),
 		allowVisionUploads: z.boolean().catch(DEFAULT_SETTINGS.allowVisionUploads),
 		cloudLlmModel: zLimitedString(500).catch(DEFAULT_SETTINGS.cloudLlmModel),

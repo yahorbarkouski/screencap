@@ -191,6 +191,7 @@ export function sharedEventToEvent(se: {
 	contextConfidence: null;
 	contextKey: null;
 	contextJson: null;
+	sharedToFriends: number;
 	authorUserId?: string;
 	authorUsername?: string;
 	isRemote: true;
@@ -238,6 +239,7 @@ export function sharedEventToEvent(se: {
 		contextConfidence: null,
 		contextKey: null,
 		contextJson: null,
+		sharedToFriends: 0,
 		authorUserId: se.authorUserId ?? undefined,
 		authorUsername: se.authorUsername ?? undefined,
 		isRemote: true,

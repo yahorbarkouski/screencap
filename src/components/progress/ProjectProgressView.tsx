@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useSettings } from "@/hooks/useSettings";
 import {
 	cn,
 	groupEventsByDate,
@@ -66,6 +67,7 @@ export function ProjectProgressView() {
 
 	const [sharedProjects, setSharedProjects] = useState<SharedProject[]>([]);
 	const [identity, setIdentity] = useState<SocialIdentity | null>(null);
+	const { settings } = useSettings();
 	const [isSyncing, setIsSyncing] = useState(false);
 
 	useEffect(() => {
@@ -355,6 +357,7 @@ export function ProjectProgressView() {
 								items={items}
 								showProject={showProject}
 								onUnmark={fetchEvents}
+								avatarSettings={settings.avatar}
 							/>
 						))
 					)}

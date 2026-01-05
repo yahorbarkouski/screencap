@@ -8,6 +8,7 @@ import { Titlebar } from "@/components/layout/Titlebar";
 import { AddictionsView } from "@/components/memory/AddictionsView";
 import { ProjectsView } from "@/components/memory/ProjectsView";
 import { OnboardingWizard } from "@/components/onboarding";
+import { EventPreviewModal } from "@/components/preview/EventPreviewModal";
 import { ProjectProgressView } from "@/components/progress/ProjectProgressView";
 import { SettingsView } from "@/components/settings/SettingsView";
 import { StoryView } from "@/components/story/StoryView";
@@ -18,6 +19,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { useSettings } from "@/hooks/useSettings";
 import { getLogicalDayStart } from "@/lib/dayBoundary";
 import { useAppStore } from "@/stores/app";
+import type { SharedEvent } from "@/types";
 
 const ONBOARDING_VERSION = 1;
 
@@ -27,6 +29,8 @@ export default function App() {
 	const setCommandPaletteOpen = useAppStore((s) => s.setCommandPaletteOpen);
 	const openEod = useAppStore((s) => s.openEod);
 	const settingsLoaded = useAppStore((s) => s.settingsLoaded);
+	const previewEvent = useAppStore((s) => s.previewEvent);
+	const setPreviewEvent = useAppStore((s) => s.setPreviewEvent);
 	const { hasPermission, checkPermission } = usePermission();
 	const { settings } = useSettings();
 	useMemories();
@@ -85,6 +89,15 @@ export default function App() {
 		});
 	}, [openEod]);
 
+	useEffect(() => {
+		if (!window.api) return;
+		return window.api.on("preview:event", (event) => {
+			if (event && typeof event === "object") {
+				setPreviewEvent(event as SharedEvent);
+			}
+		});
+	}, [setPreviewEvent]);
+
 	const handleOnboardingComplete = useCallback(() => {
 		setShowOnboarding(false);
 		checkPermission();
@@ -126,6 +139,10 @@ export default function App() {
 					onOpenChange={setCommandPaletteOpen}
 				/>
 				<EndOfDayFlow />
+				<EventPreviewModal
+					event={previewEvent}
+					onClose={() => setPreviewEvent(null)}
+				/>
 			</div>
 		</TooltipProvider>
 	);

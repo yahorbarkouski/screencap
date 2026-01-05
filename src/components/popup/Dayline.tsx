@@ -323,25 +323,31 @@ export function DayWrappedLegend({
 	}, [mode, slots, alpha]);
 
 	const intensity = [1, 2, 3, 4] as const;
+	const showIntensity = mode !== "apps";
 
 	return (
 		<div className="mt-4 flex flex-wrap gap-x-4 gap-y-3">
-			<div className="flex gap-2 items-center text-xs text-muted-foreground">
-				<div className="font-mono text-[10px] tracking-[0.18em]">
-					INTENSITY
+			{showIntensity && (
+				<div className="flex gap-2 items-center text-xs text-muted-foreground">
+					<div className="font-mono text-[10px] tracking-[0.18em]">
+						INTENSITY
+					</div>
+					<div className="flex items-center gap-1">
+						{intensity.map((l) => (
+							<span
+								key={l}
+								className="h-2.5 w-2.5 rounded-[3px] bg-muted/20"
+								style={{
+									backgroundColor: rgba(
+										CATEGORY_RGB.Work,
+										DOT_ALPHA_BY_LEVEL[l],
+									),
+								}}
+							/>
+						))}
+					</div>
 				</div>
-				<div className="flex items-center gap-1">
-					{intensity.map((l) => (
-						<span
-							key={l}
-							className="h-2.5 w-2.5 rounded-[3px] bg-muted/20"
-							style={{
-								backgroundColor: rgba(CATEGORY_RGB.Work, DOT_ALPHA_BY_LEVEL[l]),
-							}}
-						/>
-					))}
-				</div>
-			</div>
+			)}
 
 			<div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground gap-y-1">
 				{legend.map((it) => {

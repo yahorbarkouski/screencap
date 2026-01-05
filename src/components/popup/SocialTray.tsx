@@ -3,8 +3,11 @@ import {
 	Activity,
 	AppWindow,
 	ChevronLeft,
+	Expand,
+	ExternalLink,
 	Flame,
-	MessageCircle,
+	Globe,
+	Music,
 	Plus,
 	SendHorizontal,
 	UserPlus,
@@ -12,7 +15,14 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { type DaylineSlot, SLOTS_PER_DAY, toCategory } from "@/lib/dayline";
+import { useSettings } from "@/hooks/useSettings";
+import { generateAvatarDataUrl, getDefaultAvatarSettings } from "@/lib/avatar";
+import {
+	CATEGORY_RGB,
+	type DaylineSlot,
+	SLOTS_PER_DAY,
+	toCategory,
+} from "@/lib/dayline";
 import { encodeEventComment, parseEventComment } from "@/lib/socialComments";
 import type {
 	ChatMessage,
@@ -31,12 +41,98 @@ import {
 	VIEW_MODE_ORDER,
 } from "./Dayline";
 
+const READ_EVENTS_STORAGE_KEY = "screencap:readEventIds";
+const MAX_STORED_READ_IDS = 500;
+
+function getReadEventIds(): Set<string> {
+	try {
+		const raw = localStorage.getItem(READ_EVENTS_STORAGE_KEY);
+		if (!raw) return new Set();
+		const parsed = JSON.parse(raw);
+		return new Set(Array.isArray(parsed) ? parsed : []);
+	} catch {
+		return new Set();
+	}
+}
+
+function markEventsAsRead(eventIds: string[]): void {
+	try {
+		const existing = getReadEventIds();
+		for (const id of eventIds) existing.add(id);
+		const arr = Array.from(existing).slice(-MAX_STORED_READ_IDS);
+		localStorage.setItem(READ_EVENTS_STORAGE_KEY, JSON.stringify(arr));
+	} catch {}
+}
+
 type View = "list" | "add" | "detail";
 
 function initials(username: string): string {
 	const trimmed = username.trim();
 	if (!trimmed) return "??";
 	return trimmed.slice(0, 2).toUpperCase();
+}
+
+function AvatarDisplay({
+	username,
+	size,
+	isOwn,
+	ownAvatarUrl,
+	avatarSettings,
+	className,
+}: {
+	username: string;
+	size: "xs" | "sm" | "md" | "lg";
+	isOwn?: boolean;
+	ownAvatarUrl?: string | null;
+	avatarSettings?: {
+		pattern: string;
+		backgroundColor: string;
+		foregroundColor: string;
+	} | null;
+	className?: string;
+}) {
+	const sizeClasses = {
+		xs: "h-5 w-5 text-[9px]",
+		sm: "h-6 w-6 text-[10px]",
+		md: "h-9 w-9 text-xs",
+		lg: "h-12 w-12 text-lg",
+	};
+	const sizePx = { xs: 20, sm: 24, md: 36, lg: 48 };
+
+	const avatarUrl = useMemo(() => {
+		if (isOwn && ownAvatarUrl) return ownAvatarUrl;
+		if (avatarSettings) {
+			const letter = username.charAt(0).toUpperCase();
+			return generateAvatarDataUrl(
+				letter,
+				sizePx[size] * 2,
+				avatarSettings as Parameters<typeof generateAvatarDataUrl>[2],
+			);
+		}
+		return null;
+	}, [isOwn, ownAvatarUrl, avatarSettings, username, size]);
+
+	if (avatarUrl) {
+		return (
+			<div
+				className={`${sizeClasses[size]} shrink-0 rounded-lg overflow-hidden border border-primary/40 ${className ?? ""}`}
+			>
+				<img
+					src={avatarUrl}
+					alt={username}
+					className="h-full w-full object-cover"
+				/>
+			</div>
+		);
+	}
+
+	return (
+		<div
+			className={`${sizeClasses[size]} shrink-0 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center font-medium text-foreground/80 ${className ?? ""}`}
+		>
+			{initials(username)}
+		</div>
+	);
 }
 
 function timeAgo(timestampMs: number): string {
@@ -68,7 +164,7 @@ function toDaylineSlots(snapshot: DayWrappedSnapshot): DaylineSlot[] {
 export function SocialTray() {
 	const [view, setView] = useState<View>("list");
 	const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
-	const [commentEvent, setCommentEvent] = useState<SharedEvent | null>(null);
+	const [selectedEvent, setSelectedEvent] = useState<SharedEvent | null>(null);
 
 	const [identity, setIdentity] = useState<SocialIdentity | null>(null);
 	const [friends, setFriends] = useState<Friend[]>([]);
@@ -77,6 +173,12 @@ export function SocialTray() {
 	>([]);
 	const [roomInvites, setRoomInvites] = useState<RoomInvite[]>([]);
 	const [feed, setFeed] = useState<SharedEvent[]>([]);
+	const [readEventIds, setReadEventIds] = useState<Set<string>>(() =>
+		getReadEventIds(),
+	);
+	const [localEventPaths, setLocalEventPaths] = useState<
+		Map<string, string | null>
+	>(new Map());
 
 	const [selectedDayWrapped, setSelectedDayWrapped] =
 		useState<DayWrappedSnapshot | null>(null);
@@ -97,6 +199,18 @@ export function SocialTray() {
 	const [commentMessages, setCommentMessages] = useState<ChatMessage[]>([]);
 	const [commentError, setCommentError] = useState<string | null>(null);
 
+	const { settings } = useSettings();
+
+	const myAvatarUrl = useMemo(() => {
+		if (!identity) return null;
+		const letter = identity.username.charAt(0).toUpperCase();
+		return generateAvatarDataUrl(
+			letter,
+			96,
+			settings.avatar ?? getDefaultAvatarSettings(),
+		);
+	}, [identity, settings.avatar]);
+
 	const refresh = useCallback(async () => {
 		if (!window.api?.social) return;
 
@@ -112,11 +226,11 @@ export function SocialTray() {
 				return;
 			}
 
-			const [f, friendReqs, invites, cachedFeed] = await Promise.all([
+			const [f, friendReqs, invites, feedData] = await Promise.all([
 				window.api.social.listFriends(),
 				window.api.social.listFriendRequests(),
 				window.api.rooms.listInvites(),
-				window.api.socialFeed.getFeed({ limit: 200 }),
+				window.api.socialFeed.getFeed({ limit: 200, includeOwnEvents: true }),
 			]);
 
 			setFriends(f);
@@ -124,13 +238,7 @@ export function SocialTray() {
 				friendReqs.filter((r) => r.status === "pending"),
 			);
 			setRoomInvites(invites);
-			setFeed(cachedFeed);
-
-			void window.api.sharedProjects
-				.syncAll()
-				.then(() => window.api.socialFeed.getFeed({ limit: 200 }))
-				.then((fresh) => setFeed(fresh))
-				.catch(() => {});
+			setFeed(feedData);
 		} catch (e) {
 			console.error(e);
 		}
@@ -138,7 +246,42 @@ export function SocialTray() {
 
 	useEffect(() => {
 		void refresh();
+		const interval = setInterval(() => void refresh(), 10_000);
+		return () => clearInterval(interval);
 	}, [refresh]);
+
+	useEffect(() => {
+		if (!identity || !feed.length) return;
+
+		const ownEventIds = feed
+			.filter((e) => e.authorUserId === identity.userId && !eventImageSrc(e))
+			.map((e) => e.id);
+
+		if (ownEventIds.length === 0) return;
+
+		const fetchLocalPaths = async () => {
+			const pathMap = new Map<string, string | null>();
+			for (const id of ownEventIds) {
+				try {
+					const localEvent = await window.api.storage.getEvent(id);
+					if (localEvent?.thumbnailPath) {
+						pathMap.set(id, `local-file://${localEvent.thumbnailPath}`);
+					} else if (localEvent?.originalPath) {
+						pathMap.set(id, `local-file://${localEvent.originalPath}`);
+					}
+				} catch {}
+			}
+			if (pathMap.size > 0) {
+				setLocalEventPaths((prev) => {
+					const next = new Map(prev);
+					for (const [k, v] of pathMap) next.set(k, v);
+					return next;
+				});
+			}
+		};
+
+		void fetchLocalPaths();
+	}, [identity, feed]);
 
 	const cycleProfileMode = useCallback(() => {
 		setDaylineMode((m) => {
@@ -171,10 +314,10 @@ export function SocialTray() {
 		} catch {}
 	}, []);
 
-	const openComments = useCallback(
+	const openEvent = useCallback(
 		async (event: SharedEvent) => {
 			if (!identity) return;
-			setCommentEvent(event);
+			setSelectedEvent(event);
 			setCommentText("");
 			setCommentMessages([]);
 			setCommentThreadId(null);
@@ -193,29 +336,41 @@ export function SocialTray() {
 		[identity],
 	);
 
-	const closeComments = useCallback(() => {
-		setCommentEvent(null);
+	const closeEvent = useCallback(() => {
+		setSelectedEvent(null);
 		setCommentText("");
 		setCommentMessages([]);
 		setCommentThreadId(null);
 		setCommentError(null);
 	}, []);
 
+	const expandEventImage = useCallback(
+		async (event: SharedEvent) => {
+			// Merge local image path into event for preview
+			const localSrc = localEventPaths.get(event.id);
+			const eventWithLocalPath = localSrc
+				? { ...event, originalPath: localSrc.replace("local-file://", "") }
+				: event;
+			await window.api?.app.previewEvent(eventWithLocalPath);
+		},
+		[localEventPaths],
+	);
+
 	const sendComment = useCallback(async () => {
-		if (!commentEvent || !commentThreadId || !identity) return;
+		if (!selectedEvent || !commentThreadId || !identity) return;
 		const text = commentText.trim();
 		if (!text) return;
 		setIsBusy(true);
 		try {
 			await window.api.chat.sendMessage(
 				commentThreadId,
-				encodeEventComment(commentEvent.id, text),
+				encodeEventComment(selectedEvent.id, text),
 			);
 			setCommentText("");
 			const since =
 				commentMessages.length > 0
 					? (commentMessages[commentMessages.length - 1]?.timestampMs ?? 0)
-					: Math.max(0, commentEvent.timestampMs - 7 * 24 * 60 * 60 * 1000);
+					: Math.max(0, selectedEvent.timestampMs - 7 * 24 * 60 * 60 * 1000);
 			const next = await window.api.chat.fetchMessages(commentThreadId, since);
 			setCommentMessages((prev) => [...prev, ...next]);
 		} catch (e) {
@@ -223,7 +378,7 @@ export function SocialTray() {
 		} finally {
 			setIsBusy(false);
 		}
-	}, [commentEvent, commentMessages, commentText, commentThreadId, identity]);
+	}, [selectedEvent, commentMessages, commentText, commentThreadId, identity]);
 
 	const closeFriend = useCallback(() => {
 		setSelectedFriend(null);
@@ -240,13 +395,48 @@ export function SocialTray() {
 	}, [identity, pendingFriendRequests]);
 
 	const latestActivityByUserId = useMemo(() => {
-		const map = new Map<string, number>();
+		const map = new Map<
+			string,
+			{ timestampMs: number; category: string | null }
+		>();
 		for (const e of feed) {
-			const prev = map.get(e.authorUserId) ?? 0;
-			if (e.timestampMs > prev) map.set(e.authorUserId, e.timestampMs);
+			const prev = map.get(e.authorUserId);
+			if (!prev || e.timestampMs > prev.timestampMs) {
+				map.set(e.authorUserId, {
+					timestampMs: e.timestampMs,
+					category: e.category,
+				});
+			}
 		}
 		return map;
 	}, [feed]);
+
+	const { newEvents, oldEvents } = useMemo(() => {
+		const newOnes: SharedEvent[] = [];
+		const oldOnes: SharedEvent[] = [];
+		for (const e of feed) {
+			if (readEventIds.has(e.id)) {
+				oldOnes.push(e);
+			} else {
+				newOnes.push(e);
+			}
+		}
+		return { newEvents: newOnes, oldEvents: oldOnes };
+	}, [feed, readEventIds]);
+
+	useEffect(() => {
+		if (newEvents.length === 0) return;
+		const timer = setTimeout(() => {
+			const ids = newEvents.map((e) => e.id);
+			markEventsAsRead(ids);
+			setReadEventIds((prev) => {
+				const next = new Set(prev);
+				for (const id of ids) next.add(id);
+				return next;
+			});
+		}, 3000);
+		return () => clearTimeout(timer);
+	}, [newEvents]);
 
 	const handleRegister = useCallback(async () => {
 		if (!window.api?.social) return;
@@ -372,15 +562,15 @@ export function SocialTray() {
 		);
 	}
 
-	if (commentEvent) {
+	if (selectedEvent) {
 		const usersById = new Map<string, string>();
 		usersById.set(identity.userId, identity.username);
 		for (const f of friends) usersById.set(f.userId, f.username);
 
-		const parsed = commentMessages
+		const parsedComments = commentMessages
 			.map((m) => {
 				const parsed = parseEventComment(m.text);
-				if (!parsed || parsed.eventId !== commentEvent.id) return null;
+				if (!parsed || parsed.eventId !== selectedEvent.id) return null;
 				return {
 					id: m.id,
 					authorUserId: m.authorUserId,
@@ -393,6 +583,11 @@ export function SocialTray() {
 			.filter((v): v is NonNullable<typeof v> => v !== null)
 			.sort((a, b) => a.timestampMs - b.timestampMs);
 
+		const eventImageSrcValue =
+			localEventPaths.get(selectedEvent.id) ?? eventImageSrc(selectedEvent);
+		const isOwnEvent = selectedEvent.authorUserId === identity.userId;
+		const indicatorColor = getCategoryIndicatorColor(selectedEvent.category);
+
 		return (
 			<div className="relative h-[400px] w-full overflow-hidden">
 				<div className="absolute inset-0 flex flex-col">
@@ -401,42 +596,172 @@ export function SocialTray() {
 							variant="ghost"
 							size="icon"
 							className="h-6 w-6 -ml-2 rounded-full hover:bg-muted/20"
-							onClick={closeComments}
+							onClick={closeEvent}
 						>
 							<ChevronLeft className="h-4 w-4 text-muted-foreground" />
 						</Button>
-						<div className="text-sm font-medium">Comments</div>
+						<div className="flex items-center gap-2">
+							<div className="relative">
+								<AvatarDisplay
+									username={selectedEvent.authorUsername}
+									size="xs"
+									isOwn={isOwnEvent}
+									ownAvatarUrl={myAvatarUrl}
+								/>
+								<div
+									className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-background"
+									style={{ backgroundColor: indicatorColor }}
+								/>
+							</div>
+							<span className="text-xs font-medium text-foreground/90">
+								{isOwnEvent ? "You" : `@${selectedEvent.authorUsername}`}
+							</span>
+						</div>
 						<div className="w-6" />
 					</div>
 
-					<div className="flex-1 overflow-y-auto -mr-2 pr-2 custom-scrollbar space-y-2">
-						{commentError && (
-							<div className="text-[10px] text-destructive">{commentError}</div>
-						)}
-						{parsed.length === 0 ? (
-							<div className="text-xs text-muted-foreground text-center py-6">
-								No comments yet
-							</div>
-						) : (
-							parsed.map((c) => (
-								<div
-									key={c.id}
-									className="rounded-lg border border-border/40 bg-muted/5 px-3 py-2"
-								>
-									<div className="flex items-center justify-between">
-										<div className="text-[10px] text-muted-foreground">
-											@{c.authorUsername}
-										</div>
-										<div className="text-[10px] text-muted-foreground">
-											{timeAgo(c.timestampMs)}
-										</div>
-									</div>
-									<div className="text-xs text-foreground/90 mt-1">
-										{c.text}
+					<div className="flex-1 overflow-y-auto -mr-2 pr-2 custom-scrollbar space-y-3 pb-4">
+						<div className="group relative rounded-lg overflow-hidden bg-black/20">
+							{eventImageSrcValue ? (
+								<img
+									src={eventImageSrcValue}
+									alt=""
+									className="w-full aspect-[2/1] object-cover"
+								/>
+							) : (
+								<div className="w-full aspect-[2/1] flex items-center justify-center">
+									<div className="text-[10px] text-muted-foreground opacity-50 uppercase tracking-widest font-mono">
+										Screenshot
 									</div>
 								</div>
-							))
+							)}
+							<button
+								type="button"
+								className="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+								onClick={() => void expandEventImage(selectedEvent)}
+							>
+								<Expand className="h-3.5 w-3.5 text-white" />
+							</button>
+						</div>
+
+						{(selectedEvent.appName || selectedEvent.windowTitle) && (
+							<div className="text-xs text-muted-foreground px-1">
+								{selectedEvent.appName && (
+									<span className="text-foreground/80">
+										{selectedEvent.appName}
+									</span>
+								)}
+								{selectedEvent.appName && selectedEvent.windowTitle && (
+									<span className="mx-1">·</span>
+								)}
+								{selectedEvent.windowTitle && (
+									<span className="opacity-70 truncate">
+										{selectedEvent.windowTitle}
+									</span>
+								)}
+							</div>
 						)}
+
+						{(selectedEvent.url || selectedEvent.background?.length > 0) && (
+							<div className="flex flex-wrap gap-2 px-1">
+								{selectedEvent.url && (
+									<button
+										type="button"
+										className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/10 hover:bg-muted/20 transition-colors text-xs"
+										onClick={() =>
+											window.api?.app.openExternal(selectedEvent.url!)
+										}
+									>
+										<Globe className="h-3 w-3 text-muted-foreground" />
+										<span className="max-w-[120px] truncate text-foreground/80">
+											{(() => {
+												try {
+													return new URL(selectedEvent.url).hostname;
+												} catch {
+													return selectedEvent.url;
+												}
+											})()}
+										</span>
+										<ExternalLink className="h-2.5 w-2.5 text-muted-foreground/50" />
+									</button>
+								)}
+								{selectedEvent.background?.[0] && (
+									<button
+										type="button"
+										className="flex items-center gap-2 px-2 py-1 rounded-md bg-muted/10 hover:bg-muted/20 transition-colors"
+										onClick={() => {
+											const item = selectedEvent.background[0];
+											if (item?.actionUrl) {
+												window.api?.app.openExternal(item.actionUrl);
+											}
+										}}
+										disabled={!selectedEvent.background[0].actionUrl}
+									>
+										{selectedEvent.background[0].imageUrl ? (
+											<img
+												src={selectedEvent.background[0].imageUrl}
+												alt=""
+												className="h-6 w-6 rounded object-cover"
+											/>
+										) : (
+											<div className="flex h-6 w-6 items-center justify-center rounded bg-muted/20">
+												<Music className="h-3 w-3 text-muted-foreground" />
+											</div>
+										)}
+										<div className="flex flex-col items-start text-left max-w-[140px]">
+											<span className="text-[10px] font-medium leading-none truncate w-full">
+												{selectedEvent.background[0].title}
+											</span>
+											{selectedEvent.background[0].subtitle && (
+												<span className="text-[9px] text-muted-foreground truncate w-full">
+													{selectedEvent.background[0].subtitle}
+												</span>
+											)}
+										</div>
+										{selectedEvent.background[0].actionUrl && (
+											<ExternalLink className="h-2.5 w-2.5 text-muted-foreground/50 flex-shrink-0" />
+										)}
+									</button>
+								)}
+							</div>
+						)}
+
+						<div className="pt-3 border-t border-border/30">
+							<div className="text-[9px] font-mono tracking-[0.2em] text-muted-foreground mb-3 px-1">
+								COMMENTS
+							</div>
+							{commentError && (
+								<div className="text-[10px] text-destructive px-1 mb-2">
+									{commentError}
+								</div>
+							)}
+							{parsedComments.length === 0 ? (
+								<div className="text-xs text-muted-foreground text-center py-6">
+									No comments yet
+								</div>
+							) : (
+								<div className="space-y-2">
+									{parsedComments.map((c) => (
+										<div
+											key={c.id}
+											className="rounded-lg border border-border/40 bg-muted/5 px-3 py-2"
+										>
+											<div className="flex items-center justify-between">
+												<div className="text-[10px] text-muted-foreground">
+													@{c.authorUsername}
+												</div>
+												<div className="text-[10px] text-muted-foreground">
+													{timeAgo(c.timestampMs)}
+												</div>
+											</div>
+											<div className="text-xs text-foreground/90 mt-1">
+												{c.text}
+											</div>
+										</div>
+									))}
+								</div>
+							)}
+						</div>
 					</div>
 
 					<div className="pt-3 border-t border-border/40">
@@ -481,22 +806,6 @@ export function SocialTray() {
 						transition={{ duration: 0.2 }}
 						className="absolute inset-0 flex flex-col"
 					>
-						<div className="flex items-center justify-between pb-2 mb-2 border-b border-border/40">
-							<div className="text-[10px] font-mono tracking-[0.2em] text-muted-foreground">
-								PULSE
-							</div>
-							<div className="flex items-center gap-1">
-								<Button
-									variant="ghost"
-									size="icon"
-									className="h-6 w-6 rounded-full hover:bg-muted/20"
-									onClick={() => setView("add")}
-								>
-									<Plus className="h-3 w-3 text-muted-foreground" />
-								</Button>
-							</div>
-						</div>
-
 						{incomingFriendRequests.length > 0 && (
 							<div className="mb-3 space-y-2">
 								<div className="text-[9px] font-mono tracking-[0.2em] text-muted-foreground">
@@ -567,22 +876,29 @@ export function SocialTray() {
 							</div>
 						)}
 
-						{friends.length > 0 && (
-							<div className="mb-4">
-								<div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-									{friends.map((friend) => (
+						<div className="flex items-center gap-2 mb-4 pb-2 border-b border-border/40">
+							<div className="flex-1 flex gap-3 overflow-x-auto scrollbar-hide">
+								{friends.map((friend) => {
+									const activity = latestActivityByUserId.get(friend.userId);
+									return (
 										<FriendAvatarItem
 											key={friend.userId}
 											friend={friend}
-											lastActiveMs={
-												latestActivityByUserId.get(friend.userId) ?? null
-											}
+											lastActivity={activity ?? null}
 											onClick={() => void openFriend(friend)}
 										/>
-									))}
-								</div>
+									);
+								})}
 							</div>
-						)}
+							<Button
+								variant="ghost"
+								size="icon"
+								className="h-8 w-8 shrink-0 rounded-full hover:bg-muted/20"
+								onClick={() => setView("add")}
+							>
+								<Plus className="h-4 w-4 text-muted-foreground" />
+							</Button>
+						</div>
 
 						<div className="flex-1 overflow-y-auto space-y-3 -mr-2 pr-2 custom-scrollbar">
 							{feed.length === 0 ? (
@@ -591,19 +907,37 @@ export function SocialTray() {
 									<span>No recent activity</span>
 								</div>
 							) : (
-								feed.map((item) => (
-									<SharedEventCard
-										key={item.id}
-										item={item}
-										onClick={() => {
-											const friend = friends.find(
-												(f) => f.userId === item.authorUserId,
-											);
-											if (friend) void openFriend(friend);
-										}}
-										onComment={() => void openComments(item)}
-									/>
-								))
+								<>
+									{newEvents.map((item) => (
+										<SharedEventCard
+											key={item.id}
+											item={item}
+											onClick={() => void openEvent(item)}
+											isOwnEvent={item.authorUserId === identity?.userId}
+											localImageSrc={localEventPaths.get(item.id)}
+											ownAvatarUrl={myAvatarUrl}
+										/>
+									))}
+									{newEvents.length > 0 && oldEvents.length > 0 && (
+										<div className="flex items-center gap-2 py-1">
+											<div className="flex-1 border-t border-border/40" />
+											<span className="text-[9px] font-mono tracking-[0.2em] text-muted-foreground/60">
+												SEEN
+											</span>
+											<div className="flex-1 border-t border-border/40" />
+										</div>
+									)}
+									{oldEvents.map((item) => (
+										<SharedEventCard
+											key={item.id}
+											item={item}
+											onClick={() => void openEvent(item)}
+											isOwnEvent={item.authorUserId === identity?.userId}
+											localImageSrc={localEventPaths.get(item.id)}
+											ownAvatarUrl={myAvatarUrl}
+										/>
+									))}
+								</>
 							)}
 						</div>
 					</motion.div>
@@ -633,8 +967,8 @@ export function SocialTray() {
 							<div className="w-6" />
 						</div>
 
-						<div className="flex-1 flex flex-col items-center justify-center p-6">
-							<div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+						<div className="flex-1 flex flex-col items-center justify-center p-5">
+							<div className="h-12 w-12 rounded-full flex items-center justify-center mb-2">
 								<UserPlus className="h-6 w-6 text-primary" />
 							</div>
 							<p className="text-xs text-muted-foreground mb-4 text-center max-w-[200px]">
@@ -645,7 +979,7 @@ export function SocialTray() {
 									value={addFriendUsername}
 									onChange={(e) => setAddFriendUsername(e.target.value)}
 									placeholder="username"
-									className="text-center text-sm"
+									className="text-center text-xs"
 									autoCapitalize="none"
 									autoCorrect="off"
 									spellCheck={false}
@@ -692,7 +1026,7 @@ export function SocialTray() {
 							sharedEvents={feed.filter(
 								(e) => e.authorUserId === selectedFriend?.userId,
 							)}
-							onOpenComments={openComments}
+							onOpenEvent={openEvent}
 							replyText={replyText}
 							onReplyTextChange={setReplyText}
 						/>
@@ -703,46 +1037,37 @@ export function SocialTray() {
 	);
 }
 
+function getCategoryIndicatorColor(category: string | null): string {
+	const cat = toCategory(category);
+	const rgb = CATEGORY_RGB[cat];
+	return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+}
+
 function FriendAvatarItem({
 	friend,
-	lastActiveMs,
+	lastActivity,
 	onClick,
 }: {
 	friend: Friend;
-	lastActiveMs: number | null;
+	lastActivity: { timestampMs: number; category: string | null } | null;
 	onClick: () => void;
 }) {
-	const kind = useMemo(() => {
-		if (!lastActiveMs) return "free";
-		const ageMs = Date.now() - lastActiveMs;
-		if (ageMs < 15 * 60 * 1000) return "focus";
-		if (ageMs < 2 * 60 * 60 * 1000) return "busy";
-		return "free";
-	}, [lastActiveMs]);
+	const indicatorColor = useMemo(() => {
+		if (!lastActivity) return getCategoryIndicatorColor(null);
+		return getCategoryIndicatorColor(lastActivity.category);
+	}, [lastActivity]);
 
 	return (
-		<button
-			type="button"
-			onClick={onClick}
-			className="group flex flex-col items-center gap-1 min-w-[56px]"
-		>
-			<div className="relative">
-				<div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center text-xs font-medium text-foreground/80 transition-transform group-hover:scale-105">
-					{initials(friend.username)}
-				</div>
-				<div
-					className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${
-						kind === "focus"
-							? "bg-purple-500"
-							: kind === "busy"
-								? "bg-red-500"
-								: "bg-emerald-500"
-					}`}
-				/>
-			</div>
-			<span className="text-[10px] text-muted-foreground truncate max-w-[64px]">
-				@{friend.username}
-			</span>
+		<button type="button" onClick={onClick} className="relative shrink-0">
+			<AvatarDisplay
+				username={friend.username}
+				size="md"
+				avatarSettings={friend.avatarSettings}
+			/>
+			<div
+				className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background"
+				style={{ backgroundColor: indicatorColor }}
+			/>
 		</button>
 	);
 }
@@ -750,21 +1075,32 @@ function FriendAvatarItem({
 function SharedEventCard({
 	item,
 	onClick,
-	onComment,
+	isOwnEvent,
+	localImageSrc,
+	ownAvatarUrl,
 }: {
 	item: SharedEvent;
 	onClick: () => void;
-	onComment: () => void;
+	isOwnEvent?: boolean;
+	localImageSrc?: string | null;
+	ownAvatarUrl?: string | null;
 }) {
-	const imageSrc = useMemo(() => eventImageSrc(item), [item]);
+	const imageSrc = useMemo(
+		() => localImageSrc ?? eventImageSrc(item),
+		[item, localImageSrc],
+	);
+	const indicatorColor = useMemo(
+		() => getCategoryIndicatorColor(item.category),
+		[item.category],
+	);
 
 	return (
-		<div
-			className="group relative overflow-hidden rounded-lg bg-muted/5 border border-border/40 hover:bg-muted/10 transition-all cursor-pointer"
+		<button
+			type="button"
+			className="group relative w-full text-left overflow-hidden rounded-lg bg-muted/5 border border-border/40 hover:bg-muted/10 transition-all cursor-pointer"
 			onClick={onClick}
-			onKeyDown={(e) => e.key === "Enter" && onClick()}
 		>
-			<div className="aspect-[2/1] w-full bg-muted/10 relative overflow-hidden">
+			<div className="aspect-[2/1] w-full bg-muted/10 relative">
 				{imageSrc ? (
 					<img
 						src={imageSrc}
@@ -783,17 +1119,21 @@ function SharedEventCard({
 			<div className="p-3 space-y-2">
 				<div className="flex items-center justify-between">
 					<div className="flex items-center gap-2">
-						<div className="h-7 w-7 rounded-full bg-muted/20 flex items-center justify-center text-[10px] font-medium text-foreground/70">
-							{initials(item.authorUsername)}
+						<div className="relative">
+							<AvatarDisplay
+								username={item.authorUsername}
+								size="xs"
+								isOwn={isOwnEvent}
+								ownAvatarUrl={ownAvatarUrl}
+							/>
+							<div
+								className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-background"
+								style={{ backgroundColor: indicatorColor }}
+							/>
 						</div>
-						<div className="flex flex-col">
-							<span className="text-xs font-medium text-foreground/90 truncate">
-								@{item.authorUsername}
-							</span>
-							<span className="text-[10px] text-muted-foreground">
-								{timeAgo(item.timestampMs)}
-							</span>
-						</div>
+						<span className="text-xs font-medium text-foreground/90 truncate">
+							{isOwnEvent ? "You" : `@${item.authorUsername}`}
+						</span>
 					</div>
 					{item.category && (
 						<span className="text-[10px] font-mono text-muted-foreground">
@@ -813,23 +1153,8 @@ function SharedEventCard({
 						{item.windowTitle}
 					</div>
 				)}
-
-				<div className="flex items-center justify-end pt-1">
-					<Button
-						type="button"
-						variant="ghost"
-						size="icon"
-						className="h-7 w-7 rounded-full hover:bg-muted/20"
-						onClick={(e) => {
-							e.stopPropagation();
-							onComment();
-						}}
-					>
-						<MessageCircle className="h-3 w-3 text-muted-foreground" />
-					</Button>
-				</div>
 			</div>
-		</div>
+		</button>
 	);
 }
 
@@ -842,7 +1167,7 @@ function FriendProfile({
 	selectedLabels,
 	onLabelToggle,
 	sharedEvents,
-	onOpenComments,
+	onOpenEvent,
 	replyText,
 	onReplyTextChange,
 }: {
@@ -854,7 +1179,7 @@ function FriendProfile({
 	selectedLabels: Set<string>;
 	onLabelToggle: (label: string) => void;
 	sharedEvents: SharedEvent[];
-	onOpenComments: (event: SharedEvent) => void;
+	onOpenEvent: (event: SharedEvent) => void;
 	replyText: string;
 	onReplyTextChange: (value: string) => void;
 }) {
@@ -867,7 +1192,7 @@ function FriendProfile({
 
 	return (
 		<div className="flex flex-col h-full">
-			<div className="flex items-center justify-between pb-2 mb-2 border-b border-border/40">
+			<div className="flex items-center pb-2 mb-2 border-b border-border/40">
 				<Button
 					variant="ghost"
 					size="icon"
@@ -876,19 +1201,24 @@ function FriendProfile({
 				>
 					<ChevronLeft className="h-4 w-4 text-muted-foreground" />
 				</Button>
-				<div className="text-sm font-medium">@{friend.username}</div>
-				<div className="w-6" />
 			</div>
 
 			<div className="flex-1 overflow-y-auto -mr-2 pr-2 custom-scrollbar">
-				<div className="flex flex-col items-center mb-6 mt-2">
-					<div className="h-16 w-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center text-xl font-medium text-foreground/80 mb-3">
-						{initials(friend.username)}
-					</div>
-					<div className="text-xs text-muted-foreground">
-						{dayWrapped
-							? `Updated ${timeAgo(dayWrapped.publishedAtMs)}`
-							: "No Day Wrapped yet"}
+				<div className="flex items-center gap-3 mb-4 mt-1">
+					<AvatarDisplay
+						username={friend.username}
+						size="lg"
+						avatarSettings={friend.avatarSettings}
+					/>
+					<div className="flex flex-col min-w-0">
+						<div className="text-sm font-medium text-foreground truncate">
+							@{friend.username}
+						</div>
+						<div className="text-[10px] text-muted-foreground">
+							{dayWrapped
+								? `Updated ${timeAgo(dayWrapped.publishedAtMs)}`
+								: "No Day Wrapped yet"}
+						</div>
 					</div>
 				</div>
 
@@ -956,8 +1286,7 @@ function FriendProfile({
 							<SharedEventCard
 								key={item.id}
 								item={item}
-								onClick={() => {}}
-								onComment={() => onOpenComments(item)}
+								onClick={() => onOpenEvent(item)}
 							/>
 						))
 					)}

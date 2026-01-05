@@ -1,8 +1,9 @@
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import type { BackgroundContext } from "../../../shared/types";
+import { getEventById } from "../../infra/db/repositories/EventRepository";
 import {
 	type CachedDayWrapped,
-	getLatestCachedDayWrappedTimestamp,
 	upsertCachedDayWrappedBatch,
 } from "../../infra/db/repositories/RoomDayWrappedCacheRepository";
 import {
@@ -56,6 +57,9 @@ export type SharedEvent = {
 	windowTitle: string | null;
 	contentKind: string | null;
 	contentTitle: string | null;
+	url: string | null;
+	background: BackgroundContext[];
+	imageRef: string | null;
 	thumbnailPath: string | null;
 	originalPath: string | null;
 };
@@ -89,6 +93,11 @@ function cachedEventToSharedEvent(event: CachedRoomEvent): SharedEvent {
 		windowTitle: event.windowTitle,
 		contentKind: event.contentKind,
 		contentTitle: event.contentTitle,
+		url: event.url,
+		background: event.backgroundContext
+			? JSON.parse(event.backgroundContext)
+			: [],
+		imageRef: null,
 		thumbnailPath: event.thumbnailPath,
 		originalPath: event.originalPath,
 	};
@@ -152,11 +161,8 @@ export async function syncRoom(
 	}
 
 	const latestEventTs = getLatestCachedEventTimestamp(roomId) ?? 0;
-	const latestDayWrappedTs = getLatestCachedDayWrappedTimestamp(roomId) ?? 0;
-	const since =
-		backfill || Math.max(latestEventTs, latestDayWrappedTs) <= 0
-			? undefined
-			: Math.max(latestEventTs, latestDayWrappedTs);
+	const hasEvents = latestEventTs > 0;
+	const since = backfill || !hasEvents ? undefined : latestEventTs;
 	const events = await fetchRoomEvents({
 		roomId,
 		since,
@@ -209,6 +215,17 @@ export async function syncRoom(
 			continue;
 		}
 
+		// For own events, get local image paths from the database
+		let thumbnailPath: string | null = null;
+		let originalPath: string | null = null;
+		if (e.authorUserId === identity.userId) {
+			const localEvent = getEventById(e.id);
+			if (localEvent) {
+				thumbnailPath = localEvent.thumbnailPath;
+				originalPath = localEvent.originalPath;
+			}
+		}
+
 		cachedEvents.push({
 			id: e.id,
 			roomId: e.roomId,
@@ -225,8 +242,13 @@ export async function syncRoom(
 			windowTitle: e.windowTitle,
 			contentKind: e.contentKind,
 			contentTitle: e.contentTitle,
-			thumbnailPath: null,
-			originalPath: null,
+			url: e.url ?? null,
+			backgroundContext:
+				e.background && e.background.length > 0
+					? JSON.stringify(e.background)
+					: null,
+			thumbnailPath,
+			originalPath,
 			syncedAt: now,
 		});
 	}

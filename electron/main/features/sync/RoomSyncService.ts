@@ -1,6 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { extname } from "node:path";
-import type { DayWrappedSlot } from "../../../shared/types";
+import {
+	type BackgroundContext,
+	type DayWrappedSlot,
+	parseBackgroundFromEvent,
+} from "../../../shared/types";
 import { getEventById } from "../../infra/db/repositories/EventRepository";
 import { getRoomIdForProject } from "../../infra/db/repositories/ProjectRoomLinkRepository";
 import { createLogger } from "../../infra/log";
@@ -51,6 +55,8 @@ export interface SharedEventPayload {
 	windowTitle?: string | null;
 	contentKind?: string | null;
 	contentTitle?: string | null;
+	url?: string | null;
+	background?: BackgroundContext[];
 	image: { ref: string | null; mime: string };
 }
 
@@ -66,6 +72,8 @@ function buildPayloadJson(params: {
 	windowTitle: string | null;
 	contentKind: string | null;
 	contentTitle: string | null;
+	url: string | null;
+	background: BackgroundContext[];
 	imageRef: string | null;
 	mime: string;
 }): Uint8Array {
@@ -95,6 +103,10 @@ function buildPayloadJson(params: {
 	if (sharing.includeContentInfo) {
 		payload.contentKind = params.contentKind;
 		payload.contentTitle = params.contentTitle;
+		payload.url = params.url;
+		if (params.background.length > 0) {
+			payload.background = params.background;
+		}
 	}
 
 	return Buffer.from(JSON.stringify(payload), "utf8");
@@ -128,6 +140,8 @@ async function publishEventToRoomInternal(
 		contentKind: string | null;
 		contentTitle: string | null;
 		originalPath: string | null;
+		urlCanonical: string | null;
+		contextJson: string | null;
 	},
 	roomId: string,
 ): Promise<void> {
@@ -154,6 +168,8 @@ async function publishEventToRoomInternal(
 			windowTitle: event.windowTitle,
 			contentKind: event.contentKind,
 			contentTitle: event.contentTitle,
+			url: event.urlCanonical,
+			background: parseBackgroundFromEvent(event),
 			imageRef: null,
 			mime,
 		}),
@@ -209,6 +225,8 @@ async function publishEventToRoomInternal(
 			windowTitle: event.windowTitle,
 			contentKind: event.contentKind,
 			contentTitle: event.contentTitle,
+			url: event.urlCanonical,
+			background: parseBackgroundFromEvent(event),
 			imageRef,
 			mime,
 		}),
@@ -257,6 +275,8 @@ export type DecryptedRoomEvent = {
 	windowTitle: string | null;
 	contentKind: string | null;
 	contentTitle: string | null;
+	url: string | null;
+	background: BackgroundContext[];
 	imageRef: string | null;
 	dayStartMs?: number;
 	slots?: DayWrappedSlot[];
@@ -278,6 +298,8 @@ function parsePayloadV1(payload: {
 		windowTitle: null,
 		contentKind: null,
 		contentTitle: null,
+		url: null,
+		background: [],
 		imageRef:
 			typeof payload?.image?.ref === "string" ? payload.image.ref : null,
 	};
@@ -298,6 +320,8 @@ function parsePayloadV2(
 		windowTitle: payload.windowTitle ?? null,
 		contentKind: payload.contentKind ?? null,
 		contentTitle: payload.contentTitle ?? null,
+		url: payload.url ?? null,
+		background: payload.background ?? [],
 		imageRef: payload.image?.ref ?? null,
 	};
 }
@@ -361,6 +385,8 @@ export async function fetchRoomEvents(params: {
 					windowTitle: null,
 					contentKind: null,
 					contentTitle: null,
+					url: null,
+					background: [],
 					imageRef: null,
 					dayStartMs: dayWrapped.dayStartMs,
 					slots: dayWrapped.slots,
@@ -395,6 +421,8 @@ export async function fetchRoomEvents(params: {
 				windowTitle: parsed.windowTitle,
 				contentKind: parsed.contentKind,
 				contentTitle: parsed.contentTitle,
+				url: parsed.url,
+				background: parsed.background,
 				imageRef,
 			});
 		} catch (error) {

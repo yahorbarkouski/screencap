@@ -5,7 +5,8 @@ import { syncAllRooms } from "./SharedProjectsService";
 
 const logger = createLogger({ scope: "SharedProjectsBackgroundSync" });
 
-const SYNC_INTERVAL_MS = 5 * 60 * 1000;
+const SYNC_INTERVAL_MS = 30_000;
+const INITIAL_DELAY_MS = 5_000;
 
 let syncInterval: NodeJS.Timeout | null = null;
 let hasRunRepair = false;
@@ -33,23 +34,16 @@ async function runSync(): Promise<void> {
 export function startBackgroundSync(): void {
 	if (syncInterval) return;
 
-	setTimeout(() => {
-		void runSync();
-	}, 10_000);
+	setTimeout(() => void runSync(), INITIAL_DELAY_MS);
 
-	syncInterval = setInterval(() => {
-		void runSync();
-	}, SYNC_INTERVAL_MS);
+	syncInterval = setInterval(() => void runSync(), SYNC_INTERVAL_MS);
 
-	logger.info("Background sync started", {
-		intervalMs: SYNC_INTERVAL_MS,
-	});
+	logger.info("Background sync started", { intervalMs: SYNC_INTERVAL_MS });
 }
 
 export function stopBackgroundSync(): void {
-	if (syncInterval) {
-		clearInterval(syncInterval);
-		syncInterval = null;
-		logger.info("Background sync stopped");
-	}
+	if (!syncInterval) return;
+	clearInterval(syncInterval);
+	syncInterval = null;
+	logger.info("Background sync stopped");
 }

@@ -19,6 +19,7 @@ const getFeedArgs = z.union([
 				startDate: z.number().int().nonnegative().optional(),
 				endDate: z.number().int().nonnegative().optional(),
 				limit: z.number().int().min(1).max(200).optional(),
+				includeOwnEvents: z.boolean().optional(),
 			})
 			.strip(),
 	]),
@@ -41,6 +42,7 @@ export function registerSocialFeedHandlers(): void {
 			startDate?: number;
 			endDate?: number;
 			limit?: number;
+			includeOwnEvents?: boolean;
 		}): Promise<SharedEvent[]> => {
 			return getSocialFeedEvents(params);
 		},

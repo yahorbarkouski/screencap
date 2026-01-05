@@ -10,6 +10,21 @@ export interface BackgroundContext {
 	actionUrl: string | null;
 }
 
+export function parseBackgroundFromEvent(event: {
+	contextJson: string | null;
+}): BackgroundContext[] {
+	if (!event.contextJson) return [];
+	try {
+		const parsed = JSON.parse(event.contextJson);
+		if (Array.isArray(parsed?.background)) {
+			return parsed.background;
+		}
+		return [];
+	} catch {
+		return [];
+	}
+}
+
 export interface Event {
 	id: string;
 	timestamp: number;
@@ -53,6 +68,7 @@ export interface Event {
 	contextConfidence: number | null;
 	contextKey: string | null;
 	contextJson: string | null;
+	sharedToFriends: number;
 	authorUserId?: string;
 	authorUsername?: string;
 	isRemote?: boolean;
@@ -146,6 +162,7 @@ export interface Settings {
 	shortcuts: ShortcutSettings;
 	sharing: SharingSettings;
 	social: SocialSharingSettings;
+	avatar: AvatarSettings;
 	llmEnabled: boolean;
 	allowVisionUploads: boolean;
 	cloudLlmModel: string;
@@ -533,11 +550,25 @@ export interface SocialIdentity {
 	username: string;
 }
 
+export type AvatarPattern =
+	| "letter"
+	| "letterBold"
+	| "letterMonospace"
+	| "pixelLetter"
+	| "ascii";
+
+export interface AvatarSettings {
+	pattern: AvatarPattern;
+	backgroundColor: string;
+	foregroundColor: string;
+}
+
 export interface Friend {
 	userId: string;
 	username: string;
 	deviceId: string | null;
 	dhPubKey: string | null;
+	avatarSettings: AvatarSettings | null;
 	createdAt: number;
 }
 
@@ -643,6 +674,9 @@ export interface SharedEvent {
 	contentTitle: string | null;
 	thumbnailPath: string | null;
 	originalPath: string | null;
+	imageRef: string | null;
+	url: string | null;
+	background: BackgroundContext[];
 }
 
 export interface DayWrappedSlot {

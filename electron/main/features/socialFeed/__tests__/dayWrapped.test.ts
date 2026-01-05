@@ -57,6 +57,7 @@ function makeEvent(overrides: Partial<Event>): Event {
 		contextConfidence: overrides.contextConfidence ?? null,
 		contextKey: overrides.contextKey ?? null,
 		contextJson: overrides.contextJson ?? null,
+		sharedToFriends: overrides.sharedToFriends ?? 0,
 	};
 }
 

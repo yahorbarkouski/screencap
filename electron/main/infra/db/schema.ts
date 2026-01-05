@@ -46,7 +46,8 @@ export function createTables(db: Database.Database): void {
       context_provider TEXT,
       context_confidence REAL,
       context_key TEXT,
-      context_json TEXT
+      context_json TEXT,
+      shared_to_friends INTEGER DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS event_screenshots (
@@ -185,6 +186,8 @@ export function createTables(db: Database.Database): void {
       window_title TEXT,
       content_kind TEXT,
       content_title TEXT,
+      url TEXT,
+      background_context TEXT,
       thumbnail_path TEXT,
       original_path TEXT,
       synced_at INTEGER NOT NULL

@@ -196,3 +196,19 @@ export async function signedFetch(
 		body: init.body as BodyInit | undefined,
 	});
 }
+
+export async function syncAvatarSettings(avatarSettings: {
+	pattern: string;
+	backgroundColor: string;
+	foregroundColor: string;
+}): Promise<void> {
+	const res = await signedFetch("/api/me", {
+		method: "PATCH",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ avatarSettings }),
+	});
+	if (!res.ok) {
+		const text = await res.text();
+		throw new Error(`syncAvatarSettings failed: ${res.status} ${text}`);
+	}
+}

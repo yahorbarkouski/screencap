@@ -149,6 +149,13 @@ export function runMigrations(db: Database.Database): void {
 		"INTEGER DEFAULT 0",
 		eventsColumns,
 	);
+	addColumnIfMissing(
+		db,
+		"events",
+		"shared_to_friends",
+		"INTEGER DEFAULT 0",
+		eventsColumns,
+	);
 
 	db.exec(
 		"UPDATE events SET end_timestamp = timestamp WHERE end_timestamp IS NULL",
@@ -273,4 +280,14 @@ function migrateRoomTables(db: Database.Database): void {
 		);
 		logger.info("Created room_events_cache table with full event schema");
 	}
+
+	const columns = getExistingColumns(db, "room_events_cache");
+	addColumnIfMissing(db, "room_events_cache", "url", "TEXT", columns);
+	addColumnIfMissing(
+		db,
+		"room_events_cache",
+		"background_context",
+		"TEXT",
+		columns,
+	);
 }

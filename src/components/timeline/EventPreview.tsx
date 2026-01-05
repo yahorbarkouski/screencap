@@ -333,26 +333,25 @@ export function EventPreview({ event, open, onOpenChange }: EventPreviewProps) {
 	};
 
 	const [isSharing, setIsSharing] = useState(false);
-	const [shareResult, setShareResult] = useState<"idle" | "ok" | "error">(
-		"idle",
-	);
+	const [shareError, setShareError] = useState(false);
 
 	const canShareToFriends = Boolean(identity && !event.isRemote);
+	const isSharedToFriends = event.sharedToFriends === 1;
 
 	const handleShareToFriends = useCallback(async () => {
-		if (!canShareToFriends) return;
+		if (!canShareToFriends || isSharedToFriends) return;
 		setIsSharing(true);
-		setShareResult("idle");
+		setShareError(false);
 		try {
 			await window.api.socialFeed.publishEventToAllFriends(event.id);
-			setShareResult("ok");
+			updateEvent(event.id, { sharedToFriends: 1 });
 		} catch {
-			setShareResult("error");
+			setShareError(true);
+			setTimeout(() => setShareError(false), 2000);
 		} finally {
 			setIsSharing(false);
-			setTimeout(() => setShareResult("idle"), 2000);
 		}
-	}, [canShareToFriends, event.id]);
+	}, [canShareToFriends, isSharedToFriends, event.id, updateEvent]);
 
 	const handleMarkProgress = async () => {
 		await window.api.storage.markProjectProgress(event.id);
@@ -991,12 +990,12 @@ export function EventPreview({ event, open, onOpenChange }: EventPreviewProps) {
 								variant="outline"
 								size="sm"
 								onClick={() => void handleShareToFriends()}
-								disabled={!canShareToFriends || isSharing}
+								disabled={!canShareToFriends || isSharing || isSharedToFriends}
 							>
 								<Users className="h-4 w-4" />
-								{shareResult === "ok"
+								{isSharedToFriends
 									? "Shared"
-									: shareResult === "error"
+									: shareError
 										? "Share failed"
 										: isSharing
 											? "Sharing..."

@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/context-menu";
 import { copyBestImage } from "@/lib/copyImage";
 import { cn, formatTime } from "@/lib/utils";
-import type { Event } from "@/types";
+import type { AvatarSettings, Event } from "@/types";
 import { AuthorAvatar } from "./AuthorAvatar";
 
 function formatTimeLabel(event: Event): string {
@@ -35,12 +35,14 @@ export function ProgressCard({
 	isLast = false,
 	onUnmark,
 	isMe = false,
+	avatarSettings,
 }: {
 	event: Event;
 	showProject?: boolean;
 	isLast?: boolean;
 	onUnmark?: () => void;
 	isMe?: boolean;
+	avatarSettings?: AvatarSettings;
 }) {
 	const [open, setOpen] = useState(false);
 	const timeLabel = useMemo(() => formatTimeLabel(event), [event]);
@@ -131,6 +133,7 @@ export function ProgressCard({
 											username={event.authorUsername}
 											isMe={isMe}
 											size="md"
+											avatarSettings={avatarSettings}
 										/>
 									</div>
 								)}

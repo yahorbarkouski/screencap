@@ -12,17 +12,21 @@ import {
 	shell,
 } from "electron";
 import sharp from "sharp";
-import { IpcChannels } from "../../../shared/ipc";
+import { IpcChannels, IpcEvents } from "../../../shared/ipc";
 import type { AppInfo } from "../../../shared/types";
 import { setIsQuitting } from "../../app/lifecycle";
+import { showMainWindow } from "../../app/window";
 import { closeDatabase } from "../../infra/db";
 import { createLogger } from "../../infra/log";
 import { getScreenshotsDir } from "../../infra/paths";
+import { broadcast } from "../../infra/windows/broadcast";
 import { secureHandle } from "../secure";
 import {
 	ipcCopyImageArgs,
 	ipcNoArgs,
 	ipcOpenExternalArgs,
+	ipcOpenNativeArgs,
+	ipcPreviewEventArgs,
 } from "../validation";
 
 const logger = createLogger({ scope: "AppIPC" });
@@ -124,6 +128,35 @@ export function registerAppHandlers(): void {
 	secureHandle(IpcChannels.App.RevealInFinder, ipcNoArgs, async () => {
 		await shell.openPath(app.getPath("userData"));
 	});
+
+	secureHandle(
+		IpcChannels.App.OpenNative,
+		ipcOpenNativeArgs,
+		async (path: string) => {
+			const screenshotsRoot = realpathSync(getScreenshotsDir());
+			const absolutePath = isAbsolute(path) ? path : resolve(path);
+			if (!existsSync(absolutePath)) return;
+
+			let realPath: string;
+			try {
+				realPath = realpathSync(absolutePath);
+			} catch {
+				return;
+			}
+
+			if (!isSubpath(screenshotsRoot, realPath)) return;
+			await shell.openPath(realPath);
+		},
+	);
+
+	secureHandle(
+		IpcChannels.App.PreviewEvent,
+		ipcPreviewEventArgs,
+		(event: unknown) => {
+			showMainWindow();
+			broadcast(IpcEvents.PreviewEvent, event);
+		},
+	);
 
 	secureHandle(IpcChannels.App.FactoryReset, ipcNoArgs, async () => {
 		const userDataDir = app.getPath("userData");
