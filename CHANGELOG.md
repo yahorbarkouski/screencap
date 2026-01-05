@@ -1,3 +1,10 @@
+# [1.10.0](https://github.com/yahorbarkouski/screencap/compare/v1.9.1...v1.10.0) (2026-01-05)
+
+
+### Features
+
+* shared feed ([42af938](https://github.com/yahorbarkouski/screencap/commit/42af938a1db96a61cd2c771f263059977d4c05c7))
+
 ## [1.9.1](https://github.com/yahorbarkouski/screencap/compare/v1.9.0...v1.9.1) (2026-01-05)
 
 
