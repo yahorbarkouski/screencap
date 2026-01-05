@@ -8,6 +8,7 @@ import {
 	LayoutGrid,
 	Power,
 	User,
+	Users,
 	X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -162,33 +163,6 @@ export function StreakPopup() {
 			)}
 
 			<div className="absolute right-2 top-2 flex items-center gap-1">
-				<div className="flex items-center bg-muted/20 rounded-md p-0.5 mr-2">
-					<button
-						type="button"
-						aria-label="My Day"
-						className={`inline-flex size-6 items-center justify-center rounded-sm transition-all ${
-							view === "day"
-								? "bg-background shadow-sm text-foreground"
-								: "text-muted-foreground hover:text-foreground"
-						}`}
-						onClick={() => setView("day")}
-					>
-						<LayoutGrid className="size-3.5" />
-					</button>
-					<button
-						type="button"
-						aria-label="Social"
-						className={`inline-flex size-6 items-center justify-center rounded-sm transition-all ${
-							view === "social"
-								? "bg-background shadow-sm text-foreground"
-								: "text-muted-foreground hover:text-foreground"
-						}`}
-						onClick={() => setView("social")}
-					>
-						<User className="size-3.5" />
-					</button>
-				</div>
-
 				<button
 					type="button"
 					aria-label="Quit app"
@@ -203,19 +177,15 @@ export function StreakPopup() {
 
 				<button
 					type="button"
-					aria-label={`View: ${daylineMode}`}
-					style={view === "day" ? undefined : { display: "none" }}
+					aria-label={`View: ${view === "day" ? "My Day" : "Social"}`}
 					className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
-					onClick={() =>
-						setDaylineMode((m) => {
-							const idx = VIEW_MODE_ORDER.indexOf(m);
-							return VIEW_MODE_ORDER[(idx + 1) % VIEW_MODE_ORDER.length];
-						})
-					}
+					onClick={() => setView((v) => (v === "day" ? "social" : "day"))}
 				>
-					{daylineMode === "categories" && <Flame className="size-3" />}
-					{daylineMode === "addiction" && <AppWindow className="size-3" />}
-					{daylineMode === "apps" && <LayoutGrid className="size-3" />}
+					{view === "day" ? (
+						<User className="size-3.5" />
+					) : (
+						<Users className="size-3.5" />
+					)}
 				</button>
 
 				<button
@@ -230,7 +200,7 @@ export function StreakPopup() {
 
 			{view === "day" ? (
 				<div className="mt-4">
-					<div className="mb-3 pr-20">
+					<div className="mb-3">
 						<div className="flex items-center gap-1.5">
 							<div className="font-mono text-[10px] tracking-[0.28em] text-muted-foreground">
 								DAY WRAPPED
@@ -254,10 +224,28 @@ export function StreakPopup() {
 								<ChevronRight className="size-2" />
 							</button>
 						</div>
-						<div className="flex mt-0.5 items-center gap-1.5">
+						<div className="flex mt-0.5 items-center gap-1.5 justify-between w-full">
 							<div className="text-sm font-medium text-foreground/90 text-center">
 								{titleDate}
 							</div>
+
+							<button
+								type="button"
+								aria-label={`View: ${daylineMode}`}
+								style={view === "day" ? undefined : { display: "none" }}
+								className="ml-auto inline-flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
+								onClick={() =>
+									setDaylineMode((m) => {
+										const idx = VIEW_MODE_ORDER.indexOf(m);
+										return VIEW_MODE_ORDER[(idx + 1) % VIEW_MODE_ORDER.length];
+									})
+								}
+							>
+								{daylineMode === "categories" && <Flame className="size-3" />}
+								{daylineMode === "addiction" && <AppWindow className="size-3" />}
+								{daylineMode === "apps" && <LayoutGrid className="size-3" />}
+							</button>
+
 						</div>
 					</div>
 

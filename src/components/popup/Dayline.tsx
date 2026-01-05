@@ -252,7 +252,7 @@ export function Dayline({
 								key={idx}
 								style={style}
 								title={title}
-								className={`${cellSize} rounded-none bg-muted/50 transition-opacity ${isCurrent ? "ring-1 ring-foreground/30" : ""}`}
+								className={`${cellSize} rounded bg-muted/50 transition-opacity ${isCurrent ? "ring-1 ring-foreground/30" : ""}`}
 							/>
 						);
 					})}
@@ -325,11 +325,11 @@ export function DayWrappedLegend({
 	const intensity = [1, 2, 3, 4] as const;
 
 	return (
-		<div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
-			<div className="flex items-center gap-2 text-xs text-muted-foreground">
-				<span className="font-mono text-[10px] tracking-[0.18em]">
+		<div className="mt-4 flex flex-wrap gap-x-4 gap-y-3">
+			<div className="flex gap-2 items-center text-xs text-muted-foreground">
+				<div className="font-mono text-[10px] tracking-[0.18em]">
 					INTENSITY
-				</span>
+				</div>
 				<div className="flex items-center gap-1">
 					{intensity.map((l) => (
 						<span
@@ -343,7 +343,7 @@ export function DayWrappedLegend({
 				</div>
 			</div>
 
-			<div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+			<div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground gap-y-1">
 				{legend.map((it) => {
 					const isSelected = selectedLabels.has(it.label);
 					const isDimmed = hasSelection && !isSelected;
