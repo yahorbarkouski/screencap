@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/yahorbarkouski/screencap/compare/v1.8.3...v1.9.0) (2026-01-05)
+
+
+### Features
+
+* shared day wrapped, comments, social ([17531df](https://github.com/yahorbarkouski/screencap/commit/17531df016b1db4047aee18c60fe433a47118a76))
+
 ## [1.8.3](https://github.com/yahorbarkouski/screencap/compare/v1.8.2...v1.8.3) (2026-01-04)
 
 
