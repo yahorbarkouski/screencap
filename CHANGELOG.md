@@ -1,3 +1,10 @@
+## [1.9.1](https://github.com/yahorbarkouski/screencap/compare/v1.9.0...v1.9.1) (2026-01-05)
+
+
+### Bug Fixes
+
+* better social sharing ([76ae98f](https://github.com/yahorbarkouski/screencap/commit/76ae98fec33128c3fe5a80bc590b8a876e63b53b))
+
 # [1.9.0](https://github.com/yahorbarkouski/screencap/compare/v1.8.3...v1.9.0) (2026-01-05)
 
 
