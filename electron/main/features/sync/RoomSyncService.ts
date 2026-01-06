@@ -15,7 +15,7 @@ import {
 	encryptRoomImageBytes,
 } from "../rooms/RoomCrypto";
 import { getRoomKey } from "../rooms/RoomsService";
-import { SOCIAL_API_BASE_URL } from "../social/config";
+import { getSocialApiBaseUrl } from "../social/config";
 import { signedFetch } from "../social/IdentityService";
 import { parseDayWrappedRoomPayload } from "../socialFeed/dayWrappedPayload";
 
@@ -41,7 +41,7 @@ async function uploadImageToBlob(params: {
 				type: "blob.generate-client-token",
 				payload: {
 					pathname,
-					callbackUrl: `${SOCIAL_API_BASE_URL}/api/rooms/${params.roomId}/events/${params.eventId}/image/upload`,
+					callbackUrl: `${getSocialApiBaseUrl()}/api/rooms/${params.roomId}/events/${params.eventId}/image/upload`,
 				},
 			}),
 		},

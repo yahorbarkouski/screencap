@@ -39,6 +39,9 @@ const DEFAULT_SETTINGS: Settings = {
 			includeApps: false,
 			includeAddiction: false,
 		},
+		ui: {
+			hideDayWrappedSharingDisabledWarning: false,
+		},
 	},
 	avatar: {
 		pattern: "ascii",
@@ -137,9 +140,19 @@ const zDayWrappedSharingSettings = z
 	.strip()
 	.catch(DEFAULT_SETTINGS.social.dayWrapped);
 
+const zSocialUiSettings = z
+	.object({
+		hideDayWrappedSharingDisabledWarning: z
+			.boolean()
+			.catch(DEFAULT_SETTINGS.social.ui.hideDayWrappedSharingDisabledWarning),
+	})
+	.strip()
+	.catch(DEFAULT_SETTINGS.social.ui);
+
 const zSocialSharingSettings = z
 	.object({
 		dayWrapped: zDayWrappedSharingSettings,
+		ui: zSocialUiSettings,
 	})
 	.strip()
 	.catch(DEFAULT_SETTINGS.social);

@@ -19,16 +19,18 @@ import { usePermission } from "@/hooks/usePermission";
 import { useSettings } from "@/hooks/useSettings";
 import { getLogicalDayStart } from "@/lib/dayBoundary";
 import { useAppStore } from "@/stores/app";
-import type { SharedEvent } from "@/types";
+import type { SettingsTab, SharedEvent } from "@/types";
 
 const ONBOARDING_VERSION = 1;
 
 export default function App() {
 	const view = useAppStore((s) => s.view);
+	const setView = useAppStore((s) => s.setView);
 	const commandPaletteOpen = useAppStore((s) => s.commandPaletteOpen);
 	const setCommandPaletteOpen = useAppStore((s) => s.setCommandPaletteOpen);
 	const openEod = useAppStore((s) => s.openEod);
 	const settingsLoaded = useAppStore((s) => s.settingsLoaded);
+	const setSettingsTab = useAppStore((s) => s.setSettingsTab);
 	const previewEvent = useAppStore((s) => s.previewEvent);
 	const setPreviewEvent = useAppStore((s) => s.setPreviewEvent);
 	const { hasPermission, checkPermission } = usePermission();
@@ -97,6 +99,25 @@ export default function App() {
 			}
 		});
 	}, [setPreviewEvent]);
+
+	useEffect(() => {
+		if (!window.api) return;
+		return window.api.on("settings:open-tab", (payload) => {
+			if (typeof payload !== "string") return;
+			const tab =
+				payload === "capture" ||
+				payload === "ai" ||
+				payload === "automation" ||
+				payload === "data" ||
+				payload === "social" ||
+				payload === "system"
+					? (payload as SettingsTab)
+					: null;
+			if (!tab) return;
+			setSettingsTab(tab);
+			setView("settings");
+		});
+	}, [setSettingsTab, setView]);
 
 	const handleOnboardingComplete = useCallback(() => {
 		setShowOnboarding(false);

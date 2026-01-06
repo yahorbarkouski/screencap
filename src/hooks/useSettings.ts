@@ -55,6 +55,10 @@ function mergeSettings(base: Settings, incoming: unknown): Settings {
 			...base.social.dayWrapped,
 			...(incomingSocial?.dayWrapped ?? {}),
 		},
+		ui: {
+			...base.social.ui,
+			...(incomingSocial?.ui ?? {}),
+		},
 	};
 
 	const incomingAvatar = partial.avatar;
@@ -105,6 +109,14 @@ export function useSettings() {
 	useEffect(() => {
 		fetchSettings();
 	}, [fetchSettings]);
+
+	useEffect(() => {
+		if (!window.api) return;
+		return window.api.on("settings:changed", (incoming) => {
+			const base = useAppStore.getState().settings;
+			setSettings(mergeSettings(base, incoming));
+		});
+	}, [setSettings]);
 
 	return { settings, fetchSettings, saveSettings, updateSetting };
 }

@@ -108,7 +108,9 @@ export async function bootstrap(): Promise<void> {
 
 	initializeUpdater();
 	startBackgroundSync();
-	startDayWrappedPublisher();
+	if (getSettings().social.dayWrapped.enabled) {
+		startDayWrappedPublisher();
+	}
 	startSocialCommentNotifications();
 
 	setupLifecycleHandlers();

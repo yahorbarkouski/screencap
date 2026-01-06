@@ -26,6 +26,9 @@ const VALID_SETTINGS: Settings = {
 			includeApps: false,
 			includeAddiction: false,
 		},
+		ui: {
+			hideDayWrappedSharingDisabledWarning: false,
+		},
 	},
 	avatar: {
 		pattern: "ascii",
@@ -88,7 +91,14 @@ describe("ipcSetSettingsArgs", () => {
 	it("validates social settings structure", () => {
 		const settingsWithInvalidSocial = {
 			...VALID_SETTINGS,
-			social: { dayWrapped: { enabled: "not a boolean" } },
+			social: {
+				dayWrapped: {
+					enabled: "not a boolean",
+					includeApps: false,
+					includeAddiction: false,
+				},
+				ui: { hideDayWrappedSharingDisabledWarning: false },
+			},
 		};
 		const result = ipcSetSettingsArgs.safeParse([settingsWithInvalidSocial]);
 

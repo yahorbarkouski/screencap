@@ -147,8 +147,13 @@ export interface DayWrappedSharingSettings {
 	includeAddiction: boolean;
 }
 
+export interface SocialUiSettings {
+	hideDayWrappedSharingDisabledWarning: boolean;
+}
+
 export interface SocialSharingSettings {
 	dayWrapped: DayWrappedSharingSettings;
+	ui: SocialUiSettings;
 }
 
 export interface Settings {

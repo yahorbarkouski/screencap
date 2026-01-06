@@ -62,6 +62,7 @@ export const IpcChannels = {
 		OpenExternal: "app:open-external",
 		OpenNative: "app:open-native",
 		PreviewEvent: "app:preview-event",
+		OpenSettingsTab: "app:open-settings-tab",
 		RevealInFinder: "app:reveal-in-finder",
 		PickDirectory: "app:pick-directory",
 		FactoryReset: "app:factory-reset",
@@ -238,6 +239,8 @@ export const IpcEvents = {
 	ShortcutCaptureProjectProgress: "shortcut:capture-project-progress",
 	ShortcutEndOfDay: "shortcut:end-of-day",
 	PreviewEvent: "preview:event",
+	OpenSettingsTab: "settings:open-tab",
+	SettingsChanged: "settings:changed",
 } as const;
 
 export interface IpcInvokeHandlers {
@@ -247,6 +250,9 @@ export interface IpcInvokeHandlers {
 	[IpcChannels.App.OpenExternal]: (url: string) => void;
 	[IpcChannels.App.OpenNative]: (path: string) => void;
 	[IpcChannels.App.PreviewEvent]: (event: SharedEvent) => void;
+	[IpcChannels.App.OpenSettingsTab]: (
+		tab: "capture" | "ai" | "automation" | "data" | "social" | "system",
+	) => void;
 	[IpcChannels.App.RevealInFinder]: () => void;
 	[IpcChannels.App.PickDirectory]: () => Promise<string | null>;
 	[IpcChannels.App.FactoryReset]: () => Promise<void>;
@@ -511,4 +517,6 @@ export interface IpcEventPayloads {
 	[IpcEvents.ShortcutCaptureProjectProgress]: string | null;
 	[IpcEvents.ShortcutEndOfDay]: { dayStart: number } | undefined;
 	[IpcEvents.PreviewEvent]: SharedEvent;
+	[IpcEvents.OpenSettingsTab]: "capture" | "ai" | "automation" | "data" | "social" | "system";
+	[IpcEvents.SettingsChanged]: Settings;
 }

@@ -231,7 +231,14 @@ export function SettingsView() {
 	};
 
 	const handleIntervalChange = async (value: string) => {
-		await updateSetting("captureInterval", parseInt(value, 10));
+		const nextIntervalMinutes = Number.parseInt(value, 10);
+		await updateSetting("captureInterval", nextIntervalMinutes);
+		if (isSchedulerRunning) {
+			setScreenshotTest({
+				status: "success",
+				message: `Auto-capture interval updated! Now every ${nextIntervalMinutes} min`,
+			});
+		}
 	};
 
 	const handleRetentionChange = async (value: string) => {

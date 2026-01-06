@@ -147,6 +147,10 @@ export interface DayWrappedSharingSettings {
 	includeAddiction: boolean;
 }
 
+export interface SocialUiSettings {
+	hideDayWrappedSharingDisabledWarning: boolean;
+}
+
 export type AvatarPattern = "ascii";
 
 export interface AvatarSettings {
@@ -158,6 +162,7 @@ export interface AvatarSettings {
 
 export interface SocialSharingSettings {
 	dayWrapped: DayWrappedSharingSettings;
+	ui: SocialUiSettings;
 }
 
 export interface Settings {
@@ -620,6 +625,7 @@ declare global {
 				openExternal: (url: string) => Promise<void>;
 				openNative: (path: string) => Promise<void>;
 				previewEvent: (event: SharedEvent) => Promise<void>;
+				openSettingsTab: (tab: SettingsTab) => Promise<void>;
 				revealInFinder: () => Promise<void>;
 				pickDirectory: () => Promise<string | null>;
 				factoryReset: () => Promise<void>;
@@ -910,7 +916,9 @@ declare global {
 					| "shortcut:capture-project-progress-preview"
 					| "shortcut:capture-project-progress"
 					| "shortcut:end-of-day"
-					| "preview:event",
+					| "preview:event"
+					| "settings:open-tab"
+					| "settings:changed",
 				callback: (...args: unknown[]) => void,
 			) => () => void;
 		};

@@ -136,6 +136,8 @@ function AutomationRulesSection({
 }) {
 	const [recordedApps, setRecordedApps] = useState<RecordedApp[]>([]);
 	const [recordedHosts, setRecordedHosts] = useState<WebsiteEntry[]>([]);
+	const [showAppOverrides, setShowAppOverrides] = useState(false);
+	const [showHostOverrides, setShowHostOverrides] = useState(false);
 
 	useEffect(() => {
 		const load = async () => {
@@ -191,6 +193,7 @@ function AutomationRulesSection({
 	const addAppRule = useCallback(
 		async (bundleId: string) => {
 			if (!bundleId) return;
+			setShowAppOverrides(true);
 			await updateRule("apps", bundleId, updatesForBehavior("capture_only"));
 		},
 		[updateRule],
@@ -199,6 +202,7 @@ function AutomationRulesSection({
 	const addHostRule = useCallback(
 		async (host: string) => {
 			if (!host) return;
+			setShowHostOverrides(true);
 			await updateRule("hosts", host, updatesForBehavior("capture_only"));
 		},
 		[updateRule],
@@ -206,6 +210,14 @@ function AutomationRulesSection({
 
 	const appEntries = Object.entries(settings.automationRules?.apps ?? {});
 	const hostEntries = Object.entries(settings.automationRules?.hosts ?? {});
+
+	useEffect(() => {
+		if (appEntries.length === 0) setShowAppOverrides(false);
+	}, [appEntries.length]);
+
+	useEffect(() => {
+		if (hostEntries.length === 0) setShowHostOverrides(false);
+	}, [hostEntries.length]);
 
 	const configuredAppIds = useMemo(
 		() => new Set(appEntries.map(([k]) => k)),
@@ -263,29 +275,45 @@ function AutomationRulesSection({
 						No app rules configured.
 					</div>
 				) : (
-					<div className="space-y-2">
-						{appEntries.map(([key, rule]) => {
-							const app = recordedApps.find((a) => a.bundleId === key);
-							return (
-								<RuleRow
-									key={key}
-									title={app?.name ?? key}
-									icon={
-										app?.appIconPath ? (
-											<img
-												src={`local-file://${app.appIconPath}`}
-												alt=""
-												className="h-4 w-4 rounded-sm object-contain"
-												loading="lazy"
-											/>
-										) : undefined
-									}
-									rule={rule}
-									onChange={(updates) => updateRule("apps", key, updates)}
-									onDelete={() => deleteRule("apps", key)}
-								/>
-							);
-						})}
+					<div className="space-y-3">
+						<Button
+							variant="outline"
+							size="sm"
+							className="h-8"
+							onClick={() => setShowAppOverrides((v) => !v)}
+						>
+							{showAppOverrides
+								? "Hide overrides"
+								: `Show ${appEntries.length} overridden ${
+										appEntries.length === 1 ? "app" : "apps"
+									}`}
+						</Button>
+						{showAppOverrides ? (
+							<div className="space-y-2">
+								{appEntries.map(([key, rule]) => {
+									const app = recordedApps.find((a) => a.bundleId === key);
+									return (
+										<RuleRow
+											key={key}
+											title={app?.name ?? key}
+											icon={
+												app?.appIconPath ? (
+													<img
+														src={`local-file://${app.appIconPath}`}
+														alt=""
+														className="h-4 w-4 rounded-sm object-contain"
+														loading="lazy"
+													/>
+												) : undefined
+											}
+											rule={rule}
+											onChange={(updates) => updateRule("apps", key, updates)}
+											onDelete={() => deleteRule("apps", key)}
+										/>
+									);
+								})}
+							</div>
+						) : null}
 					</div>
 				)}
 			</Panel>
@@ -316,16 +344,32 @@ function AutomationRulesSection({
 						No website rules configured.
 					</div>
 				) : (
-					<div className="space-y-2">
-						{hostEntries.map(([key, rule]) => (
-							<RuleRow
-								key={key}
-								title={key}
-								rule={rule}
-								onChange={(updates) => updateRule("hosts", key, updates)}
-								onDelete={() => deleteRule("hosts", key)}
-							/>
-						))}
+					<div className="space-y-3">
+						<Button
+							variant="outline"
+							size="sm"
+							className="h-8"
+							onClick={() => setShowHostOverrides((v) => !v)}
+						>
+							{showHostOverrides
+								? "Hide overrides"
+								: `Show ${hostEntries.length} overridden ${
+										hostEntries.length === 1 ? "website" : "websites"
+									}`}
+						</Button>
+						{showHostOverrides ? (
+							<div className="space-y-2">
+								{hostEntries.map(([key, rule]) => (
+									<RuleRow
+										key={key}
+										title={key}
+										rule={rule}
+										onChange={(updates) => updateRule("hosts", key, updates)}
+										onDelete={() => deleteRule("hosts", key)}
+									/>
+								))}
+							</div>
+						) : null}
 					</div>
 				)}
 			</Panel>

@@ -24,6 +24,7 @@ import { secureHandle } from "../secure";
 import {
 	ipcCopyImageArgs,
 	ipcNoArgs,
+	ipcOpenSettingsTabArgs,
 	ipcOpenExternalArgs,
 	ipcOpenNativeArgs,
 	ipcPreviewEventArgs,
@@ -155,6 +156,15 @@ export function registerAppHandlers(): void {
 		(event: unknown) => {
 			showMainWindow();
 			broadcast(IpcEvents.PreviewEvent, event);
+		},
+	);
+
+	secureHandle(
+		IpcChannels.App.OpenSettingsTab,
+		ipcOpenSettingsTabArgs,
+		(tab: "capture" | "ai" | "automation" | "data" | "social" | "system") => {
+			showMainWindow();
+			broadcast(IpcEvents.OpenSettingsTab, tab);
 		},
 	);
 

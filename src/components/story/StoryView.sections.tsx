@@ -9,7 +9,6 @@ import {
 	Loader2,
 	Pencil,
 	Plus,
-	Sparkles,
 	X,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -1029,9 +1028,6 @@ TOMORROW
 					Write manually
 				</Button>
 				<Button onClick={onGenerate} disabled={generateDisabled}>
-					<Sparkles
-						className={cn("h-4 w-4 mr-2", isGenerating ? "animate-spin" : "")}
-					/>
 					Generate
 				</Button>
 				{!apiKey ? (

@@ -27,6 +27,10 @@ export const ipcOpenNativeArgs = z.tuple([zLimitedString(10_000)]);
 
 export const ipcPreviewEventArgs = z.tuple([z.any()]);
 
+export const ipcOpenSettingsTabArgs = z.tuple([
+	z.enum(["capture", "ai", "automation", "data", "social", "system"]),
+]);
+
 export const ipcPickDirectoryArgs = ipcNoArgs;
 
 export const ipcCaptureTriggerArgs = z.union([
@@ -278,6 +282,11 @@ const zSocialSharingSettings = z
 				enabled: z.boolean(),
 				includeApps: z.boolean(),
 				includeAddiction: z.boolean(),
+			})
+			.strict(),
+		ui: z
+			.object({
+				hideDayWrappedSharingDisabledWarning: z.boolean(),
 			})
 			.strict(),
 	})

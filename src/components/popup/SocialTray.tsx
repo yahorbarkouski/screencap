@@ -3,9 +3,11 @@ import {
 	Activity,
 	AppWindow,
 	ChevronLeft,
+	LayoutGridIcon,
 	Music,
 	Plus,
 	UserPlus,
+	X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -64,6 +66,18 @@ export type SocialTraySelectedEventMeta = {
 	ownAvatarUrl: string | null;
 	avatarSettings: Friend["avatarSettings"] | null;
 };
+
+function mergeChatMessagesUnique(
+	prev: ChatMessage[],
+	next: ChatMessage[],
+): ChatMessage[] {
+	const byId = new Map<string, ChatMessage>();
+	for (const m of prev) byId.set(m.id, m);
+	for (const m of next) byId.set(m.id, m);
+	return Array.from(byId.values()).sort(
+		(a, b) => a.timestampMs - b.timestampMs || a.id.localeCompare(b.id),
+	);
+}
 
 export type SocialTrayTopHeaderState =
 	| {
@@ -161,7 +175,26 @@ export function SocialTray({
 	const [commentError, setCommentError] = useState<string | null>(null);
 	const lastCommentTimestampRef = useRef<number>(0);
 
-	const { settings } = useSettings();
+	const { settings, updateSetting } = useSettings();
+	const isDayWrappedSharingEnabled = settings.social?.dayWrapped?.enabled ?? false;
+	const isDayWrappedSharingDisabledWarningHidden =
+		settings.social?.ui?.hideDayWrappedSharingDisabledWarning ?? false;
+	const showDayWrappedSharingDisabledWarning =
+		!isDayWrappedSharingEnabled && !isDayWrappedSharingDisabledWarningHidden;
+
+	const handleOpenSocialSettings = useCallback(() => {
+		void window.api?.app.openSettingsTab("social");
+	}, []);
+
+	const handleDismissDayWrappedSharingWarning = useCallback(() => {
+		void updateSetting("social", {
+			...settings.social,
+			ui: {
+				...settings.social.ui,
+				hideDayWrappedSharingDisabledWarning: true,
+			},
+		});
+	}, [settings.social, updateSetting]);
 
 	const selectedEvent =
 		selectedEventProp !== undefined ? selectedEventProp : internalSelectedEvent;
@@ -217,7 +250,7 @@ export function SocialTray({
 				);
 				if (cancelled) return;
 				if (next.length > 0) {
-					setCommentMessages((prev) => [...prev, ...next]);
+					setCommentMessages((prev) => mergeChatMessagesUnique(prev, next));
 					const lastTs =
 						next[next.length - 1]?.timestampMs ??
 						lastCommentTimestampRef.current ??
@@ -408,9 +441,10 @@ export function SocialTray({
 				setCommentThreadId(threadId);
 				const since = Math.max(0, event.timestampMs - 7 * 24 * 60 * 60 * 1000);
 				const messages = await window.api.chat.fetchMessages(threadId, since);
-				setCommentMessages(messages);
-				const lastTs = messages.length
-					? (messages[messages.length - 1]?.timestampMs ?? Date.now())
+				const merged = mergeChatMessagesUnique([], messages);
+				setCommentMessages(merged);
+				const lastTs = merged.length
+					? (merged[merged.length - 1]?.timestampMs ?? Date.now())
 					: Date.now();
 				try {
 					await window.api.chat.markThreadRead(threadId, lastTs);
@@ -438,7 +472,7 @@ export function SocialTray({
 					? (commentMessages[commentMessages.length - 1]?.timestampMs ?? 0)
 					: Math.max(0, selectedEvent.timestampMs - 7 * 24 * 60 * 60 * 1000);
 			const next = await window.api.chat.fetchMessages(commentThreadId, since);
-			setCommentMessages((prev) => [...prev, ...next]);
+			setCommentMessages((prev) => mergeChatMessagesUnique(prev, next));
 		} catch (e) {
 			setCommentError(String(e));
 		} finally {
@@ -702,6 +736,35 @@ export function SocialTray({
 						transition={{ duration: 0.2 }}
 						className="absolute inset-0 flex flex-col"
 					>
+						{showDayWrappedSharingDisabledWarning && (
+							<div className="mb-3 rounded-lg border border-amber-500/20 bg-amber-500/10 px-2 py-1 pr-1">
+								<div className="flex items-center gap-1">
+									<LayoutGridIcon className="h-4 w-4 mt-0.5 text-orange-400" />
+									<div className="flex-1">
+										<div className="text-xs font-medium text-orange-400">
+											Dayline sharing is disabled
+										</div>
+									</div>
+									<Button
+										size="sm"
+										variant="ghost"
+										className="h-7 px-2 text-xs"
+										onClick={handleOpenSocialSettings}
+									>
+										Open Settings
+									</Button>
+									<Button
+										size="icon"
+										variant="ghost"
+										className="h-7 w-7"
+										onClick={handleDismissDayWrappedSharingWarning}
+										aria-label="Dismiss"
+									>
+										<X className="h-3.5 w-3.5" />
+									</Button>
+								</div>
+							</div>
+						)}
 						{incomingFriendRequests.length > 0 && (
 							<div className="mb-3 space-y-2">
 								<div className="text-[9px] font-mono tracking-[0.2em] text-muted-foreground">

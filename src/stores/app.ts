@@ -249,6 +249,9 @@ export const useAppStore = create<AppState>((set, _get) => ({
 				includeApps: false,
 				includeAddiction: false,
 			},
+			ui: {
+				hideDayWrappedSharingDisabledWarning: false,
+			},
 		},
 		avatar: {
 			pattern: "ascii",
