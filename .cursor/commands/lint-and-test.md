@@ -1,1 +1,0 @@
-Lint, test, and typecheck the project, then carefully fix all errors. If test fails, dont assume the business logic is incorrect, but try to first undrestand if the test assertion is wrong.
