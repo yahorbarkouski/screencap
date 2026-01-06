@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { extname } from "node:path";
 import {
 	type BackgroundContext,
@@ -15,12 +15,69 @@ import {
 	encryptRoomImageBytes,
 } from "../rooms/RoomCrypto";
 import { getRoomKey } from "../rooms/RoomsService";
+import { SOCIAL_API_BASE_URL } from "../social/config";
 import { signedFetch } from "../social/IdentityService";
 import { parseDayWrappedRoomPayload } from "../socialFeed/dayWrappedPayload";
 
 const logger = createLogger({ scope: "RoomSyncService" });
 
-const MAX_FILE_SIZE_BYTES = 45 * 1024 * 1024;
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+
+async function uploadImageToBlob(params: {
+	roomId: string;
+	eventId: string;
+	encryptedImage: Buffer;
+}): Promise<string> {
+	const pathname = `rooms/${params.roomId}/images/${params.eventId}.bin`;
+
+	const tokenRes = await signedFetch(
+		`/api/rooms/${params.roomId}/events/${params.eventId}/image/upload`,
+		{
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				type: "blob.generate-client-token",
+				payload: {
+					pathname,
+					callbackUrl: `${SOCIAL_API_BASE_URL}/api/rooms/${params.roomId}/events/${params.eventId}/image/upload`,
+				},
+			}),
+		},
+	);
+
+	if (!tokenRes.ok) {
+		const text = await tokenRes.text();
+		throw new Error(`blob token request failed: ${tokenRes.status} ${text}`);
+	}
+
+	const tokenData = (await tokenRes.json()) as {
+		type: string;
+		clientToken: string;
+		uploadUrl: string;
+	};
+
+	if (tokenData.type !== "blob.upload-token") {
+		throw new Error(`unexpected token response type: ${tokenData.type}`);
+	}
+
+	const uploadRes = await fetch(tokenData.uploadUrl, {
+		method: "PUT",
+		headers: {
+			Authorization: `Bearer ${tokenData.clientToken}`,
+			"Content-Type": "application/octet-stream",
+			"x-content-length": String(params.encryptedImage.length),
+		},
+		body: params.encryptedImage,
+	});
+
+	if (!uploadRes.ok) {
+		const text = await uploadRes.text();
+		throw new Error(`blob upload failed: ${uploadRes.status} ${text}`);
+	}
+
+	const blobResult = (await uploadRes.json()) as { url: string };
+	return blobResult.url;
+}
 const PAYLOAD_VERSION = 2;
 
 function mimeTypeForPath(path: string): string {
@@ -30,13 +87,41 @@ function mimeTypeForPath(path: string): string {
 	return "image/webp";
 }
 
+function getHqPath(webpPath: string): string | null {
+	if (!webpPath.endsWith(".webp")) return null;
+	return webpPath.replace(/\.webp$/, ".hq.png");
+}
+
 function getUploadablePath(originalPath: string | null): string | null {
 	if (!originalPath) return null;
 	if (!existsSync(originalPath)) return null;
+
+	const hqPath = getHqPath(originalPath);
+	if (hqPath && existsSync(hqPath)) {
+		try {
+			const hqStats = statSync(hqPath);
+			if (hqStats.size <= MAX_FILE_SIZE_BYTES) {
+				logger.debug("Using HQ image for sharing", {
+					path: hqPath,
+					size: hqStats.size,
+				});
+				return hqPath;
+			}
+			logger.debug("HQ image too large, falling back to WebP", {
+				hqPath,
+				hqSize: hqStats.size,
+				limit: MAX_FILE_SIZE_BYTES,
+			});
+		} catch {}
+	}
+
 	try {
-		const bytes = readFileSync(originalPath);
-		if (bytes.byteLength > MAX_FILE_SIZE_BYTES) return null;
-		return originalPath;
+		const stats = statSync(originalPath);
+		if (stats.size <= MAX_FILE_SIZE_BYTES) {
+			return originalPath;
+		}
+		logger.debug("Image too large", { path: originalPath, size: stats.size });
+		return null;
 	} catch {
 		return null;
 	}
@@ -196,21 +281,11 @@ async function publishEventToRoomInternal(
 		plaintextBytes: plaintextImage,
 	});
 
-	const imageRes = await signedFetch(
-		`/api/rooms/${roomId}/events/${event.id}/image`,
-		{
-			method: "POST",
-			headers: { "Content-Type": "application/octet-stream" },
-			body: encryptedImage,
-		},
-	);
-
-	if (!imageRes.ok) {
-		const text = await imageRes.text();
-		throw new Error(`room image upload failed: ${imageRes.status} ${text}`);
-	}
-
-	const { imageRef } = (await imageRes.json()) as { imageRef: string };
+	const imageRef = await uploadImageToBlob({
+		roomId,
+		eventId: event.id,
+		encryptedImage,
+	});
 	const payload1 = encryptRoomEventPayload({
 		roomKey,
 		payloadJsonUtf8: buildPayloadJson({

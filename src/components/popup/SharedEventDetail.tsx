@@ -120,12 +120,7 @@ export function SharedEventDetail({
 		const local = localEventPaths.get(event.id);
 		if (local) return local;
 		if (event.originalPath) return `local-file://${event.originalPath}`;
-		if (event.thumbnailPath) {
-			if (event.thumbnailPath.endsWith(".webp")) {
-				return `local-file://${event.thumbnailPath.replace(/\.webp$/, ".hq.png")}`;
-			}
-			return `local-file://${event.thumbnailPath}`;
-		}
+		if (event.thumbnailPath) return `local-file://${event.thumbnailPath}`;
 		return null;
 	}, [event.id, event.originalPath, event.thumbnailPath, localEventPaths]);
 

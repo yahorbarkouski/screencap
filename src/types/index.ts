@@ -830,6 +830,17 @@ declare global {
 				acceptFriendRequest: (requestId: string) => Promise<void>;
 				rejectFriendRequest: (requestId: string) => Promise<void>;
 				syncAvatarSettings: (avatarSettings: AvatarSettings) => Promise<void>;
+				generateSocialImage: (input: {
+					imagePaths: string[];
+					title: string;
+					timestamp: number;
+					category: string | null;
+					appName: string | null;
+					appIconPath: string | null;
+					backgroundTitle: string | null;
+					backgroundArtist: string | null;
+					backgroundImageUrl: string | null;
+				}) => Promise<string>;
 			};
 			chat: {
 				listThreads: () => Promise<ChatThread[]>;
@@ -913,6 +924,18 @@ declare global {
 					| "preview:event",
 				callback: (...args: unknown[]) => void,
 			) => () => void;
+		};
+		electronAPI?: {
+			invokeSocialShareData: (requestId: string) => Promise<{
+				imageUrl: string;
+				iconUrl: string | null;
+				title: string;
+				timestamp: number;
+				category: string | null;
+				appName: string | null;
+				backgroundTitle: string | null;
+			}>;
+			signalSocialShareReady: (requestId: string) => void;
 		};
 	}
 }

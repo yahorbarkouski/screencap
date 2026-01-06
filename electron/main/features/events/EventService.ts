@@ -116,11 +116,6 @@ function applyPolicyOverrides(
 	updateEvent(eventId, updates);
 }
 
-function deleteHighRes(originalPath: string | null | undefined): void {
-	const highResPath = highResPathFromLowResPath(originalPath);
-	void safeUnlink(highResPath);
-}
-
 export async function processCaptureResult(
 	options: ProcessCaptureOptions,
 ): Promise<{ merged: boolean; eventId: string }> {
@@ -247,7 +242,6 @@ export async function processCaptureResult(
 			},
 		);
 		applyPolicyOverrides(capture.id, policy, context);
-		deleteHighRes(capture.originalPath);
 		broadcastEventCreated(capture.id);
 		return { merged: false, eventId: capture.id };
 	}
@@ -446,7 +440,6 @@ export async function processCaptureGroup(
 			eventId,
 		});
 		applyPolicyOverrides(eventId, policy, effectiveContext);
-		deleteHighRes(primaryCapture.originalPath);
 		broadcastEventCreated(eventId);
 		return { merged: false, eventId };
 	}

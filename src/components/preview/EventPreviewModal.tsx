@@ -1,8 +1,14 @@
 import { format } from "date-fns";
 import { ExternalLink, Globe, Music, X } from "lucide-react";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { SharedEvent } from "@/types";
+
+function highResPathFromOriginal(path: string | null): string | null {
+	if (!path) return null;
+	if (!path.endsWith(".webp")) return null;
+	return path.replace(/\.webp$/, ".hq.png");
+}
 
 interface EventPreviewModalProps {
 	event: SharedEvent | null;
@@ -19,23 +25,34 @@ export function EventPreviewModal({ event, onClose }: EventPreviewModalProps) {
 		[onClose],
 	);
 
+	const basePath = event
+		? (event.originalPath ?? event.thumbnailPath ?? event.imageRef ?? null)
+		: null;
+	const hqPath = event
+		? highResPathFromOriginal(event.originalPath ?? null)
+		: null;
+	const [currentPath, setCurrentPath] = useState<string | null>(
+		hqPath ?? basePath,
+	);
+
 	useEffect(() => {
 		if (!event) return;
 		window.addEventListener("keydown", handleKeyDown);
 		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, [event, handleKeyDown]);
 
+	useEffect(() => {
+		setCurrentPath(hqPath ?? basePath);
+	}, [hqPath, basePath]);
+
 	if (!event) return null;
+	if (!currentPath) return null;
 
-	const imagePath =
-		event.originalPath ?? event.thumbnailPath ?? event.imageRef ?? null;
-	if (!imagePath) return null;
-
-	const imageUrl = imagePath.startsWith("local-file://")
-		? imagePath
-		: imagePath.startsWith("http")
-			? imagePath
-			: `local-file://${imagePath}`;
+	const imageUrl = currentPath.startsWith("local-file://")
+		? currentPath
+		: currentPath.startsWith("http")
+			? currentPath
+			: `local-file://${currentPath}`;
 
 	const handleOpenUrl = (url: string | null) => {
 		if (url) {
@@ -69,7 +86,16 @@ export function EventPreviewModal({ event, onClose }: EventPreviewModalProps) {
 
 				{/* Image */}
 				<div className="flex-1 overflow-hidden bg-black/20">
-					<img src={imageUrl} alt="" className="h-full w-full object-contain" />
+					<img
+						src={imageUrl}
+						alt=""
+						className="h-full w-full object-contain"
+						onError={() => {
+							if (hqPath && currentPath === hqPath && basePath) {
+								setCurrentPath(basePath);
+							}
+						}}
+					/>
 				</div>
 
 				{/* Metadata Footer */}

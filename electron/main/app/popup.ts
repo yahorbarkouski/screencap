@@ -22,17 +22,26 @@ let userMoved = false;
 let userPosition: { x: number; y: number } | null = null;
 let isProgrammaticMove = false;
 let resetViewTimeout: ReturnType<typeof setTimeout> | null = null;
+let ignoreBlurUntil = 0;
 
 function clamp(value: number, min: number, max: number): number {
 	return Math.min(Math.max(value, min), max);
 }
 
-function ensureMacPopupOverlay(): void {
-	if (!popupWindow || popupWindow.isDestroyed()) return;
-	if (process.platform !== "darwin") return;
-	popupWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-	// Use relativeLevel 1 to ensure popup appears above fullscreen apps
-	popupWindow.setAlwaysOnTop(true, "pop-up-menu", 1);
+function applyPopupOverlay(win: BrowserWindow): void {
+	win.setVisibleOnAllWorkspaces(true, {
+		visibleOnFullScreen: true,
+		skipTransformProcessType: true,
+	});
+	win.setAlwaysOnTop(true, "screen-saver", 1);
+}
+
+function movePopupToActiveSpace(win: BrowserWindow): void {
+	(
+		win as unknown as {
+			moveToActiveSpace?: () => void;
+		}
+	).moveToActiveSpace?.();
 }
 
 function displayForPopup(anchor?: Rectangle) {
@@ -100,11 +109,19 @@ function scheduleResetViewToPersonal(): void {
 	}, POPUP_VIEW_RESET_IDLE_MS);
 }
 
-function showPopupInactive(): void {
+function showPopup(): void {
 	if (!popupWindow || popupWindow.isDestroyed()) return;
-	ensureMacPopupOverlay();
+	ignoreBlurUntil = Date.now() + 350;
+	applyPopupOverlay(popupWindow);
+	movePopupToActiveSpace(popupWindow);
 	popupWindow.showInactive();
 	popupWindow.moveTop();
+	setTimeout(() => {
+		if (!popupWindow || popupWindow.isDestroyed()) return;
+		applyPopupOverlay(popupWindow);
+		movePopupToActiveSpace(popupWindow);
+		popupWindow.moveTop();
+	}, 0);
 }
 
 function positionPopupWindow(anchor?: Rectangle): void {
@@ -134,6 +151,7 @@ export function createPopupWindow(anchor?: Rectangle): BrowserWindow {
 		y,
 		show: false,
 		acceptFirstMouse: true,
+		type: "panel",
 		frame: false,
 		resizable: false,
 		movable: true,
@@ -155,11 +173,7 @@ export function createPopupWindow(anchor?: Rectangle): BrowserWindow {
 		},
 	});
 
-	if (process.platform === "darwin") {
-		popupWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-		// Use relativeLevel 1 to ensure popup appears above fullscreen apps
-		popupWindow.setAlwaysOnTop(true, "pop-up-menu", 1);
-	}
+	applyPopupOverlay(popupWindow);
 
 	const webContentsId = popupWindow.webContents.id;
 	addTrustedWebContentsId(webContentsId);
@@ -175,6 +189,7 @@ export function createPopupWindow(anchor?: Rectangle): BrowserWindow {
 	popupWindow.on("blur", () => {
 		setTimeout(() => {
 			if (!popupWindow || popupWindow.isDestroyed()) return;
+			if (Date.now() < ignoreBlurUntil) return;
 			if (popupWindow.isFocused()) return;
 			hidePopupWindow();
 		}, 100);
@@ -198,7 +213,7 @@ export function createPopupWindow(anchor?: Rectangle): BrowserWindow {
 			positionPopupWindow(anchor);
 			if (popupWindow && !popupWindow.isDestroyed()) {
 				clearResetViewTimeout();
-				showPopupInactive();
+				showPopup();
 			}
 		}
 	});
@@ -235,7 +250,7 @@ export function showPopupWindow(anchor?: Rectangle): void {
 	}
 	positionPopupWindow(anchor);
 	clearResetViewTimeout();
-	showPopupInactive();
+	showPopup();
 }
 
 export function hidePopupWindow(): void {
@@ -264,7 +279,7 @@ export function togglePopupWindow(anchor?: Rectangle): void {
 
 	positionPopupWindow(anchor);
 	clearResetViewTimeout();
-	showPopupInactive();
+	showPopup();
 }
 
 export function destroyPopupWindow(): void {

@@ -93,7 +93,7 @@ describe("QueueService (integration)", () => {
 		expect(getEventById("e_missing")?.status).toBe("failed");
 	});
 
-	it("finalizes locally when automation policy skips LLM and deletes high-res", async () => {
+	it("finalizes locally when automation policy skips LLM", async () => {
 		const { insertEvent, getEventById } = await import(
 			"../../../infra/db/repositories/EventRepository"
 		);
@@ -145,10 +145,10 @@ describe("QueueService (integration)", () => {
 		const evt = getEventById("e_skip");
 		expect(evt?.status).toBe("completed");
 		expect(evt?.caption).toContain("ExampleApp");
-		expect(existsSync(highResPath)).toBe(false);
+		expect(existsSync(highResPath)).toBe(true);
 	});
 
-	it("removes queue item and deletes high-res after max attempts", async () => {
+	it("removes queue item after max attempts", async () => {
 		const { insertEvent, getEventById } = await import(
 			"../../../infra/db/repositories/EventRepository"
 		);
@@ -187,6 +187,6 @@ describe("QueueService (integration)", () => {
 		await runQueueOnce();
 
 		expect(getQueueItems()).toHaveLength(0);
-		expect(existsSync(highResPath)).toBe(false);
+		expect(existsSync(highResPath)).toBe(true);
 	});
 });

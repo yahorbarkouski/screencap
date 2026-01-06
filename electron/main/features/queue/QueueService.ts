@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, unlinkSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { isSelfApp } from "../../../shared/appIdentity";
 import type { Event } from "../../../shared/types";
@@ -147,15 +147,6 @@ function highResPathForEventId(eventId: string): string {
 	return join(getOriginalsDir(), `${eventId}.hq.png`);
 }
 
-function deleteHighResIfExists(eventId: string): void {
-	const path = highResPathForEventId(eventId);
-	try {
-		if (existsSync(path)) unlinkSync(path);
-	} catch {
-		logger.warn("Failed to delete high-res capture", { eventId, path });
-	}
-}
-
 function buildFallbackCaption(event: Event): string {
 	const parts: string[] = [];
 	if (event.contentTitle) {
@@ -269,7 +260,6 @@ async function processQueueItem(item: {
 				},
 			);
 			finalizeEventLocally(event, policy);
-			deleteHighResIfExists(item.eventId);
 			removeFromQueue(item.id);
 			broadcastEventUpdated(item.eventId);
 			return;
@@ -381,10 +371,6 @@ async function processQueueItem(item: {
 					status: "completed",
 				});
 
-				if (resolvedProgress !== 1) {
-					deleteHighResIfExists(item.eventId);
-				}
-
 				removeFromQueue(item.id);
 				broadcastEventUpdated(item.eventId);
 				logger.debug("Applied cached classification", {
@@ -428,7 +414,6 @@ async function processQueueItem(item: {
 				throw new Error("Failed to read screenshot file");
 			}
 			updateEvent(item.eventId, { status: "failed" });
-			deleteHighResIfExists(item.eventId);
 			removeFromQueue(item.id);
 			broadcastEventUpdated(item.eventId);
 			logger.warn("Missing screenshot file for queue item, marking failed", {
@@ -555,10 +540,6 @@ async function processQueueItem(item: {
 				status: "completed",
 			});
 
-			if (resolvedProgress !== 1) {
-				deleteHighResIfExists(item.eventId);
-			}
-
 			removeFromQueue(item.id);
 			broadcastEventUpdated(item.eventId);
 			logger.debug("Processed queue item", { eventId: item.eventId });
@@ -575,7 +556,6 @@ async function processQueueItem(item: {
 		broadcastEventUpdated(item.eventId);
 
 		if (attempts >= MAX_ATTEMPTS) {
-			deleteHighResIfExists(item.eventId);
 			removeFromQueue(item.id);
 			logger.warn("Queue item exceeded max attempts", {
 				id: item.id,

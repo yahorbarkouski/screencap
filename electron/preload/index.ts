@@ -336,6 +336,18 @@ const api = {
 			ipcRenderer.invoke(IpcChannels.Social.RejectFriendRequest, requestId),
 		syncAvatarSettings: (avatarSettings: AvatarSettings): Promise<void> =>
 			ipcRenderer.invoke(IpcChannels.Social.SyncAvatarSettings, avatarSettings),
+		generateSocialImage: (input: {
+			imagePaths: string[];
+			title: string;
+			timestamp: number;
+			category: string | null;
+			appName: string | null;
+			appIconPath: string | null;
+			backgroundTitle: string | null;
+			backgroundArtist: string | null;
+			backgroundImageUrl: string | null;
+		}): Promise<string> =>
+			ipcRenderer.invoke(IpcChannels.Social.GenerateSocialImage, input),
 	},
 
 	chat: {
@@ -484,7 +496,18 @@ const api = {
 
 contextBridge.exposeInMainWorld("api", api);
 
+const electronAPI = {
+	invokeSocialShareData: (requestId: string): Promise<unknown> =>
+		ipcRenderer.invoke(`social-share:request-data:${requestId}`),
+	signalSocialShareReady: (requestId: string): void => {
+		ipcRenderer.send(`social-share:ready:${requestId}`);
+	},
+};
+
+contextBridge.exposeInMainWorld("electronAPI", electronAPI);
+
 export type API = typeof api;
+export type ElectronAPI = typeof electronAPI;
 
 export {
 	IpcChannels,

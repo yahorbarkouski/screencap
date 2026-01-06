@@ -3,7 +3,10 @@ import type { ClassificationEvalOptions } from "../features/aiEval";
 import { runClassificationEval } from "../features/aiEval";
 import { checkScreenCapturePermission } from "../features/permissions";
 import { startQueueProcessor } from "../features/queue";
-import { startRetentionService } from "../features/retention";
+import {
+	startHqRetentionService,
+	startRetentionService,
+} from "../features/retention";
 import { startScheduler } from "../features/scheduler";
 import { startBackgroundSync } from "../features/sharedProjects";
 import { startShortcuts } from "../features/shortcuts";
@@ -96,6 +99,7 @@ export async function bootstrap(): Promise<void> {
 	startShortcuts(getSettings());
 
 	startRetentionService();
+	startHqRetentionService();
 	startQueueProcessor();
 
 	if (hasPermission) {

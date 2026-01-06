@@ -75,8 +75,6 @@ async function withWindowsHidden<T>(
 
 	const trayWasVisible =
 		!!trayPopup && !trayPopup.isDestroyed() && trayPopup.isVisible();
-	const trayWasFocused =
-		!!trayPopup && !trayPopup.isDestroyed() && trayPopup.isFocused();
 
 	const captureWasVisible =
 		!!capturePopup && !capturePopup.isDestroyed() && capturePopup.isVisible();
@@ -100,12 +98,8 @@ async function withWindowsHidden<T>(
 			trayPopup &&
 			!trayPopup.isDestroyed()
 		) {
-			if (trayWasFocused) {
-				trayPopup.show();
-				trayPopup.focus();
-			} else {
-				trayPopup.showInactive();
-			}
+			trayPopup.showInactive();
+			trayPopup.moveTop();
 		}
 
 		if (

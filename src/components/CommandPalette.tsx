@@ -8,6 +8,7 @@ import {
 	Clock,
 	Database,
 	Flame,
+	ImageIcon,
 	Settings,
 	SlidersHorizontal,
 	Tag,
@@ -104,6 +105,11 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 		[close, setFocusedAddictionId, setView],
 	);
 
+	const navigateToPlayground = useCallback(() => {
+		window.location.hash = "#social-playground";
+		close();
+	}, [close]);
+
 	const handleDismissSelected = async () => {
 		if (selectedEventIds.size > 0) {
 			await window.api.storage.dismissEvents(Array.from(selectedEventIds));
@@ -179,6 +185,14 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 							>
 								<Settings className="h-4 w-4" />
 								Go to Settings
+							</Command.Item>
+							<Command.Item
+								value="go playground social share"
+								className={itemClassName}
+								onSelect={navigateToPlayground}
+							>
+								<ImageIcon className="h-4 w-4" />
+								Open Social Share Playground
 							</Command.Item>
 						</Command.Group>
 

@@ -93,7 +93,7 @@ function timeAgo(timestampMs: number): string {
 }
 
 function eventImageSrc(event: SharedEvent): string | null {
-	const path = event.thumbnailPath ?? event.originalPath;
+	const path = event.originalPath ?? event.thumbnailPath;
 	return path ? `local-file://${path}` : null;
 }
 

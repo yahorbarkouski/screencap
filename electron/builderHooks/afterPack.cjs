@@ -9,7 +9,13 @@ module.exports = async (context) => {
 		context.appOutDir,
 		`${context.packager.appInfo.productFilename}.app`,
 	);
-	const ocrBinary = join(appPath, "Contents", "Resources", "ocr", "screencap-ocr");
+	const ocrBinary = join(
+		appPath,
+		"Contents",
+		"Resources",
+		"ocr",
+		"screencap-ocr",
+	);
 
 	if (!existsSync(ocrBinary)) {
 		console.log("OCR binary not found, skipping");
@@ -22,7 +28,11 @@ module.exports = async (context) => {
 		return;
 	}
 
-	const entitlements = join(context.packager.projectDir, "build", "entitlements.mac.plist");
+	const entitlements = join(
+		context.packager.projectDir,
+		"build",
+		"entitlements.mac.plist",
+	);
 
 	console.log(`Signing OCR binary with: ${identity}`);
 	execSync(

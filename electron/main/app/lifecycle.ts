@@ -1,6 +1,9 @@
 import { app } from "electron";
 import { stopQueueProcessor } from "../features/queue";
-import { stopRetentionService } from "../features/retention";
+import {
+	stopHqRetentionService,
+	stopRetentionService,
+} from "../features/retention";
 import { stopScheduler } from "../features/scheduler";
 import { stopShortcuts } from "../features/shortcuts";
 import { closeDatabase } from "../infra/db";
@@ -66,6 +69,7 @@ export function setupLifecycleHandlers(): void {
 		stopShortcuts();
 		stopScheduler();
 		stopRetentionService();
+		stopHqRetentionService();
 		stopQueueProcessor();
 		closeDatabase();
 	});
@@ -76,6 +80,7 @@ export function performShutdown(): void {
 	isQuitting = true;
 	stopScheduler();
 	stopRetentionService();
+	stopHqRetentionService();
 	stopQueueProcessor();
 	closeDatabase();
 }

@@ -243,6 +243,35 @@ export function listExpiredEventIds(
 	return rows.map((r) => r.id);
 }
 
+export function listHqCleanupCandidates(
+	cutoffTimestamp: number,
+	limit: number,
+): Array<{ id: string; originalPath: string }> {
+	if (!isDbOpen()) return [];
+	if (limit <= 0) return [];
+
+	const db = getDatabase();
+	const rows = db
+		.prepare(
+			`
+      SELECT id, original_path
+      FROM events
+      WHERE original_path IS NOT NULL
+        AND COALESCE(end_timestamp, timestamp) < ?
+        AND project_progress = 0
+        AND shared_to_friends = 0
+      ORDER BY timestamp ASC
+      LIMIT ?
+    `,
+		)
+		.all(cutoffTimestamp, limit) as Array<{
+		id: string;
+		original_path: string;
+	}>;
+
+	return rows.map((r) => ({ id: r.id, originalPath: r.original_path }));
+}
+
 export function cleanupQueueForCompletedEvents(): number {
 	if (!isDbOpen()) return 0;
 	const db = getDatabase();
