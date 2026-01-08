@@ -826,7 +826,6 @@ export function StoryViewMain({
 	onSave,
 	onGenerate,
 	generateDisabled,
-	isGenerating,
 	apiKey,
 	episodesMeta,
 	episodesTotalEvents,
@@ -887,7 +886,6 @@ export function StoryViewMain({
 	onSave: () => void;
 	onGenerate: () => void;
 	generateDisabled: boolean;
-	isGenerating: boolean;
 	apiKey: string | null;
 	episodesMeta: string;
 	episodesTotalEvents: number;

@@ -28,7 +28,7 @@ mac:
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
-  # notarize: true
+  notarize: true
   extendInfo:
     NSScreenCaptureUsageDescription: Screencap needs screen recording permission to capture screenshots for activity tracking.
   target:

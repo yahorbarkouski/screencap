@@ -73,7 +73,8 @@ const api = {
 			ipcRenderer.invoke(IpcChannels.App.PreviewEvent, event),
 		openSettingsTab: (
 			tab: "capture" | "ai" | "automation" | "data" | "social" | "system",
-		): Promise<void> => ipcRenderer.invoke(IpcChannels.App.OpenSettingsTab, tab),
+		): Promise<void> =>
+			ipcRenderer.invoke(IpcChannels.App.OpenSettingsTab, tab),
 		revealInFinder: (): Promise<void> =>
 			ipcRenderer.invoke(IpcChannels.App.RevealInFinder),
 		pickDirectory: (): Promise<string | null> =>

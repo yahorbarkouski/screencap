@@ -57,7 +57,10 @@ async function uploadImageToBlob(params: {
 		clientToken: string;
 	};
 
-	if (tokenData.type !== "blob.generate-client-token" || !tokenData.clientToken) {
+	if (
+		tokenData.type !== "blob.generate-client-token" ||
+		!tokenData.clientToken
+	) {
 		throw new Error(`invalid token response: ${JSON.stringify(tokenData)}`);
 	}
 

@@ -517,6 +517,12 @@ export interface IpcEventPayloads {
 	[IpcEvents.ShortcutCaptureProjectProgress]: string | null;
 	[IpcEvents.ShortcutEndOfDay]: { dayStart: number } | undefined;
 	[IpcEvents.PreviewEvent]: SharedEvent;
-	[IpcEvents.OpenSettingsTab]: "capture" | "ai" | "automation" | "data" | "social" | "system";
+	[IpcEvents.OpenSettingsTab]:
+		| "capture"
+		| "ai"
+		| "automation"
+		| "data"
+		| "social"
+		| "system";
 	[IpcEvents.SettingsChanged]: Settings;
 }

@@ -24,9 +24,9 @@ import { secureHandle } from "../secure";
 import {
 	ipcCopyImageArgs,
 	ipcNoArgs,
-	ipcOpenSettingsTabArgs,
 	ipcOpenExternalArgs,
 	ipcOpenNativeArgs,
+	ipcOpenSettingsTabArgs,
 	ipcPreviewEventArgs,
 } from "../validation";
 

@@ -1,13 +1,13 @@
 import { IpcChannels, IpcEvents } from "../../../shared/ipc";
 import type { Settings } from "../../../shared/types";
 import { applyLaunchAtLoginSetting } from "../../app/loginItem";
+import { triggerRetentionCleanupAfterSettingsChange } from "../../features/retention";
 import { isSchedulerRunning, startScheduler } from "../../features/scheduler";
+import { applyShortcuts } from "../../features/shortcuts";
 import {
 	startDayWrappedPublisher,
 	stopDayWrappedPublisher,
 } from "../../features/socialFeed";
-import { triggerRetentionCleanupAfterSettingsChange } from "../../features/retention";
-import { applyShortcuts } from "../../features/shortcuts";
 import { getSettings, setSettings } from "../../infra/settings";
 import { testBackendConnection } from "../../infra/settings/BackendConfig";
 import { broadcast } from "../../infra/windows/broadcast";
@@ -27,7 +27,8 @@ export function registerSettingsHandlers(): void {
 			setSettings(settings);
 			applyShortcuts(settings);
 			if (
-				previous.social.dayWrapped.enabled !== settings.social.dayWrapped.enabled
+				previous.social.dayWrapped.enabled !==
+				settings.social.dayWrapped.enabled
 			) {
 				if (settings.social.dayWrapped.enabled) {
 					startDayWrappedPublisher();

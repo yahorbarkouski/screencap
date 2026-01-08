@@ -667,7 +667,6 @@ export function StoryView() {
 						onSave={handleSave}
 						onGenerate={handleGenerate}
 						generateDisabled={generateDisabled}
-						isGenerating={isGenerating}
 						apiKey={settings.apiKey}
 						episodesMeta={episodesMeta}
 						episodesTotalEvents={dayRiskEvents.length}

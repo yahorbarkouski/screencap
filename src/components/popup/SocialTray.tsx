@@ -176,7 +176,8 @@ export function SocialTray({
 	const lastCommentTimestampRef = useRef<number>(0);
 
 	const { settings, updateSetting } = useSettings();
-	const isDayWrappedSharingEnabled = settings.social?.dayWrapped?.enabled ?? false;
+	const isDayWrappedSharingEnabled =
+		settings.social?.dayWrapped?.enabled ?? false;
 	const isDayWrappedSharingDisabledWarningHidden =
 		settings.social?.ui?.hideDayWrappedSharingDisabledWarning ?? false;
 	const showDayWrappedSharingDisabledWarning =
