@@ -13,14 +13,7 @@ import {
 	SLOT_MINUTES,
 } from "@/lib/dayline";
 import { useAppStore } from "@/stores/app";
-import type {
-	EodAttachment,
-	EodContent,
-	EodEntryInput,
-	EodSection,
-	Event,
-} from "@/types";
-import { AttachDialog } from "./AttachDialog";
+import type { EodContentV2, EodEntryInput, EodSection, Event } from "@/types";
 import {
 	BottomActions,
 	GhostButton,
@@ -29,11 +22,18 @@ import {
 } from "./EndOfDayFlow.primitives";
 import {
 	buildDefaultContent,
+	createEventBlock,
+	createTextBlock,
 	dayStartMsOf,
+	getSectionText,
+	insertBlockAfter,
+	migrateContentToV2,
 	normalizeTitle,
 	type Step,
+	setSectionText,
 	upsertSection,
 } from "./EndOfDayFlow.utils";
+import { EventPickerDialog } from "./EventPickerDialog";
 import {
 	AddictionsStep,
 	ProgressStep,
@@ -62,7 +62,7 @@ export function EndOfDayFlow() {
 	const [entryId, setEntryId] = useState<string | null>(null);
 	const [createdAt, setCreatedAt] = useState<number | null>(null);
 	const [submittedAt, setSubmittedAt] = useState<number | null>(null);
-	const [content, setContent] = useState<EodContent>(() =>
+	const [content, setContent] = useState<EodContentV2>(() =>
 		buildDefaultContent(),
 	);
 	const [selectedSectionId, setSelectedSectionId] = useState<string | null>(
@@ -77,14 +77,15 @@ export function EndOfDayFlow() {
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [shouldAutoGenerate, setShouldAutoGenerate] = useState(false);
 
-	const [attachDialogOpen, setAttachDialogOpen] = useState(false);
-	const [attachSectionId, setAttachSectionId] = useState<string | null>(null);
-	const [attachSelection, setAttachSelection] = useState<Set<string>>(
-		new Set(),
-	);
-	const [attachFilter, setAttachFilter] = useState<"all" | "progress" | "risk">(
-		"all",
-	);
+	const [eventPickerOpen, setEventPickerOpen] = useState(false);
+	const [eventPickerSectionId, setEventPickerSectionId] = useState<
+		string | null
+	>(null);
+	const [eventPickerInsertAfterBlockId, setEventPickerInsertAfterBlockId] =
+		useState<string | null>(null);
+	const [eventPickerFilter, setEventPickerFilter] = useState<
+		"all" | "progress" | "risk"
+	>("all");
 
 	const dayStartMs = useMemo(() => {
 		if (!eodDayStart) return null;
@@ -143,22 +144,25 @@ export function EndOfDayFlow() {
 			setPrevStats(loadedPrevStats);
 
 			if (existing) {
+				const migratedContent = migrateContentToV2(existing.content);
 				setEntryId(existing.id);
 				setCreatedAt(existing.createdAt);
 				setSubmittedAt(existing.submittedAt);
-				setContent(existing.content);
-				setSelectedSectionId(existing.content.sections[0]?.id ?? null);
+				setContent(migratedContent);
+				setSelectedSectionId(migratedContent.sections[0]?.id ?? null);
 				setRiskSelection(new Set());
 				setPotentialProgressSelection(new Set());
 
-				const summarySection = existing.content.sections.find(
+				const summarySection = migratedContent.sections.find(
 					(s) => normalizeTitle(s.title) === "summary",
 				);
-				const summaryIsEmpty = !summarySection || !summarySection.body.trim();
-				const prevEventCount = existing.content.summaryEventCount ?? 0;
+				const summaryText = summarySection
+					? getSectionText(summarySection)
+					: "";
+				const summaryIsEmpty = !summaryText.trim();
+				const prevEventCount = migratedContent.summaryEventCount ?? 0;
 				const isOutdated =
-					!!summarySection?.body.trim() &&
-					loadedEvents.length - prevEventCount > 10;
+					!!summaryText.trim() && loadedEvents.length - prevEventCount > 10;
 				setShouldAutoGenerate(summaryIsEmpty || isOutdated);
 				return;
 			}
@@ -321,7 +325,7 @@ export function EndOfDayFlow() {
 					id: entryId,
 					dayStart: dayStartMs,
 					dayEnd: dayEndMs,
-					schemaVersion: 1,
+					schemaVersion: 2,
 					content,
 					createdAt,
 					updatedAt: Date.now(),
@@ -339,7 +343,6 @@ export function EndOfDayFlow() {
 	useEffect(() => {
 		if (!eodOpen) return;
 		if (!entryId || createdAt === null) return;
-		if (submittedAt !== null) return;
 		const handle = setTimeout(() => {
 			void save(submittedAt);
 		}, 650);
@@ -360,10 +363,9 @@ export function EndOfDayFlow() {
 				setContent((prev) => ({
 					...prev,
 					summaryEventCount: events.length,
-					sections: upsertSection(prev.sections, existingSummary.id, (s) => ({
-						...s,
-						body: text.trim(),
-					})),
+					sections: upsertSection(prev.sections, existingSummary.id, (s) =>
+						setSectionText(s, text.trim()),
+					),
 				}));
 				setSelectedSectionId(existingSummary.id);
 			} else {
@@ -371,8 +373,7 @@ export function EndOfDayFlow() {
 				const section: EodSection = {
 					id,
 					title: "Summary",
-					body: text.trim(),
-					attachments: [],
+					blocks: [createTextBlock(text.trim())],
 				};
 				setContent((prev) => ({
 					...prev,
@@ -400,48 +401,42 @@ export function EndOfDayFlow() {
 		shouldAutoGenerate,
 	]);
 
-	const openAttachDialog = useCallback(
-		(sectionId: string) => {
-			const section = content.sections.find((s) => s.id === sectionId);
-			if (!section) return;
-			setAttachSectionId(sectionId);
-			const selected = new Set(
-				section.attachments
-					.filter(
-						(a): a is Extract<EodAttachment, { kind: "event" }> =>
-							a.kind === "event",
-					)
-					.map((a) => a.eventId),
-			);
-			setAttachSelection(selected);
-			setAttachFilter("all");
-			setAttachDialogOpen(true);
+	const openEventPicker = useCallback(
+		(sectionId: string, insertAfterBlockId: string) => {
+			setEventPickerSectionId(sectionId);
+			setEventPickerInsertAfterBlockId(insertAfterBlockId);
+			setEventPickerFilter("all");
+			setEventPickerOpen(true);
 		},
-		[content.sections],
+		[],
 	);
 
-	const applyAttachments = useCallback(() => {
-		if (!attachSectionId) return;
-		const attachments: EodAttachment[] = Array.from(attachSelection).map(
-			(eventId) => ({ kind: "event", eventId }),
-		);
-		setContent((prev) => ({
-			...prev,
-			sections: upsertSection(prev.sections, attachSectionId, (s) => ({
-				...s,
-				attachments,
-			})),
-		}));
-		setAttachDialogOpen(false);
-	}, [attachSectionId, attachSelection]);
+	const handleEventPicked = useCallback(
+		(eventId: string) => {
+			if (!eventPickerSectionId || !eventPickerInsertAfterBlockId) return;
+			const newBlock = createEventBlock(eventId);
+			setContent((prev) => ({
+				...prev,
+				sections: upsertSection(prev.sections, eventPickerSectionId, (s) => ({
+					...s,
+					blocks: insertBlockAfter(
+						s.blocks,
+						eventPickerInsertAfterBlockId,
+						newBlock,
+					),
+				})),
+			}));
+			setEventPickerOpen(false);
+		},
+		[eventPickerSectionId, eventPickerInsertAfterBlockId],
+	);
 
 	const addBlankSection = useCallback(() => {
 		const id = uuid();
 		const section: EodSection = {
 			id,
 			title: "Section",
-			body: "",
-			attachments: [],
+			blocks: [createTextBlock()],
 		};
 		setContent((prev) => ({ ...prev, sections: [...prev.sections, section] }));
 		setSelectedSectionId(id);
@@ -458,15 +453,13 @@ export function EndOfDayFlow() {
 		if (chosen.length === 0) return;
 
 		const id = uuid();
-		const attachments: EodAttachment[] = chosen.map((eventId) => ({
-			kind: "event",
-			eventId,
-		}));
 		const section: EodSection = {
 			id,
 			title: "Addictions",
-			body: "",
-			attachments,
+			blocks: [
+				createTextBlock(),
+				...chosen.map((eventId) => createEventBlock(eventId)),
+			],
 		};
 		setContent((prev) => ({ ...prev, sections: [...prev.sections, section] }));
 		setSelectedSectionId(id);
@@ -522,11 +515,6 @@ export function EndOfDayFlow() {
 	useEffect(() => {
 		if (!eodOpen) return;
 		const onKeyDown = (e: KeyboardEvent) => {
-			if (e.key === "Escape") {
-				e.preventDefault();
-				closeEod();
-				return;
-			}
 			if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && step === "review") {
 				e.preventDefault();
 				void submit();
@@ -534,7 +522,7 @@ export function EndOfDayFlow() {
 		};
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
-	}, [closeEod, eodOpen, step, submit]);
+	}, [eodOpen, step, submit]);
 
 	if (!eodOpen || !dayStartMs || !dayEndMs) return null;
 
@@ -549,15 +537,6 @@ export function EndOfDayFlow() {
 
 	const toggleRiskSelection = (id: string) => {
 		setRiskSelection((prev) => {
-			const next = new Set(prev);
-			if (next.has(id)) next.delete(id);
-			else next.add(id);
-			return next;
-		});
-	};
-
-	const toggleAttachSelection = (id: string) => {
-		setAttachSelection((prev) => {
 			const next = new Set(prev);
 			if (next.has(id)) next.delete(id);
 			else next.add(id);
@@ -640,12 +619,9 @@ export function EndOfDayFlow() {
 										content={content}
 										selectedSection={selectedSection}
 										events={events}
-										isGenerating={isGenerating}
-										canGenerateSummary={canGenerateSummary}
-										onGenerateSummary={() => void generateSummary()}
 										onSelectSection={setSelectedSectionId}
 										onAddSection={addBlankSection}
-										onOpenAttachDialog={openAttachDialog}
+										onOpenEventPicker={openEventPicker}
 										onUpdateContent={setContent}
 									/>
 								)}
@@ -696,17 +672,15 @@ export function EndOfDayFlow() {
 					}
 				/>
 
-				<AttachDialog
-					open={attachDialogOpen}
-					onOpenChange={setAttachDialogOpen}
+				<EventPickerDialog
+					open={eventPickerOpen}
+					onOpenChange={setEventPickerOpen}
 					events={events}
 					progressEvents={progressEvents}
 					riskEvents={riskEvents}
-					filter={attachFilter}
-					onFilterChange={setAttachFilter}
-					selection={attachSelection}
-					onToggleSelection={toggleAttachSelection}
-					onApply={applyAttachments}
+					filter={eventPickerFilter}
+					onFilterChange={setEventPickerFilter}
+					onSelectEvent={handleEventPicked}
 				/>
 			</div>
 		</div>

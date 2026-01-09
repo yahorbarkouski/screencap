@@ -7,6 +7,7 @@ import {
 	subDays,
 } from "date-fns";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { migrateContentToV2 } from "@/components/eod/EndOfDayFlow.utils";
 import { AddMemoryDialog } from "@/components/memory/AddMemoryDialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMemories } from "@/hooks/useMemories";
@@ -17,7 +18,7 @@ import {
 	SLOTS_PER_HOUR,
 } from "@/lib/dayline";
 import { useAppStore } from "@/stores/app";
-import type { Event } from "@/types";
+import type { EodContentV2, EodEntry, Event } from "@/types";
 import {
 	type DaylineViewMode,
 	StoryViewHeader,
@@ -25,7 +26,6 @@ import {
 	StoryViewSidebar,
 } from "./StoryView.sections";
 import {
-	buildDailyStory,
 	type CategoryStat,
 	computeAddictionStreak,
 	isRiskEvent,
@@ -33,8 +33,6 @@ import {
 	longestRun,
 	riskRule,
 	riskSource,
-	type StoryLlmEvent,
-	storyForDay,
 	topCounts,
 } from "./StoryView.utils";
 
@@ -43,8 +41,6 @@ const EPISODES_PAGE_SIZE = 15;
 const PROGRESS_ALL = "__all__";
 
 export function StoryView() {
-	const stories = useAppStore((s) => s.stories);
-	const setStories = useAppStore((s) => s.setStories);
 	const settings = useAppStore((s) => s.settings);
 	const openEod = useAppStore((s) => s.openEod);
 	const { addictions, createMemory, editMemory, deleteMemory } = useMemories();
@@ -58,14 +54,12 @@ export function StoryView() {
 	const [prevDayStats, setPrevDayStats] = useState<CategoryStat[]>([]);
 	const [calendarEvents, setCalendarEvents] = useState<Event[]>([]);
 	const [scope, setScope] = useState<JournalScope>("all");
-	const [isGenerating, setIsGenerating] = useState(false);
-	const [isEditing, setIsEditing] = useState(false);
-	const [draft, setDraft] = useState("");
-	const [isSaving, setIsSaving] = useState(false);
 	const [addAddictionDialogOpen, setAddAddictionDialogOpen] = useState(false);
 	const [episodesPage, setEpisodesPage] = useState(0);
 	const [progressProject, setProgressProject] = useState<string>(PROGRESS_ALL);
 	const [daylineMode, setDaylineMode] = useState<DaylineViewMode>("categories");
+	const [eodEntries, setEodEntries] = useState<EodEntry[]>([]);
+	const [currentEodEntry, setCurrentEodEntry] = useState<EodEntry | null>(null);
 
 	const showJournal = scope !== "addiction";
 	const showAddiction = scope !== "journal";
@@ -94,11 +88,17 @@ export function StoryView() {
 		return endOfDay(subDays(selectedDay, 1)).getTime();
 	}, [isToday, prevStartMs, selectedDay, selectedStartMs]);
 
-	const fetchStories = useCallback(async () => {
+	const fetchEodEntries = useCallback(async () => {
 		if (!window.api) return;
-		const result = await window.api.storage.getStories();
-		setStories(result);
-	}, [setStories]);
+		const result = await window.api.eod.listEntries();
+		setEodEntries(result);
+	}, []);
+
+	const fetchCurrentEodEntry = useCallback(async () => {
+		if (!window.api) return;
+		const entry = await window.api.eod.getEntryByDayStart(selectedStartMs);
+		setCurrentEodEntry(entry);
+	}, [selectedStartMs]);
 
 	const fetchDay = useCallback(async () => {
 		if (!window.api) return;
@@ -145,44 +145,15 @@ export function StoryView() {
 	}, []);
 
 	useEffect(() => {
-		fetchStories();
+		fetchEodEntries();
 		fetchCalendar();
-	}, [fetchCalendar, fetchStories]);
+	}, [fetchCalendar, fetchEodEntries]);
 
 	useEffect(() => {
-		setIsEditing(false);
-		setDraft("");
 		fetchDay();
 		fetchPrevDay();
-	}, [fetchDay, fetchPrevDay]);
-
-	const dailyStories = useMemo(
-		() => stories.filter((s) => s.periodType === "daily"),
-		[stories],
-	);
-
-	const currentStory = useMemo(
-		() => storyForDay(dailyStories, selectedStartMs),
-		[dailyStories, selectedStartMs],
-	);
-
-	const llmEvents = useMemo<StoryLlmEvent[]>(
-		() =>
-			dayEvents
-				.filter((e) => e.caption && e.category)
-				.map((e) => ({
-					caption: e.caption!,
-					category: e.category!,
-					timestamp: e.timestamp,
-					project: e.project,
-					projectProgress: e.projectProgress === 1,
-				}))
-				.sort((a, b) => a.timestamp - b.timestamp),
-		[dayEvents],
-	);
-
-	const generateDisabled =
-		isGenerating || !settings.apiKey || llmEvents.length === 0;
+		fetchCurrentEodEntry();
+	}, [fetchDay, fetchPrevDay, fetchCurrentEodEntry]);
 
 	const slots = useMemo(
 		() =>
@@ -480,8 +451,11 @@ export function StoryView() {
 	);
 
 	const journalDays = useMemo(
-		() => new Set(dailyStories.map((s) => s.periodStart)),
-		[dailyStories],
+		() =>
+			new Set(
+				eodEntries.filter((e) => e.submittedAt !== null).map((e) => e.dayStart),
+			),
+		[eodEntries],
 	);
 
 	const handlePrevDay = () => setSelectedDay((d) => startOfDay(subDays(d, 1)));
@@ -498,82 +472,21 @@ export function StoryView() {
 		setAddAddictionDialogOpen(false);
 	};
 
-	const handleGenerate = async () => {
-		if (!showJournal) return;
-		if (!settings.apiKey) return;
-		if (dayEvents.length === 0) return;
-
-		setIsGenerating(true);
-		try {
-			if (llmEvents.length === 0 || !window.api) return;
-
-			const content = await window.api.llm.generateStory(llmEvents, "daily");
-
-			const story = buildDailyStory({
-				currentId: currentStory?.id,
-				periodStart: selectedStartMs,
-				periodEnd: selectedEndMs,
-				content,
-			});
-
-			await window.api.storage.insertStory(story);
-			await fetchStories();
-		} finally {
-			setIsGenerating(false);
-		}
-	};
-
-	const handleStartEdit = () => {
-		setDraft(currentStory?.content ?? "");
-		setIsEditing(true);
-	};
-
-	const handleStartWrite = () => {
-		setDraft("");
-		setIsEditing(true);
-	};
-
-	const handleCancelEdit = () => {
-		setDraft("");
-		setIsEditing(false);
-	};
-
-	const handleSave = async () => {
-		const content = draft.trim();
-		if (!content) {
-			setIsEditing(false);
-			setDraft("");
-			return;
-		}
-
-		if (!window.api) return;
-		setIsSaving(true);
-		try {
-			const story = buildDailyStory({
-				currentId: currentStory?.id,
-				periodStart: selectedStartMs,
-				periodEnd: selectedEndMs,
-				content,
-			});
-
-			await window.api.storage.insertStory(story);
-			await fetchStories();
-			setIsEditing(false);
-			setDraft("");
-		} finally {
-			setIsSaving(false);
-		}
-	};
-
 	const titleDate = useMemo(
 		() => format(selectedDay, "EEE, MMM d"),
 		[selectedDay],
 	);
 	const titleYear = useMemo(() => format(selectedDay, "yyyy"), [selectedDay]);
 	const journalMeta = useMemo(() => {
-		if (!currentStory) return "missing";
-		return `saved · ${format(new Date(currentStory.createdAt), "HH:mm")}`;
-	}, [currentStory]);
+		if (!currentEodEntry || !currentEodEntry.submittedAt)
+			return "not submitted";
+		return `submitted · ${format(new Date(currentEodEntry.submittedAt), "HH:mm")}`;
+	}, [currentEodEntry]);
+
+	const journalContent = useMemo((): EodContentV2 | null => {
+		if (!currentEodEntry || !currentEodEntry.submittedAt) return null;
+		return migrateContentToV2(currentEodEntry.content);
+	}, [currentEodEntry]);
 
 	return (
 		<div className="h-full flex flex-col">
@@ -586,11 +499,6 @@ export function StoryView() {
 				onOpenEod={() => openEod(selectedStartMs)}
 				isToday={isToday}
 				nextDisabled={selectedStartMs >= todayStartMs}
-				showJournal={showJournal}
-				onGenerate={handleGenerate}
-				generateDisabled={generateDisabled}
-				isGenerating={isGenerating}
-				hasStory={!!currentStory}
 			/>
 
 			<ScrollArea className="flex-1 h-full">
@@ -656,18 +564,8 @@ export function StoryView() {
 						topRiskAddictions={topRiskAddictions}
 						topRiskSources={topRiskSources}
 						journalMeta={journalMeta}
-						currentStory={currentStory}
-						isEditing={isEditing}
-						isSaving={isSaving}
-						draft={draft}
-						onDraftChange={setDraft}
-						onStartEdit={handleStartEdit}
-						onStartWrite={handleStartWrite}
-						onCancelEdit={handleCancelEdit}
-						onSave={handleSave}
-						onGenerate={handleGenerate}
-						generateDisabled={generateDisabled}
-						apiKey={settings.apiKey}
+						journalContent={journalContent}
+						onOpenEod={() => openEod(selectedStartMs)}
 						episodesMeta={episodesMeta}
 						episodesTotalEvents={dayRiskEvents.length}
 						episodesPage={episodesPageClamped}

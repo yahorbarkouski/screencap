@@ -395,8 +395,8 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
 			<FadeIn delay={0.05} variant="intro">
 				<div className="text-center space-y-3 -mt-16">
 					<p className="text-sm text-muted-foreground max-w-md mx-auto">
-						What did I do today? Yesterday? Now long do I actualy work? Am I
-						addicted to bullet chess? Screencap to undrestand your time
+						What did I do today? Yesterday? How long do I actualy work? Am I
+						addicted to bullet chess? Screencap to understand your time
 					</p>
 				</div>
 			</FadeIn>

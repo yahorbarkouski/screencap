@@ -6,7 +6,6 @@ import {
 	ChevronRight,
 	Flame,
 	LayoutGrid,
-	Power,
 	User,
 	Users,
 	X,
@@ -37,6 +36,7 @@ import { usePopupAutoHeight } from "./usePopupAutoHeight";
 
 export function StreakPopup() {
 	const [events, setEvents] = useState<Event[]>([]);
+	const [hasPreviousDays, setHasPreviousDays] = useState(true);
 	const rootRef = useRef<HTMLDivElement | null>(null);
 	const [isQuitConfirmOpen, setIsQuitConfirmOpen] = useState(false);
 	const [daylineMode, setDaylineMode] = useState<DaylineViewMode>("categories");
@@ -92,6 +92,19 @@ export function StreakPopup() {
 		const interval = setInterval(fetchEvents, 30000);
 		return () => clearInterval(interval);
 	}, [dayEndMs, dayStartMs]);
+
+	useEffect(() => {
+		const checkPreviousDays = async () => {
+			if (!window.api) return;
+			const result = await window.api.storage.getEvents({
+				endDate: todayStartMs - 1,
+				limit: 1,
+				dismissed: false,
+			});
+			setHasPreviousDays(result.length > 10);
+		};
+		void checkPreviousDays();
+	}, [todayStartMs]);
 
 	const slots = useMemo(
 		() =>
@@ -239,28 +252,29 @@ export function StreakPopup() {
 						</>
 					)}
 				</div>
-				<div className="flex items-center gap-1">
-					<button
-						type="button"
-						aria-label="Quit app"
-						className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
-						onClick={() => {
-							if (!window.api) return;
-							setIsQuitConfirmOpen(true);
-						}}
-					>
-						<Power className="size-3" />
-					</button>
+				<div className="flex items-center gap-0.5">
 					<button
 						type="button"
 						aria-label={`View: ${view === "day" ? "My Day" : "Social"}`}
-						className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
+						className={`inline-flex items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground ${hasPreviousDays ? "size-6" : "h-6 px-2 text-[10px] font-medium"}`}
 						onClick={() => setView((v) => (v === "day" ? "social" : "day"))}
 					>
-						{view === "day" ? (
-							<User className="size-3.5" />
+						{hasPreviousDays ? (
+							view === "day" ? (
+								<User className="size-3.5" />
+							) : (
+								<Users className="size-3.5" />
+							)
+						) : view === "day" ? (
+							<div className="flex items-center gap-1">
+								<Users className="size-3.5" />
+								Friends
+							</div>
 						) : (
-							<Users className="size-3.5" />
+							<div className="flex items-center gap-1">
+								<User className="size-3.5" />
+								Me
+							</div>
 						)}
 					</button>
 					<button

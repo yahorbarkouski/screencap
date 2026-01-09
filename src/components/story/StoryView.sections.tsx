@@ -1,15 +1,12 @@
 import { format } from "date-fns";
 import {
 	AppWindow,
-	Check,
 	ChevronLeft,
 	ChevronRight,
 	Flame,
 	LayoutGrid,
-	Loader2,
 	Pencil,
 	Plus,
-	X,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { MemoryCard } from "@/components/memory/MemoryCard";
@@ -22,7 +19,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { ContributionCalendar } from "@/components/wrapped/ContributionCalendar";
 import { CountList } from "@/components/wrapped/CountList";
 import { Metric } from "@/components/wrapped/Metric";
@@ -56,8 +52,9 @@ function slotBg(
 	return rgba(CATEGORY_RGB.Work, alpha);
 }
 
-import { cn } from "@/lib/utils";
-import type { Event, Memory, Story } from "@/types";
+import { primaryImagePath } from "@/components/eod/EndOfDayFlow.utils";
+import { cn, formatTime } from "@/lib/utils";
+import type { EodBlock, EodContentV2, Event, Memory } from "@/types";
 import {
 	type AddictionStreak,
 	type CategoryStat,
@@ -558,11 +555,6 @@ export function StoryViewHeader({
 	onOpenEod,
 	isToday,
 	nextDisabled,
-	showJournal,
-	onGenerate,
-	generateDisabled,
-	isGenerating,
-	hasStory,
 }: {
 	scope: JournalScope;
 	onScopeChange: (scope: JournalScope) => void;
@@ -572,11 +564,6 @@ export function StoryViewHeader({
 	onOpenEod: () => void;
 	isToday: boolean;
 	nextDisabled: boolean;
-	showJournal: boolean;
-	onGenerate: () => void;
-	generateDisabled: boolean;
-	isGenerating: boolean;
-	hasStory: boolean;
 }) {
 	return (
 		<div className="drag-region flex border-b border-border p-2 px-4 justify-between">
@@ -626,20 +613,9 @@ export function StoryViewHeader({
 				>
 					<ChevronRight className="h-4 w-4" />
 				</Button>
-				<Button size="sm" variant="secondary" onClick={onOpenEod}>
+				<Button size="sm" onClick={onOpenEod}>
 					End of day
 				</Button>
-				{showJournal ? (
-					<Button size="sm" onClick={onGenerate} disabled={generateDisabled}>
-						{isGenerating ? (
-							<Loader2 className="size-4 animate-spin" />
-						) : hasStory ? (
-							"Analyze again"
-						) : (
-							"Analyze this day"
-						)}
-					</Button>
-				) : null}
 			</div>
 		</div>
 	);
@@ -774,6 +750,92 @@ export function StoryViewSidebar({
 
 type PeakHour = { hour: number; count: number } | null;
 
+function EodContentDisplay({
+	content,
+	events,
+}: {
+	content: EodContentV2;
+	events: Event[];
+}) {
+	return (
+		<div className="space-y-6">
+			{content.sections.map((s) => {
+				const hasContent = s.blocks.some((b) => {
+					if (b.kind === "text") return b.content.trim().length > 0;
+					return true;
+				});
+
+				if (!hasContent) return null;
+
+				return (
+					<div key={s.id} className="space-y-2">
+						<h3 className="text-sm font-semibold tracking-tight text-foreground/80 border-b border-border/40 pb-1">
+							{s.title}
+						</h3>
+						<div className="space-y-2">
+							{s.blocks.map((block) => (
+								<EodBlockDisplay key={block.id} block={block} events={events} />
+							))}
+						</div>
+					</div>
+				);
+			})}
+		</div>
+	);
+}
+
+function EodBlockDisplay({
+	block,
+	events,
+}: {
+	block: EodBlock;
+	events: Event[];
+}) {
+	if (block.kind === "text") {
+		if (!block.content.trim()) return null;
+		return (
+			<div className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">
+				{block.content}
+			</div>
+		);
+	}
+
+	const event = events.find((e) => e.id === block.eventId) ?? null;
+	const img = event ? primaryImagePath(event) : null;
+
+	return (
+		<div className="flex items-start gap-4 p-3 rounded-lg border border-border/40 bg-muted/10">
+			<div className="w-1/2 shrink-0 aspect-video rounded-md overflow-hidden bg-muted/30">
+				{img ? (
+					<img
+						alt=""
+						src={`local-file://${img}`}
+						className="w-full h-full object-cover"
+						loading="lazy"
+					/>
+				) : (
+					<div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+						No image
+					</div>
+				)}
+			</div>
+			<div className="flex-1 min-w-0 py-1">
+				<div className="text-xs text-muted-foreground">
+					{event ? formatTime(event.timestamp) : "Unknown"}
+				</div>
+				<div className="text-sm font-medium mt-1">
+					{event?.caption ?? event?.appName ?? "—"}
+				</div>
+				{event?.project && (
+					<div className="text-xs text-muted-foreground mt-1">
+						{event.project}
+					</div>
+				)}
+			</div>
+		</div>
+	);
+}
+
 export function StoryViewMain({
 	showJournal,
 	showAddiction,
@@ -815,18 +877,8 @@ export function StoryViewMain({
 	topRiskAddictions,
 	topRiskSources,
 	journalMeta,
-	currentStory,
-	isEditing,
-	isSaving,
-	draft,
-	onDraftChange,
-	onStartEdit,
-	onStartWrite,
-	onCancelEdit,
-	onSave,
-	onGenerate,
-	generateDisabled,
-	apiKey,
+	journalContent,
+	onOpenEod,
 	episodesMeta,
 	episodesTotalEvents,
 	episodesPage,
@@ -875,18 +927,8 @@ export function StoryViewMain({
 	topRiskAddictions: Array<{ label: string; count: number }>;
 	topRiskSources: Array<{ label: string; count: number }>;
 	journalMeta: string;
-	currentStory: Story | undefined;
-	isEditing: boolean;
-	isSaving: boolean;
-	draft: string;
-	onDraftChange: (value: string) => void;
-	onStartEdit: () => void;
-	onStartWrite: () => void;
-	onCancelEdit: () => void;
-	onSave: () => void;
-	onGenerate: () => void;
-	generateDisabled: boolean;
-	apiKey: string | null;
+	journalContent: EodContentV2 | null;
+	onOpenEod: () => void;
 	episodesMeta: string;
 	episodesTotalEvents: number;
 	episodesPage: number;
@@ -965,75 +1007,19 @@ export function StoryViewMain({
 			: undefined;
 
 	const journalPanelRight = (
-		<div className="flex items-center gap-2">
-			{isEditing ? (
-				<>
-					<Button
-						variant="outline"
-						size="icon"
-						onClick={onCancelEdit}
-						disabled={isSaving}
-					>
-						<X className="h-4 w-4" />
-					</Button>
-					<Button size="icon" onClick={onSave} disabled={isSaving}>
-						<Check className={cn("h-4 w-4", isSaving ? "animate-spin" : "")} />
-					</Button>
-				</>
-			) : (
-				<Button
-					variant="outline"
-					size="icon"
-					onClick={currentStory ? onStartEdit : onStartWrite}
-				>
-					<Pencil className="h-4 w-4" />
-				</Button>
-			)}
-		</div>
+		<Button variant="outline" size="icon" onClick={onOpenEod}>
+			<Pencil className="h-4 w-4" />
+		</Button>
 	);
 
-	const journalPanelBody = isEditing ? (
-		<Textarea
-			value={draft}
-			onChange={(e) => onDraftChange(e.target.value)}
-			placeholder="Write a quick day note…"
-			className="min-h-[220px] font-mono text-[12px] leading-relaxed"
-		/>
-	) : currentStory ? (
-		<pre className="whitespace-pre-wrap font-mono text-[12px] leading-relaxed text-foreground/90">
-			{currentStory.content}
-		</pre>
+	const journalPanelBody = journalContent ? (
+		<EodContentDisplay content={journalContent} events={dayEvents} />
 	) : (
 		<div className="space-y-4">
-			<pre className="whitespace-pre-wrap font-mono text-[12px] leading-relaxed text-muted-foreground">
-				{`DAY WRAPPED
-···
-
-AT A GLANCE
-- —
-
-HIGHLIGHTS
-- —
-
-PATTERNS
-- —
-
-TOMORROW
-- —`}
-			</pre>
-			<div className="flex items-center gap-2">
-				<Button variant="outline" onClick={onStartWrite}>
-					Write manually
-				</Button>
-				<Button onClick={onGenerate} disabled={generateDisabled}>
-					Generate
-				</Button>
-				{!apiKey ? (
-					<span className="text-xs text-muted-foreground">
-						Add an API key in Settings to generate.
-					</span>
-				) : null}
-			</div>
+			<p className="text-sm text-muted-foreground">
+				No journal entry for this day yet.
+			</p>
+			<Button onClick={onOpenEod}>Write end of day</Button>
 		</div>
 	);
 

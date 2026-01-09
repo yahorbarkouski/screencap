@@ -1,4 +1,4 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type CountItem, CountList } from "@/components/wrapped/CountList";
 import type { Event } from "@/types";
@@ -25,6 +25,33 @@ export function AddictionsStep({
 	onToggleSelection,
 	onCreateAddictionsSection,
 }: AddictionsStepProps) {
+	if (riskMinutes === 0) {
+		return (
+			<>
+				<FadeIn delay={0.02}>
+					<div className="text-center space-y-2 mb-6">
+						<h1 className="text-2xl font-bold">Addictions check-in</h1>
+					</div>
+				</FadeIn>
+
+				<FadeIn delay={0.04}>
+					<div className="flex flex-col items-center justify-center min-h-[300px] text-center">
+						<div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mb-4 ring-1 ring-green-500/20">
+							<ShieldCheck
+								className="w-8 h-8 text-green-500"
+								strokeWidth={1.5}
+							/>
+						</div>
+						<h3 className="text-lg font-medium">Clean day</h3>
+						<p className="text-sm text-muted-foreground mt-1 max-w-xs">
+							No addiction incidents detected today.
+						</p>
+					</div>
+				</FadeIn>
+			</>
+		);
+	}
+
 	return (
 		<>
 			<FadeIn delay={0.02}>
@@ -34,13 +61,7 @@ export function AddictionsStep({
 			</FadeIn>
 
 			<FadeIn delay={0.04}>
-				{riskMinutes === 0 ? (
-					<Stamp
-						tone="good"
-						title="Clean day"
-						detail="No addiction incidents detected."
-					/>
-				) : riskMinutes < 30 ? (
+				{riskMinutes < 30 ? (
 					<Stamp
 						tone="warn"
 						title="Some risk"

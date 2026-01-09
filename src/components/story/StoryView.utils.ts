@@ -1,7 +1,6 @@
-import { v4 as uuid } from "uuid";
 import type { CountItem } from "@/components/wrapped/CountList";
 import { SLOT_MINUTES, SLOTS_PER_DAY } from "@/lib/dayline";
-import type { Event, Story } from "@/types";
+import type { Event } from "@/types";
 
 export type JournalScope = "all" | "journal" | "addiction";
 
@@ -190,34 +189,4 @@ export function formatMinutesDelta(deltaMinutes: number): string {
 	if (deltaMinutes === 0) return "0m";
 	const sign = deltaMinutes > 0 ? "+" : "-";
 	return `${sign}${formatMinutesCompact(Math.abs(deltaMinutes))}`;
-}
-
-export function storyForDay(
-	stories: Story[],
-	dayStartMs: number,
-): Story | undefined {
-	return stories.find(
-		(s) => s.periodType === "daily" && s.periodStart === dayStartMs,
-	);
-}
-
-export function buildDailyStory({
-	currentId,
-	periodStart,
-	periodEnd,
-	content,
-}: {
-	currentId: string | undefined;
-	periodStart: number;
-	periodEnd: number;
-	content: string;
-}): Story {
-	return {
-		id: currentId ?? uuid(),
-		periodType: "daily",
-		periodStart,
-		periodEnd,
-		content,
-		createdAt: Date.now(),
-	};
 }

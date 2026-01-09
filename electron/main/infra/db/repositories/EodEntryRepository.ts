@@ -25,10 +25,12 @@ function parseContent(raw: string): EodContent {
 		if (
 			typeof parsed === "object" &&
 			parsed !== null &&
-			(parsed as { version?: unknown }).version === 1 &&
 			Array.isArray((parsed as { sections?: unknown }).sections)
 		) {
-			return parsed as EodContent;
+			const version = (parsed as { version?: unknown }).version;
+			if (version === 1 || version === 2) {
+				return parsed as EodContent;
+			}
 		}
 	} catch {}
 	return { version: 1, sections: [] };

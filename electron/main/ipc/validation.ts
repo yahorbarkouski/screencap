@@ -195,7 +195,7 @@ const zEodAttachment = z.union([
 		.strict(),
 ]);
 
-const zEodSection = z
+const zEodSectionV1 = z
 	.object({
 		id: zLimitedString(256),
 		title: zLimitedString(500),
@@ -204,13 +204,51 @@ const zEodSection = z
 	})
 	.strict();
 
-const zEodContent = z
+const zEodContentV1 = z
 	.object({
 		version: z.literal(1),
-		sections: z.array(zEodSection).max(100),
+		sections: z.array(zEodSectionV1).max(100),
 		summaryEventCount: z.number().int().nonnegative().optional(),
 	})
 	.strict();
+
+const zEodBlock = z.union([
+	z
+		.object({
+			kind: z.literal("text"),
+			id: zLimitedString(256),
+			content: z.string().max(200_000),
+		})
+		.strict(),
+	z
+		.object({
+			kind: z.literal("event"),
+			id: zLimitedString(256),
+			eventId: zLimitedString(256),
+		})
+		.strict(),
+]);
+
+const zEodSectionV2 = z
+	.object({
+		id: zLimitedString(256),
+		title: zLimitedString(500),
+		blocks: z.array(zEodBlock).max(500),
+	})
+	.strict();
+
+const zEodContentV2 = z
+	.object({
+		version: z.literal(2),
+		sections: z.array(zEodSectionV2).max(100),
+		summaryEventCount: z.number().int().nonnegative().optional(),
+	})
+	.strict();
+
+const zEodContent = z.discriminatedUnion("version", [
+	zEodContentV1,
+	zEodContentV2,
+]);
 
 export const ipcEodUpsertEntryArgs = z.tuple([
 	z

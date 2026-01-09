@@ -228,7 +228,7 @@ export type EodAttachment =
 			path: string;
 	  };
 
-export interface EodSection {
+export interface EodSectionV1 {
 	id: string;
 	title: string;
 	body: string;
@@ -237,11 +237,27 @@ export interface EodSection {
 
 export interface EodContentV1 {
 	version: 1;
+	sections: EodSectionV1[];
+	summaryEventCount?: number;
+}
+
+export type EodBlock =
+	| { kind: "text"; id: string; content: string }
+	| { kind: "event"; id: string; eventId: string };
+
+export interface EodSection {
+	id: string;
+	title: string;
+	blocks: EodBlock[];
+}
+
+export interface EodContentV2 {
+	version: 2;
 	sections: EodSection[];
 	summaryEventCount?: number;
 }
 
-export type EodContent = EodContentV1;
+export type EodContent = EodContentV1 | EodContentV2;
 
 export interface EodEntry {
 	id: string;
