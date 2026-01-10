@@ -1,3 +1,10 @@
+## [1.11.1](https://github.com/yahorbarkouski/screencap/compare/v1.11.0...v1.11.1) (2026-01-10)
+
+
+### Bug Fixes
+
+* check release pipeline ([c0556e8](https://github.com/yahorbarkouski/screencap/commit/c0556e893f2cfad3587b81444180554be36f9945))
+
 # [1.11.0](https://github.com/yahorbarkouski/screencap/compare/v1.10.0...v1.11.0) (2026-01-10)
 
 
