@@ -206,23 +206,51 @@ export function StreakPopup() {
 							>
 								<ChevronLeft className="size-2" />
 							</button>
-							<AvatarDisplay
-								username={socialTopHeader.username}
-								size="xs"
-								isOwn={
-									socialTopHeader.kind === "event"
-										? socialTopHeader.isOwn
+							<div
+								className={`flex items-center gap-1 min-w-0 ${socialTopHeader.kind === "event" && socialTopHeader.onUserClick ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
+								onClick={
+									socialTopHeader.kind === "event" && socialTopHeader.onUserClick
+										? socialTopHeader.onUserClick
 										: undefined
 								}
-								ownAvatarUrl={
-									socialTopHeader.kind === "event"
-										? socialTopHeader.ownAvatarUrl
+								onKeyDown={
+									socialTopHeader.kind === "event" && socialTopHeader.onUserClick
+										? (e) => {
+												if (e.key === "Enter" || e.key === " ") {
+													socialTopHeader.onUserClick?.();
+												}
+											}
 										: undefined
 								}
-								avatarSettings={socialTopHeader.avatarSettings}
-							/>
-							<div className="text-xs font-medium text-foreground/90 truncate">
-								{socialTopHeader.username}
+								role={
+									socialTopHeader.kind === "event" && socialTopHeader.onUserClick
+										? "button"
+										: undefined
+								}
+								tabIndex={
+									socialTopHeader.kind === "event" && socialTopHeader.onUserClick
+										? 0
+										: undefined
+								}
+							>
+								<AvatarDisplay
+									username={socialTopHeader.username}
+									size="xs"
+									isOwn={
+										socialTopHeader.kind === "event"
+											? socialTopHeader.isOwn
+											: undefined
+									}
+									ownAvatarUrl={
+										socialTopHeader.kind === "event"
+											? socialTopHeader.ownAvatarUrl
+											: undefined
+									}
+									avatarSettings={socialTopHeader.avatarSettings}
+								/>
+								<div className="text-xs font-medium text-foreground/90 truncate">
+									{socialTopHeader.username}
+								</div>
 							</div>
 						</div>
 					) : (

@@ -87,6 +87,7 @@ export type SocialTrayTopHeaderState =
 			ownAvatarUrl: string | null;
 			avatarSettings: Friend["avatarSettings"] | null;
 			onBack: () => void;
+			onUserClick?: () => void;
 	  }
 	| {
 			kind: "friend";
@@ -209,6 +210,18 @@ export function SocialTray({
 			96,
 			settings.avatar ?? getDefaultAvatarSettings(),
 		);
+	}, [identity, settings.avatar]);
+
+	const selfAsFriend = useMemo((): Friend | null => {
+		if (!identity) return null;
+		return {
+			userId: identity.userId,
+			username: identity.username,
+			deviceId: identity.deviceId,
+			dhPubKey: null,
+			avatarSettings: settings.avatar ?? null,
+			createdAt: Date.now(),
+		};
 	}, [identity, settings.avatar]);
 
 	useEffect(() => {
@@ -495,9 +508,13 @@ export function SocialTray({
 
 		if (selectedEvent && identity) {
 			const isOwn = selectedEvent.authorUserId === identity.userId;
-			const avatarSettings =
-				friends.find((f) => f.userId === selectedEvent.authorUserId)
-					?.avatarSettings ?? null;
+			const friend = friends.find(
+				(f) => f.userId === selectedEvent.authorUserId,
+			);
+			const userToOpen = isOwn ? selfAsFriend : friend;
+			const avatarSettings = isOwn
+				? (selfAsFriend?.avatarSettings ?? null)
+				: (friend?.avatarSettings ?? null);
 
 			onTopHeaderChange({
 				kind: "event",
@@ -506,6 +523,12 @@ export function SocialTray({
 				ownAvatarUrl: myAvatarUrl,
 				avatarSettings,
 				onBack: () => setSelectedEvent(null),
+				onUserClick: userToOpen
+					? () => {
+							setSelectedEvent(null);
+							void openFriend(userToOpen);
+						}
+					: undefined,
 			});
 			return;
 		}
@@ -527,6 +550,8 @@ export function SocialTray({
 		identity,
 		myAvatarUrl,
 		onTopHeaderChange,
+		openFriend,
+		selfAsFriend,
 		selectedEvent,
 		selectedFriend,
 		setSelectedEvent,
@@ -666,6 +691,20 @@ export function SocialTray({
 		[refresh],
 	);
 
+	const handleUserClickFromDetail = useCallback(
+		(userId: string) => {
+			const isOwn = userId === identity?.userId;
+			const userToOpen = isOwn
+				? selfAsFriend
+				: friends.find((f) => f.userId === userId);
+			if (userToOpen) {
+				setSelectedEvent(null);
+				void openFriend(userToOpen);
+			}
+		},
+		[friends, identity?.userId, openFriend, selfAsFriend, setSelectedEvent],
+	);
+
 	if (!identity) {
 		return (
 			<div className="flex h-[400px] flex-col items-center justify-center p-6 text-center space-y-4">
@@ -720,6 +759,7 @@ export function SocialTray({
 					isBusy={isBusy}
 					commentError={commentError}
 					localEventPaths={localEventPaths}
+					onUserClick={handleUserClickFromDetail}
 				/>
 			</div>
 		);
@@ -868,16 +908,27 @@ export function SocialTray({
 								</div>
 							) : (
 								<>
-									{newEvents.map((item) => (
+									{newEvents.map((item) => {
+									const isOwn = item.authorUserId === identity?.userId;
+									const userToOpen = isOwn
+										? selfAsFriend
+										: friends.find((f) => f.userId === item.authorUserId);
+									return (
 										<SharedEventCard
 											key={item.id}
 											item={item}
 											onClick={() => void openEvent(item)}
-											isOwnEvent={item.authorUserId === identity?.userId}
+											isOwnEvent={isOwn}
 											localImageSrc={localEventPaths.get(item.id)}
 											ownAvatarUrl={myAvatarUrl}
+											onUserClick={
+												userToOpen
+													? () => void openFriend(userToOpen)
+													: undefined
+											}
 										/>
-									))}
+									);
+								})}
 									{newEvents.length > 0 && oldEvents.length > 0 && (
 										<div className="flex items-center gap-2 py-1">
 											<div className="flex-1 border-t border-border/40" />
@@ -887,16 +938,27 @@ export function SocialTray({
 											<div className="flex-1 border-t border-border/40" />
 										</div>
 									)}
-									{oldEvents.map((item) => (
+									{oldEvents.map((item) => {
+									const isOwn = item.authorUserId === identity?.userId;
+									const userToOpen = isOwn
+										? selfAsFriend
+										: friends.find((f) => f.userId === item.authorUserId);
+									return (
 										<SharedEventCard
 											key={item.id}
 											item={item}
 											onClick={() => void openEvent(item)}
-											isOwnEvent={item.authorUserId === identity?.userId}
+											isOwnEvent={isOwn}
 											localImageSrc={localEventPaths.get(item.id)}
 											ownAvatarUrl={myAvatarUrl}
+											onUserClick={
+												userToOpen
+													? () => void openFriend(userToOpen)
+													: undefined
+											}
 										/>
-									))}
+									);
+								})}
 								</>
 							)}
 						</div>
@@ -1052,12 +1114,14 @@ function SharedEventCard({
 	isOwnEvent,
 	localImageSrc,
 	ownAvatarUrl,
+	onUserClick,
 }: {
 	item: SharedEvent;
 	onClick: () => void;
 	isOwnEvent?: boolean;
 	localImageSrc?: string | null;
 	ownAvatarUrl?: string | null;
+	onUserClick?: () => void;
 }) {
 	const imageSrc = useMemo(
 		() => localImageSrc ?? eventImageSrc(item),
@@ -1100,7 +1164,29 @@ function SharedEventCard({
 
 			<div className="p-3 space-y-3">
 				<div className="flex items-center justify-between">
-					<div className="flex items-center gap-2.5">
+					<div
+						className={`flex items-center gap-2.5 ${onUserClick ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
+						onClick={
+							onUserClick
+								? (e) => {
+										e.stopPropagation();
+										onUserClick();
+									}
+								: undefined
+						}
+						onKeyDown={
+							onUserClick
+								? (e) => {
+										if (e.key === "Enter" || e.key === " ") {
+											e.stopPropagation();
+											onUserClick();
+										}
+									}
+								: undefined
+						}
+						role={onUserClick ? "button" : undefined}
+						tabIndex={onUserClick ? 0 : undefined}
+					>
 						<div className="relative">
 							<AvatarDisplay
 								userId={item.authorUserId}

@@ -77,6 +77,7 @@ interface SharedEventDetailProps {
 	isBusy: boolean;
 	commentError: string | null;
 	localEventPaths: Map<string, string | null>;
+	onUserClick?: (userId: string) => void;
 }
 
 export function SharedEventDetail({
@@ -90,6 +91,7 @@ export function SharedEventDetail({
 	isBusy,
 	commentError,
 	localEventPaths,
+	onUserClick,
 }: SharedEventDetailProps) {
 	const usersById = useMemo(() => {
 		const map = new Map<string, string>();
@@ -310,30 +312,62 @@ export function SharedEventDetail({
 							</div>
 						) : (
 							<div className="divide-y divide-border/30">
-								{parsedComments.map((c) => (
-									<div key={c.id} className="py-3 flex gap-2">
-										<AvatarDisplay
-											userId={c.authorUserId}
-											username={c.authorUsername}
-											size="xs"
-										/>
-										<div className="min-w-0 flex-1">
-											<div className="flex items-center justify-between gap-2">
-												<div className="text-xs font-semibold text-foreground truncate">
-													{c.authorUserId === identity?.userId
-														? "You"
-														: `@${c.authorUsername}`}
-												</div>
-												<div className="text-[10px] text-muted-foreground whitespace-nowrap">
-													{timeAgo(c.timestampMs)}
-												</div>
+								{parsedComments.map((c) => {
+									const isOwn = c.authorUserId === identity?.userId;
+									const canClick = !!onUserClick;
+									return (
+										<div key={c.id} className="py-3 flex gap-2">
+											<div
+												className={canClick ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}
+												onClick={canClick ? () => onUserClick(c.authorUserId) : undefined}
+												onKeyDown={
+													canClick
+														? (e) => {
+																if (e.key === "Enter" || e.key === " ") {
+																	onUserClick(c.authorUserId);
+																}
+															}
+														: undefined
+												}
+												role={canClick ? "button" : undefined}
+												tabIndex={canClick ? 0 : undefined}
+											>
+												<AvatarDisplay
+													userId={c.authorUserId}
+													username={c.authorUsername}
+													size="xs"
+												/>
 											</div>
-											<div className="text-xs text-foreground/90 leading-relaxed mt-1 whitespace-pre-wrap">
-												{c.text}
+											<div className="min-w-0 flex-1">
+												<div className="flex items-center justify-between gap-2">
+													<div
+														className={`text-xs font-semibold text-foreground truncate ${canClick ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
+														onClick={canClick ? () => onUserClick(c.authorUserId) : undefined}
+														onKeyDown={
+															canClick
+																? (e) => {
+																		if (e.key === "Enter" || e.key === " ") {
+																			onUserClick(c.authorUserId);
+																		}
+																	}
+																: undefined
+														}
+														role={canClick ? "button" : undefined}
+														tabIndex={canClick ? 0 : undefined}
+													>
+														{isOwn ? "You" : `@${c.authorUsername}`}
+													</div>
+													<div className="text-[10px] text-muted-foreground whitespace-nowrap">
+														{timeAgo(c.timestampMs)}
+													</div>
+												</div>
+												<div className="text-xs text-foreground/90 leading-relaxed mt-1 whitespace-pre-wrap">
+													{c.text}
+												</div>
 											</div>
 										</div>
-									</div>
-								))}
+									);
+								})}
 							</div>
 						)}
 					</div>
