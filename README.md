@@ -123,7 +123,7 @@ Define behaviors you want to track, then measure. Bullet chess in my case:) But 
 
 ### Project Progress
 
-![Project progress](docs/screenshots/project-progress.png)
+![Project progress](docs/screenshots/project-progress-2.png)
 
 A dedicated timeline for milestones and momentum, the foundation for multiplayer collaboration
 
