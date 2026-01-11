@@ -1,3 +1,15 @@
+# [1.12.0](https://github.com/yahorbarkouski/screencap/compare/v1.11.1...v1.12.0) (2026-01-11)
+
+
+### Bug Fixes
+
+* add unpublish event capability ([e540963](https://github.com/yahorbarkouski/screencap/commit/e540963ec63773549f2c1a3d8889d4a3840f62d8))
+
+
+### Features
+
+* end-of-day improvements ([e17a1be](https://github.com/yahorbarkouski/screencap/commit/e17a1be352d1d3ee19016bbff2946c55978ada28))
+
 ## [1.11.1](https://github.com/yahorbarkouski/screencap/compare/v1.11.0...v1.11.1) (2026-01-10)
 
 
