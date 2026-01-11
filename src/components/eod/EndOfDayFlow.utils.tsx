@@ -10,7 +10,7 @@ import type {
 	Event,
 } from "@/types";
 
-export type Step = "summary" | "progress" | "addictions" | "write" | "review";
+export type Step = "summary" | "progress" | "addictions" | "write";
 
 export function dayStartMsOf(timestamp: number): number {
 	return startOfDay(new Date(timestamp)).getTime();

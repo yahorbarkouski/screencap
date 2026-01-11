@@ -1,7 +1,7 @@
 import { endOfDay, startOfDay, subDays } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Loader2, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 import { topCounts } from "@/components/story/StoryView.utils";
 import { Button } from "@/components/ui/button";
@@ -34,13 +34,7 @@ import {
 	upsertSection,
 } from "./EndOfDayFlow.utils";
 import { EventPickerDialog } from "./EventPickerDialog";
-import {
-	AddictionsStep,
-	ProgressStep,
-	ReviewStep,
-	SummaryStep,
-	WriteStep,
-} from "./steps";
+import { AddictionsStep, ProgressStep, SummaryStep, WriteStep } from "./steps";
 
 export function EndOfDayFlow() {
 	const eodOpen = useAppStore((s) => s.eodOpen);
@@ -76,6 +70,10 @@ export function EndOfDayFlow() {
 	const [isSaving, setIsSaving] = useState(false);
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [shouldAutoGenerate, setShouldAutoGenerate] = useState(false);
+
+	const contentHistoryRef = useRef<EodContentV2[]>([]);
+	const historyIndexRef = useRef(-1);
+	const isUndoRedoRef = useRef(false);
 
 	const [eventPickerOpen, setEventPickerOpen] = useState(false);
 	const [eventPickerSectionId, setEventPickerSectionId] = useState<
@@ -185,6 +183,8 @@ export function EndOfDayFlow() {
 	useEffect(() => {
 		if (!eodOpen) return;
 		setStep("summary");
+		contentHistoryRef.current = [];
+		historyIndexRef.current = -1;
 		void load();
 	}, [eodOpen, load]);
 
@@ -468,29 +468,18 @@ export function EndOfDayFlow() {
 
 	const hasPotentialProgress = potentialProgressEvents.length > 0;
 
-	const stepIndex = useMemo(() => {
-		const steps: Step[] = hasPotentialProgress
-			? ["summary", "progress", "addictions", "write", "review"]
-			: ["summary", "addictions", "write", "review"];
-		return steps.indexOf(step) + 1;
-	}, [step, hasPotentialProgress]);
-
-	const stepTotal = hasPotentialProgress ? 5 : 4;
-
 	const nextStep = useCallback(() => {
 		setStep((s) => {
 			if (s === "summary")
 				return hasPotentialProgress ? "progress" : "addictions";
 			if (s === "progress") return "addictions";
 			if (s === "addictions") return "write";
-			if (s === "write") return "review";
 			return s;
 		});
 	}, [hasPotentialProgress]);
 
 	const prevStep = useCallback(() => {
 		setStep((s) => {
-			if (s === "review") return "write";
 			if (s === "write") return "addictions";
 			if (s === "addictions")
 				return hasPotentialProgress ? "progress" : "summary";
@@ -500,7 +489,7 @@ export function EndOfDayFlow() {
 	}, [hasPotentialProgress]);
 
 	const canGoBack = step !== "summary";
-	const canGoNext = step !== "review";
+	const canGoNext = step !== "write";
 
 	const submit = useCallback(async () => {
 		if (potentialProgressSelection.size > 0) {
@@ -515,7 +504,7 @@ export function EndOfDayFlow() {
 	useEffect(() => {
 		if (!eodOpen) return;
 		const onKeyDown = (e: KeyboardEvent) => {
-			if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && step === "review") {
+			if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && step === "write") {
 				e.preventDefault();
 				void submit();
 			}
@@ -523,6 +512,65 @@ export function EndOfDayFlow() {
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
 	}, [eodOpen, step, submit]);
+
+	useEffect(() => {
+		if (isUndoRedoRef.current) {
+			isUndoRedoRef.current = false;
+			return;
+		}
+		const history = contentHistoryRef.current;
+		const currentIndex = historyIndexRef.current;
+
+		if (currentIndex < history.length - 1) {
+			contentHistoryRef.current = history.slice(0, currentIndex + 1);
+		}
+
+		contentHistoryRef.current.push(structuredClone(content));
+		if (contentHistoryRef.current.length > 100) {
+			contentHistoryRef.current.shift();
+		} else {
+			historyIndexRef.current = contentHistoryRef.current.length - 1;
+		}
+	}, [content]);
+
+	const undo = useCallback(() => {
+		const history = contentHistoryRef.current;
+		const currentIndex = historyIndexRef.current;
+
+		if (currentIndex > 0) {
+			isUndoRedoRef.current = true;
+			historyIndexRef.current = currentIndex - 1;
+			setContent(structuredClone(history[currentIndex - 1]));
+		}
+	}, []);
+
+	const redo = useCallback(() => {
+		const history = contentHistoryRef.current;
+		const currentIndex = historyIndexRef.current;
+
+		if (currentIndex < history.length - 1) {
+			isUndoRedoRef.current = true;
+			historyIndexRef.current = currentIndex + 1;
+			setContent(structuredClone(history[currentIndex + 1]));
+		}
+	}, []);
+
+	useEffect(() => {
+		if (!eodOpen) return;
+		const onKeyDown = (e: KeyboardEvent) => {
+			if ((e.metaKey || e.ctrlKey) && e.key === "z") {
+				if (e.shiftKey) {
+					e.preventDefault();
+					redo();
+				} else {
+					e.preventDefault();
+					undo();
+				}
+			}
+		};
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
+	}, [eodOpen, undo, redo]);
 
 	if (!eodOpen || !dayStartMs || !dayEndMs) return null;
 
@@ -548,23 +596,21 @@ export function EndOfDayFlow() {
 		<div className="fixed inset-0 z-50 flex flex-col bg-background/95 backdrop-blur-xl">
 			<div className="h-10 drag-region shrink-0" />
 
-			<div className="relative flex-1 overflow-hidden">
+			<div className=" flex-1 overflow-hidden relative">
+				<div className="absolute right-6 -top-0 z-10 flex items-center gap-2 no-drag">
+					<Button
+						variant="ghost"
+						size="icon"
+						onClick={closeEod}
+						className="size-6"
+						aria-label="Close end of day"
+					>
+						<X className="h-4 w-4" />
+					</Button>
+				</div>
+
 				<ScrollArea className="h-full">
 					<div className="relative max-w-5xl mx-auto px-6 py-8 min-h-full pb-28">
-						<div className="absolute right-6 top-6 z-10 flex items-center gap-2 no-drag">
-							<div className="hidden sm:block font-mono text-[10px] tracking-[0.18em] text-muted-foreground">
-								{stepIndex}/{stepTotal}
-							</div>
-							<Button
-								variant="ghost"
-								size="icon"
-								onClick={closeEod}
-								aria-label="Close end of day"
-							>
-								<X className="h-4 w-4" />
-							</Button>
-						</div>
-
 						<AnimatePresence mode="wait">
 							<motion.div
 								key={step}
@@ -625,14 +671,6 @@ export function EndOfDayFlow() {
 										onUpdateContent={setContent}
 									/>
 								)}
-
-								{step === "review" && (
-									<ReviewStep
-										content={content}
-										events={events}
-										submittedAt={submittedAt}
-									/>
-								)}
 							</motion.div>
 						</AnimatePresence>
 					</div>
@@ -649,7 +687,7 @@ export function EndOfDayFlow() {
 						)
 					}
 					right={
-						step === "review" ? (
+						step === "write" ? (
 							<PrimaryButton
 								onClick={() => void submit()}
 								disabled={isSaving || loading}

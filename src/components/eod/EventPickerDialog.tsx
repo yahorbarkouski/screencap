@@ -83,7 +83,7 @@ export function EventPickerDialog({
 
 				<div className="max-h-[55vh] overflow-y-auto pr-1">
 					<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-						{candidates.slice(0, 72).map((e) => {
+						{candidates.map((e) => {
 							const img = primaryImagePath(e);
 							return (
 								<button

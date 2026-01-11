@@ -1,33 +1,59 @@
-import { X } from "lucide-react";
+import { Check } from "lucide-react";
 import { cn, formatTime } from "@/lib/utils";
 import type { Event } from "@/types";
 import { primaryImagePath } from "./EndOfDayFlow.utils";
 
-interface EventCardProps {
-	event: Event;
+export interface EventCardProps {
+	event: Event | null;
+	className?: string;
 	selected?: boolean;
 	onToggle?: () => void;
-	onRemove?: () => void;
-	showProject?: boolean;
-	showAddiction?: boolean;
 	disabled?: boolean;
+	showAddiction?: boolean;
+	showProject?: boolean;
 }
 
 export function EventCard({
 	event,
+	className,
 	selected,
 	onToggle,
-	onRemove,
-	showProject,
-	showAddiction,
 	disabled,
+	showAddiction,
+	showProject,
 }: EventCardProps) {
-	const img = primaryImagePath(event);
-	const isInteractive = !!onToggle;
+	const img = event ? primaryImagePath(event) : null;
+	const isInteractive = !disabled && !!onToggle;
 
-	const content = (
-		<>
-			<div className="aspect-video bg-muted/30 flex items-center justify-center">
+	return (
+		<div
+			className={cn(
+				"flex flex-col gap-2 p-2 rounded-lg border border-border/50 bg-muted/20 relative",
+				isInteractive && "cursor-pointer hover:border-border transition-colors",
+				selected && "ring-2 ring-primary border-primary",
+				disabled && "opacity-50 pointer-events-none",
+				className,
+			)}
+			onClick={isInteractive ? onToggle : undefined}
+			onKeyDown={
+				isInteractive
+					? (e) => {
+							if (e.key === "Enter" || e.key === " ") {
+								e.preventDefault();
+								onToggle?.();
+							}
+						}
+					: undefined
+			}
+			role={isInteractive ? "button" : undefined}
+			tabIndex={isInteractive ? 0 : undefined}
+		>
+			{selected && (
+				<div className="absolute top-3 right-3 z-10 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+					<Check className="w-3 h-3 text-primary-foreground" />
+				</div>
+			)}
+			<div className="w-full aspect-video rounded-md overflow-hidden bg-muted/40">
 				{img ? (
 					<img
 						alt=""
@@ -35,100 +61,34 @@ export function EventCard({
 						className="w-full h-full object-cover"
 						loading="lazy"
 					/>
-				) : null}
-			</div>
-			<div className="p-2">
-				<div className="text-[10px] text-muted-foreground">
-					{formatTime(event.timestamp)}
-				</div>
-				<div className="truncate text-xs font-medium">
-					{showAddiction
-						? event.trackedAddiction
-						: (event.caption ?? event.appName ?? "—")}
-				</div>
-				{showProject && event.project && (
-					<div className="truncate text-[10px] text-muted-foreground">
-						{event.project}
+				) : (
+					<div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+						No image
 					</div>
 				)}
 			</div>
-			{selected && (
-				<div className="absolute top-1 right-1 h-4 w-4 bg-primary rounded-full flex items-center justify-center shadow-sm">
-					<div className="h-1.5 w-1.5 bg-primary-foreground rounded-full" />
+			<div className="px-1 pb-1">
+				<div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+					<span>{event ? formatTime(event.timestamp) : "Unknown event"}</span>
+					{showProject && event?.project && (
+						<>
+							<span>·</span>
+							<span className="truncate">{event.project}</span>
+						</>
+					)}
+					{showAddiction && event?.trackedAddiction && (
+						<>
+							<span>·</span>
+							<span className="truncate text-orange-500">
+								{event.trackedAddiction}
+							</span>
+						</>
+					)}
 				</div>
-			)}
-			{onRemove && (
-				<button
-					type="button"
-					className="absolute top-1 right-1 h-5 w-5 rounded bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-					onClick={(e) => {
-						e.stopPropagation();
-						onRemove();
-					}}
-				>
-					<X className="h-3 w-3" />
-				</button>
-			)}
-		</>
-	);
-
-	if (isInteractive) {
-		return (
-			<button
-				type="button"
-				disabled={disabled}
-				className={cn(
-					"rounded-lg border overflow-hidden text-left bg-background/30 transition-colors relative group",
-					selected
-						? "border-primary ring-1 ring-primary"
-						: "border-border hover:border-primary/40",
-				)}
-				onClick={onToggle}
-			>
-				{content}
-			</button>
-		);
-	}
-
-	return (
-		<div
-			className={cn(
-				"rounded-lg border overflow-hidden bg-background/20 relative group",
-				disabled ? "opacity-60 border-border/50" : "border-border",
-			)}
-		>
-			{content}
-		</div>
-	);
-}
-
-interface EventThumbnailProps {
-	event: Event | null;
-	onRemove?: () => void;
-}
-
-export function EventThumbnail({ event, onRemove }: EventThumbnailProps) {
-	const img = event ? primaryImagePath(event) : null;
-
-	return (
-		<div className="relative rounded-md border border-border bg-background/40 overflow-hidden group aspect-video">
-			{img ? (
-				<img
-					alt=""
-					src={`local-file://${img}`}
-					className="w-full h-full object-cover"
-					loading="lazy"
-				/>
-			) : null}
-			{onRemove && (
-				<button
-					type="button"
-					className="absolute top-1 right-1 h-5 w-5 rounded bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-					onClick={onRemove}
-				>
-					<X className="h-3 w-3" />
-				</button>
-			)}
+				<div className="text-sm font-medium">
+					{event?.caption ?? event?.appName ?? "—"}
+				</div>
+			</div>
 		</div>
 	);
 }

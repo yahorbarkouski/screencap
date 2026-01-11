@@ -209,12 +209,14 @@ export function StreakPopup() {
 							<div
 								className={`flex items-center gap-1 min-w-0 ${socialTopHeader.kind === "event" && socialTopHeader.onUserClick ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
 								onClick={
-									socialTopHeader.kind === "event" && socialTopHeader.onUserClick
+									socialTopHeader.kind === "event" &&
+									socialTopHeader.onUserClick
 										? socialTopHeader.onUserClick
 										: undefined
 								}
 								onKeyDown={
-									socialTopHeader.kind === "event" && socialTopHeader.onUserClick
+									socialTopHeader.kind === "event" &&
+									socialTopHeader.onUserClick
 										? (e) => {
 												if (e.key === "Enter" || e.key === " ") {
 													socialTopHeader.onUserClick?.();
@@ -223,12 +225,14 @@ export function StreakPopup() {
 										: undefined
 								}
 								role={
-									socialTopHeader.kind === "event" && socialTopHeader.onUserClick
+									socialTopHeader.kind === "event" &&
+									socialTopHeader.onUserClick
 										? "button"
 										: undefined
 								}
 								tabIndex={
-									socialTopHeader.kind === "event" && socialTopHeader.onUserClick
+									socialTopHeader.kind === "event" &&
+									socialTopHeader.onUserClick
 										? 0
 										: undefined
 								}

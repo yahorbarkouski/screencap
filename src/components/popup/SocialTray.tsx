@@ -931,26 +931,26 @@ export function SocialTray({
 							) : (
 								<>
 									{newEvents.map((item) => {
-									const isOwn = item.authorUserId === identity?.userId;
-									const userToOpen = isOwn
-										? selfAsFriend
-										: friends.find((f) => f.userId === item.authorUserId);
-									return (
-										<SharedEventCard
-											key={item.id}
-											item={item}
-											onClick={() => void openEvent(item)}
-											isOwnEvent={isOwn}
-											localImageSrc={localEventPaths.get(item.id)}
-											ownAvatarUrl={myAvatarUrl}
-											onUserClick={
-												userToOpen
-													? () => void openFriend(userToOpen)
-													: undefined
-											}
-										/>
-									);
-								})}
+										const isOwn = item.authorUserId === identity?.userId;
+										const userToOpen = isOwn
+											? selfAsFriend
+											: friends.find((f) => f.userId === item.authorUserId);
+										return (
+											<SharedEventCard
+												key={item.id}
+												item={item}
+												onClick={() => void openEvent(item)}
+												isOwnEvent={isOwn}
+												localImageSrc={localEventPaths.get(item.id)}
+												ownAvatarUrl={myAvatarUrl}
+												onUserClick={
+													userToOpen
+														? () => void openFriend(userToOpen)
+														: undefined
+												}
+											/>
+										);
+									})}
 									{newEvents.length > 0 && oldEvents.length > 0 && (
 										<div className="flex items-center gap-2 py-1">
 											<div className="flex-1 border-t border-border/40" />
@@ -961,26 +961,26 @@ export function SocialTray({
 										</div>
 									)}
 									{oldEvents.map((item) => {
-									const isOwn = item.authorUserId === identity?.userId;
-									const userToOpen = isOwn
-										? selfAsFriend
-										: friends.find((f) => f.userId === item.authorUserId);
-									return (
-										<SharedEventCard
-											key={item.id}
-											item={item}
-											onClick={() => void openEvent(item)}
-											isOwnEvent={isOwn}
-											localImageSrc={localEventPaths.get(item.id)}
-											ownAvatarUrl={myAvatarUrl}
-											onUserClick={
-												userToOpen
-													? () => void openFriend(userToOpen)
-													: undefined
-											}
-										/>
-									);
-								})}
+										const isOwn = item.authorUserId === identity?.userId;
+										const userToOpen = isOwn
+											? selfAsFriend
+											: friends.find((f) => f.userId === item.authorUserId);
+										return (
+											<SharedEventCard
+												key={item.id}
+												item={item}
+												onClick={() => void openEvent(item)}
+												isOwnEvent={isOwn}
+												localImageSrc={localEventPaths.get(item.id)}
+												ownAvatarUrl={myAvatarUrl}
+												onUserClick={
+													userToOpen
+														? () => void openFriend(userToOpen)
+														: undefined
+												}
+											/>
+										);
+									})}
 								</>
 							)}
 						</div>

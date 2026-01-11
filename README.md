@@ -2,7 +2,7 @@
 
 To understand where your day went
 
-A macOS desktop app that captures screenshots, windows and apps (both background and foreground) on a schedule and transforms them into a timeline, daily summaries, project milestones, addiction tracking, with optional E2E-encrypted social feed. 
+A macOS desktop app that captures screenshots, windows and apps (both background and foreground) on a schedule and transforms them into a timeline, daily summaries, project milestones, addiction tracking, with optional E2E-encrypted social feed.
 Screencap answers the questions like:
 
 - *What did I actually do today?*
@@ -12,7 +12,7 @@ Screencap answers the questions like:
 - *What my colleagues are doing?*
 - *What actual progress on project X has been made since September?*
 
-The idea behind this opensource is to inspire as many forks as possible. The project (both app and [social backend](https://github.com/yahorbarkouski/screencap-website)) are fully free to use, enrouranging everyone to customise and build their own Screencaps. 
+The idea behind this opensource is to inspire as many forks as possible. The project (both app and [social backend](https://github.com/yahorbarkouski/screencap-website)) are fully free to use, enrouranging everyone to customise and build their own Screencaps.
 Project started as a background project tracker, as we all tend to have zero-to-little screenshots from projects we worked on for months. Then addiction tracker came it, the Spotify background played, End Of Day flow, activity popup, and social E2E network in tray (I couldn't help myself)
 
 [Download](https://github.com/yahorbarkouski/screencap/releases) · [Changelog](CHANGELOG.md) · [Security](docs/security.md) · [E2EE & Sharing](docs/security-sharing.md) · [Local LLM](docs/local-llm.md)
@@ -115,7 +115,7 @@ Define behaviors you want to track, then measure. Bullet chess in my case:) But 
 | Calendar heatmap, streak counter, and episode timeline. See patterns across weeks. | Track specific behaviors like bullet chess. The AI detects candidates, you confirm episodes. |
 
 
-- **Create rules** — define what counts as an addiction 
+- **Create rules** — define what counts as an addiction
 - **AI detection** — the LLM surfaces candidates based on content (either image OCR or image itself + Accessibility context)
 - **Calendar view** — see patterns across weeks
 - **Streak tracking** — visualize consecutive clean days
@@ -207,7 +207,7 @@ Create rules from any event card or in Settings->Automation.
 
 ## Privacy & Security
 
-Local-first overall, but for LLM classification both local and remote (openrouter/openai) options are available. 
+Local-first overall, but for LLM classification both local and remote (openrouter/openai) options are available.
 
 
 
@@ -342,8 +342,8 @@ OpenRouter gives you access to many models (Claude, GPT-5, Gemini, open-source) 
 
 1. Run a local OpenAI-compatible server
 2. **Settings -> AI -> Local LLM** -> enable and configure:
-  - Base URL: `http://localhost:11434/v1` (Ollama) or `http://localhost:1234/v1` (LM Studio)
-  - Model: the model name from `/v1/models`
+- Base URL: `http://localhost:11434/v1` (Ollama) or `http://localhost:1234/v1` (LM Studio)
+- Model: the model name from `/v1/models`
 3. Click **Test** to verify
 
 See [Local LLM Guide](docs/local-llm.md) for detailed setup.
@@ -494,7 +494,7 @@ Key principles:
 
 ## Known Limitations and Pitfalls
 
->  **This project is in beta.** Expect rough edges, breaking changes, and behaviors that may surprise you. 
+>  **This project is in beta.** Expect rough edges, breaking changes, and behaviors that may surprise you.
 
 ### AI Usage Can Spike Unexpectedly
 
@@ -506,7 +506,7 @@ The classification pipeline can make **up to 2 LLM calls per screenshot** (one f
 
 Retention cleanup deletes old data based on time thresholds, not activity relevance. Important events get purged alongside noise if they're past the retention window.
 
-**What's needed:** activity-aware or user-marked retention. Really curious one. 
+**What's needed:** activity-aware or user-marked retention. Really curious one.
 
 ### Hardcoded Thresholds
 

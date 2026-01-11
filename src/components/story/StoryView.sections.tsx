@@ -52,8 +52,8 @@ function slotBg(
 	return rgba(CATEGORY_RGB.Work, alpha);
 }
 
-import { primaryImagePath } from "@/components/eod/EndOfDayFlow.utils";
-import { cn, formatTime } from "@/lib/utils";
+import { EventCard } from "@/components/eod/EventCard";
+import { cn } from "@/lib/utils";
 import type { EodBlock, EodContentV2, Event, Memory } from "@/types";
 import {
 	type AddictionStreak,
@@ -678,7 +678,7 @@ export function StoryViewSidebar({
 							ACTIVITY
 						</span>
 						<span className="font-mono text-[10px] tracking-[0.18em]">
-							JOURNAL = RING
+							THOUGHTS = RING
 						</span>
 					</div>
 				</Panel>
@@ -801,39 +801,8 @@ function EodBlockDisplay({
 	}
 
 	const event = events.find((e) => e.id === block.eventId) ?? null;
-	const img = event ? primaryImagePath(event) : null;
 
-	return (
-		<div className="flex items-start gap-4 p-3 rounded-lg border border-border/40 bg-muted/10">
-			<div className="w-1/2 shrink-0 aspect-video rounded-md overflow-hidden bg-muted/30">
-				{img ? (
-					<img
-						alt=""
-						src={`local-file://${img}`}
-						className="w-full h-full object-cover"
-						loading="lazy"
-					/>
-				) : (
-					<div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
-						No image
-					</div>
-				)}
-			</div>
-			<div className="flex-1 min-w-0 py-1">
-				<div className="text-xs text-muted-foreground">
-					{event ? formatTime(event.timestamp) : "Unknown"}
-				</div>
-				<div className="text-sm font-medium mt-1">
-					{event?.caption ?? event?.appName ?? "—"}
-				</div>
-				{event?.project && (
-					<div className="text-xs text-muted-foreground mt-1">
-						{event.project}
-					</div>
-				)}
-			</div>
-		</div>
-	);
+	return <EventCard event={event} />;
 }
 
 export function StoryViewMain({
@@ -1314,7 +1283,7 @@ export function StoryViewMain({
 			) : null}
 
 			{showJournal ? (
-				<Panel title="Journal" meta={journalMeta} right={journalPanelRight}>
+				<Panel title="Thoughts" meta={journalMeta} right={journalPanelRight}>
 					{journalPanelBody}
 				</Panel>
 			) : null}

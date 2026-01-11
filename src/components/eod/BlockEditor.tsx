@@ -10,15 +10,124 @@ import {
 	useMemo,
 	useRef,
 } from "react";
-import { cn, formatTime } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { EodBlock, EodSection, Event } from "@/types";
 import {
 	createTextBlock,
 	insertBlockAfter,
-	primaryImagePath,
 	removeBlock,
 	updateBlock,
 } from "./EndOfDayFlow.utils";
+import { EventCard } from "./EventCard";
+
+const LIST_BULLET = "•";
+
+type ListPrefix =
+	| {
+			kind: "bullet";
+			indent: string;
+			rawPrefix: string;
+			normalizedPrefix: string;
+	  }
+	| {
+			kind: "ordered";
+			indent: string;
+			number: number;
+			rawPrefix: string;
+			normalizedPrefix: string;
+	  };
+
+function getLineBounds(
+	value: string,
+	pos: number,
+): {
+	start: number;
+	end: number;
+	line: string;
+} {
+	const start = value.lastIndexOf("\n", Math.max(0, pos - 1)) + 1;
+	const nextNewline = value.indexOf("\n", start);
+	const end = nextNewline === -1 ? value.length : nextNewline;
+	return { start, end, line: value.slice(start, end) };
+}
+
+function getPreviousLine(
+	value: string,
+	lineStart: number,
+): {
+	start: number;
+	end: number;
+	line: string;
+} | null {
+	const prevEnd = lineStart - 1;
+	if (prevEnd < 0) return null;
+	const start = value.lastIndexOf("\n", Math.max(0, prevEnd - 1)) + 1;
+	return { start, end: prevEnd, line: value.slice(start, prevEnd) };
+}
+
+function parseListPrefix(line: string): ListPrefix | null {
+	const bullet = line.match(/^(\s*)(?:[-*]|[•●])\s+/);
+	if (bullet) {
+		const indent = bullet[1];
+		const rawPrefix = bullet[0];
+		return {
+			kind: "bullet",
+			indent,
+			rawPrefix,
+			normalizedPrefix: `${indent}${LIST_BULLET} `,
+		};
+	}
+
+	const ordered = line.match(/^(\s*)(\d+)[.)]\s+/);
+	if (ordered) {
+		const indent = ordered[1];
+		const rawPrefix = ordered[0];
+		const number = Number.parseInt(ordered[2], 10);
+		if (!Number.isFinite(number)) return null;
+		return {
+			kind: "ordered",
+			indent,
+			number,
+			rawPrefix,
+			normalizedPrefix: `${indent}${number}. `,
+		};
+	}
+
+	return null;
+}
+
+function normalizeListPrefixAtLine(
+	value: string,
+	lineStart: number,
+	cursor: number,
+	prefix: ListPrefix,
+): { value: string; cursor: number; prefix: ListPrefix } {
+	if (prefix.rawPrefix === prefix.normalizedPrefix) {
+		return { value, cursor, prefix };
+	}
+
+	const newValue =
+		value.slice(0, lineStart) +
+		prefix.normalizedPrefix +
+		value.slice(lineStart + prefix.rawPrefix.length);
+
+	let newCursor = cursor;
+	if (cursor >= lineStart + prefix.rawPrefix.length) {
+		newCursor += prefix.normalizedPrefix.length - prefix.rawPrefix.length;
+	} else if (cursor > lineStart) {
+		newCursor = Math.min(
+			lineStart + prefix.normalizedPrefix.length,
+			lineStart + Math.max(0, cursor - lineStart),
+		);
+	}
+
+	const normalizedPrefix: ListPrefix = {
+		...prefix,
+		rawPrefix: prefix.normalizedPrefix,
+	};
+
+	return { value: newValue, cursor: newCursor, prefix: normalizedPrefix };
+}
 
 interface BlockEditorProps {
 	section: EodSection;
@@ -213,6 +322,7 @@ export function BlockEditor({
 					eventMap={eventMap}
 					isFirst={index === 0}
 					isLast={index === section.blocks.length - 1}
+					nextBlockKind={section.blocks[index + 1]?.kind ?? null}
 					canRemove={section.blocks.length > 1 || block.kind === "event"}
 					pendingFocusRef={pendingFocusRef}
 					onTextChange={handleTextChange}
@@ -234,6 +344,7 @@ interface BlockItemProps {
 	eventMap: Map<string, Event>;
 	isFirst: boolean;
 	isLast: boolean;
+	nextBlockKind: "text" | "event" | null;
 	canRemove: boolean;
 	pendingFocusRef: React.MutableRefObject<PendingFocus | null>;
 	onTextChange: (blockId: string, content: string) => void;
@@ -254,6 +365,7 @@ const BlockItem = memo(function BlockItem({
 	eventMap,
 	isFirst,
 	isLast,
+	nextBlockKind,
 	canRemove,
 	pendingFocusRef,
 	onTextChange,
@@ -300,6 +412,7 @@ const BlockItem = memo(function BlockItem({
 			block={block}
 			event={event}
 			isLast={isLast}
+			nextBlockKind={nextBlockKind}
 			pendingFocusRef={pendingFocusRef}
 			dragControls={controls}
 			onDragStart={handleDragStart}
@@ -370,7 +483,29 @@ const TextBlock = memo(function TextBlock({
 
 	const handleChange = useCallback(
 		(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-			onTextChange(block.id, e.target.value);
+			const textarea = e.target;
+			const value = textarea.value;
+			const cursor = textarea.selectionStart;
+
+			const { start, line } = getLineBounds(value, cursor);
+			const prefix = parseListPrefix(line);
+			if (!prefix) {
+				onTextChange(block.id, value);
+				return;
+			}
+
+			const normalized = normalizeListPrefixAtLine(
+				value,
+				start,
+				cursor,
+				prefix,
+			);
+			onTextChange(block.id, normalized.value);
+			if (normalized.cursor !== cursor) {
+				requestAnimationFrame(() => {
+					textarea.setSelectionRange(normalized.cursor, normalized.cursor);
+				});
+			}
 		},
 		[block.id, onTextChange],
 	);
@@ -378,23 +513,160 @@ const TextBlock = memo(function TextBlock({
 	const handleKeyDown = useCallback(
 		(e: KeyboardEvent<HTMLTextAreaElement>) => {
 			const textarea = e.currentTarget;
-			const { selectionStart, selectionEnd, value } = textarea;
+			const { selectionStart, selectionEnd } = textarea;
 			const hasSelection = selectionStart !== selectionEnd;
+			let value = textarea.value;
+			let cursor = selectionStart;
 
-			if (e.key === "Backspace" && selectionStart === 0 && !hasSelection) {
-				if (value === "" && canRemove) {
+			if (hasSelection) {
+				value = value.slice(0, selectionStart) + value.slice(selectionEnd);
+			}
+
+			if (e.key === "Backspace" && !hasSelection) {
+				if (cursor === 0) {
+					if (value === "" && canRemove) {
+						e.preventDefault();
+						onRemove(block.id, "prev");
+						return;
+					}
 					e.preventDefault();
-					onRemove(block.id, "prev");
+					onMergeWithPrevious(block.id);
 					return;
 				}
-				e.preventDefault();
-				onMergeWithPrevious(block.id);
-				return;
+
+				const bounds = getLineBounds(value, cursor);
+				const prefix = parseListPrefix(bounds.line);
+				if (prefix) {
+					const normalized = normalizeListPrefixAtLine(
+						value,
+						bounds.start,
+						cursor,
+						prefix,
+					);
+					value = normalized.value;
+					cursor = normalized.cursor;
+
+					if (
+						cursor ===
+						bounds.start + normalized.prefix.normalizedPrefix.length
+					) {
+						e.preventDefault();
+						const newValue =
+							value.slice(0, bounds.start) +
+							value.slice(
+								bounds.start + normalized.prefix.normalizedPrefix.length,
+							);
+						onTextChange(block.id, newValue);
+						requestAnimationFrame(() => {
+							textarea.setSelectionRange(bounds.start, bounds.start);
+						});
+						return;
+					}
+				}
 			}
 
 			if (e.key === "Enter" && !e.shiftKey) {
 				e.preventDefault();
-				onSplitBlock(block.id, selectionStart);
+
+				const bounds = getLineBounds(value, cursor);
+				const prefix = parseListPrefix(bounds.line);
+				if (prefix) {
+					const normalized = normalizeListPrefixAtLine(
+						value,
+						bounds.start,
+						cursor,
+						prefix,
+					);
+					value = normalized.value;
+					cursor = normalized.cursor;
+
+					const refreshed = getLineBounds(value, cursor);
+					const afterPrefix = refreshed.line.slice(
+						normalized.prefix.normalizedPrefix.length,
+					);
+					const isEmptyItem = afterPrefix.trim() === "";
+
+					if (isEmptyItem) {
+						const prev = getPreviousLine(value, refreshed.start);
+						const prevPrefix = prev ? parseListPrefix(prev.line) : null;
+						const hasPrevListItem =
+							prevPrefix && prevPrefix.kind === normalized.prefix.kind;
+
+						if (hasPrevListItem) {
+							const removed =
+								value.slice(0, refreshed.start) +
+								value.slice(
+									refreshed.start + normalized.prefix.normalizedPrefix.length,
+								);
+							const removedCursor =
+								cursor - normalized.prefix.normalizedPrefix.length;
+							const newValue =
+								removed.slice(0, removedCursor) +
+								"\n" +
+								removed.slice(removedCursor);
+							const newCursor = removedCursor + 1;
+							onTextChange(block.id, newValue);
+							requestAnimationFrame(() => {
+								textarea.setSelectionRange(newCursor, newCursor);
+							});
+							return;
+						}
+					}
+
+					const nextPrefix =
+						normalized.prefix.kind === "ordered"
+							? `${normalized.prefix.indent}${normalized.prefix.number + 1}. `
+							: normalized.prefix.normalizedPrefix;
+
+					const newValue = `${value.slice(0, cursor)}\n${nextPrefix}${value.slice(cursor)}`;
+					const newCursor = cursor + 1 + nextPrefix.length;
+					onTextChange(block.id, newValue);
+					requestAnimationFrame(() => {
+						textarea.setSelectionRange(newCursor, newCursor);
+					});
+					return;
+				}
+
+				onSplitBlock(block.id, cursor);
+				return;
+			}
+
+			if (e.key === "Tab") {
+				const bounds = getLineBounds(value, cursor);
+				const prefix = parseListPrefix(bounds.line);
+				if (!prefix) return;
+
+				e.preventDefault();
+				const indentUnit = "  ";
+
+				if (e.shiftKey) {
+					const removable = value.slice(
+						bounds.start,
+						bounds.start + indentUnit.length,
+					);
+					if (removable === indentUnit) {
+						const newValue =
+							value.slice(0, bounds.start) +
+							value.slice(bounds.start + indentUnit.length);
+						const newCursor = Math.max(
+							bounds.start,
+							cursor - indentUnit.length,
+						);
+						onTextChange(block.id, newValue);
+						requestAnimationFrame(() => {
+							textarea.setSelectionRange(newCursor, newCursor);
+						});
+					}
+					return;
+				}
+
+				const newValue =
+					value.slice(0, bounds.start) + indentUnit + value.slice(bounds.start);
+				const newCursor = cursor + indentUnit.length;
+				onTextChange(block.id, newValue);
+				requestAnimationFrame(() => {
+					textarea.setSelectionRange(newCursor, newCursor);
+				});
 				return;
 			}
 
@@ -425,6 +697,7 @@ const TextBlock = memo(function TextBlock({
 			onRemove,
 			onMergeWithPrevious,
 			onSplitBlock,
+			onTextChange,
 			getAdjacentBlockId,
 			focusBlock,
 		],
@@ -435,12 +708,10 @@ const TextBlock = memo(function TextBlock({
 			value={block}
 			dragListener={false}
 			dragControls={dragControls}
+			layout="position"
+			transition={{ layout: { duration: 0.08, ease: "easeOut" } }}
 			data-block-id={block.id}
-			className="group relative"
-			initial={{ opacity: 0, height: 0 }}
-			animate={{ opacity: 1, height: "auto" }}
-			exit={{ opacity: 0, height: 0 }}
-			transition={{ duration: 0.15 }}
+			className="group relative px-0.5"
 		>
 			<div className="absolute -left-12 top-[7px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
 				<button
@@ -467,7 +738,11 @@ const TextBlock = memo(function TextBlock({
 				onChange={handleChange}
 				onKeyDown={handleKeyDown}
 				placeholder={isFirst ? "Write something..." : "Continue writing..."}
-				className="w-full resize-none border-none bg-transparent text-base leading-relaxed focus:outline-none focus-visible:ring-0 min-h-[28px] overflow-hidden py-0.5"
+				className={cn(
+					"w-full resize-none border-none bg-transparent text-base leading-relaxed focus:outline-none focus-visible:ring-0 min-h-[28px] overflow-hidden py-0.5",
+					!isFirst &&
+						"placeholder:text-transparent group-hover:placeholder:text-muted-foreground/50 focus:placeholder:text-muted-foreground/50",
+				)}
 				rows={1}
 			/>
 
@@ -489,6 +764,7 @@ interface EventBlockProps {
 	block: Extract<EodBlock, { kind: "event" }>;
 	event: Event | null;
 	isLast: boolean;
+	nextBlockKind: "text" | "event" | null;
 	pendingFocusRef: React.MutableRefObject<PendingFocus | null>;
 	dragControls: ReturnType<typeof useDragControls>;
 	onDragStart: (e: PointerEvent) => void;
@@ -506,6 +782,7 @@ const EventBlock = memo(function EventBlock({
 	block,
 	event,
 	isLast,
+	nextBlockKind,
 	pendingFocusRef,
 	dragControls,
 	onDragStart,
@@ -516,7 +793,6 @@ const EventBlock = memo(function EventBlock({
 	focusBlock,
 }: EventBlockProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
-	const img = event ? primaryImagePath(event) : null;
 
 	useEffect(() => {
 		if (pendingFocusRef.current?.blockId === block.id) {
@@ -571,14 +847,15 @@ const EventBlock = memo(function EventBlock({
 			value={block}
 			dragListener={false}
 			dragControls={dragControls}
+			layout="position"
+			transition={{ layout: { duration: 0.08, ease: "easeOut" } }}
 			data-block-id={block.id}
-			className="group relative my-0"
-			initial={{ opacity: 0, scale: 0.95 }}
-			animate={{ opacity: 1, scale: 1 }}
-			exit={{ opacity: 0, scale: 0.95 }}
-			transition={{ duration: 0.15 }}
+			className={cn(
+				"group relative my-0",
+				nextBlockKind === "text" || nextBlockKind === null ? "pb-8" : "pb-2",
+			)}
 		>
-			<div className="absolute -left-10 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+			<div className="absolute -left-10 top-4 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
 				<button
 					type="button"
 					className="p-0.5 text-muted-foreground/50 hover:text-muted-foreground cursor-grab active:cursor-grabbing touch-none"
@@ -596,39 +873,11 @@ const EventBlock = memo(function EventBlock({
 				data-event-focus
 				tabIndex={0}
 				onKeyDown={handleKeyDown}
-				className={cn(
-					"flex items-start gap-3 p-2 rounded-lg border bg-muted/20 transition-all cursor-pointer outline-none",
-					"border-border/50 hover:border-border",
-					"focus:border-primary/60 focus:ring-2 focus:ring-primary/20",
-				)}
 			>
-				<div className="w-1/2 shrink-0 aspect-video rounded-md overflow-hidden bg-muted/40">
-					{img ? (
-						<img
-							alt=""
-							src={`local-file://${img}`}
-							className="w-full h-full object-cover"
-							loading="lazy"
-						/>
-					) : (
-						<div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
-							No image
-						</div>
-					)}
-				</div>
-				<div className="flex-1 min-w-0 py-0.5">
-					<div className="text-xs text-muted-foreground">
-						{event ? formatTime(event.timestamp) : "Unknown event"}
-					</div>
-					<div className="text-sm font-medium truncate">
-						{event?.caption ?? event?.appName ?? "—"}
-					</div>
-					{event?.project && (
-						<div className="text-xs text-muted-foreground truncate">
-							{event.project}
-						</div>
-					)}
-				</div>
+				<EventCard
+					event={event}
+					className="transition-all cursor-pointer outline-none hover:border-border focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
+				/>
 			</div>
 
 			<div className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity flex flex-col gap-0.5">

@@ -13,7 +13,9 @@ export async function publishEventToAllFriends(eventId: string): Promise<void> {
 	updateEvent(eventId, { sharedToFriends: 1 });
 }
 
-export async function unpublishEventFromFriends(eventId: string): Promise<void> {
+export async function unpublishEventFromFriends(
+	eventId: string,
+): Promise<void> {
 	const roomId = await ensureFriendsFeedRoom({ reconcileInvites: false });
 
 	const res = await signedFetch(`/api/rooms/${roomId}/events/${eventId}`, {

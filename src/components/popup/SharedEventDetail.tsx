@@ -343,8 +343,16 @@ export function SharedEventDetail({
 									return (
 										<div key={c.id} className="py-3 flex gap-2">
 											<div
-												className={canClick ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}
-												onClick={canClick ? () => onUserClick(c.authorUserId) : undefined}
+												className={
+													canClick
+														? "cursor-pointer hover:opacity-80 transition-opacity"
+														: ""
+												}
+												onClick={
+													canClick
+														? () => onUserClick(c.authorUserId)
+														: undefined
+												}
 												onKeyDown={
 													canClick
 														? (e) => {
@@ -367,7 +375,11 @@ export function SharedEventDetail({
 												<div className="flex items-center justify-between gap-2">
 													<div
 														className={`text-xs font-semibold text-foreground truncate ${canClick ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
-														onClick={canClick ? () => onUserClick(c.authorUserId) : undefined}
+														onClick={
+															canClick
+																? () => onUserClick(c.authorUserId)
+																: undefined
+														}
 														onKeyDown={
 															canClick
 																? (e) => {
