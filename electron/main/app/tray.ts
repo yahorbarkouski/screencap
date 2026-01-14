@@ -12,6 +12,7 @@ let tray: Tray | null = null;
 let trayMenu: Menu | null = null;
 let quitCallback: (() => void) | null = null;
 let unreadCount = 0;
+let updateReady = false;
 
 const logger = createLogger({ scope: "Tray" });
 
@@ -44,16 +45,32 @@ function createTrayIcon(): Electron.NativeImage {
 	return icon;
 }
 
+function syncTrayTitle(): void {
+	if (!tray || tray.isDestroyed() || process.platform !== "darwin") return;
+	const parts: string[] = [];
+	if (updateReady) parts.push("↑");
+	if (unreadCount > 0) parts.push(`• ${unreadCount}`);
+	tray.setTitle(parts.join(" "));
+}
+
+export function setTrayUpdateReady(ready: boolean): void {
+	updateReady = ready;
+	if (!tray || tray.isDestroyed()) return;
+	try {
+		syncTrayTitle();
+	} catch (error) {
+		logger.warn("Failed to update tray title for update indicator", {
+			error: String(error),
+		});
+	}
+}
+
 export function setTrayUnreadCount(count: number): void {
 	unreadCount = Math.max(0, Math.trunc(count));
 	if (!tray || tray.isDestroyed()) return;
 	try {
-		// Keep a single indicator. On macOS use the title (right of icon) for
-		// `• N` like Cursor; on other platforms we keep just the normal icon.
 		tray.setImage(createTrayIcon());
-		if (process.platform === "darwin") {
-			tray.setTitle(unreadCount > 0 ? `• ${unreadCount}` : "");
-		}
+		syncTrayTitle();
 	} catch (error) {
 		logger.warn("Failed to update tray icon", { error: String(error) });
 	}
@@ -100,9 +117,8 @@ export function createTray(onQuit: () => void): Tray {
 		icon?.isEmpty()
 	) {
 		tray.setTitle("SC");
-	}
-	if (process.platform === "darwin" && unreadCount > 0) {
-		tray.setTitle(`• ${unreadCount}`);
+	} else if (process.platform === "darwin") {
+		syncTrayTitle();
 	}
 
 	logger.info("Tray created", { platform: process.platform });

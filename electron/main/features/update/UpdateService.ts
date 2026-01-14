@@ -8,6 +8,7 @@ type ProgressInfo = pkg.ProgressInfo;
 
 import { IpcEvents } from "../../../shared/ipc";
 import { setIsQuitting } from "../../app/lifecycle";
+import { setTrayUpdateReady } from "../../app/tray";
 import { createLogger } from "../../infra/log";
 import { broadcast } from "../../infra/windows";
 
@@ -42,7 +43,7 @@ export function initializeUpdater(): void {
 		debug: (message: string) => logger.info(message),
 	};
 
-	autoUpdater.autoDownload = false;
+	autoUpdater.autoDownload = true;
 	autoUpdater.autoInstallOnAppQuit = true;
 
 	autoUpdater.on("checking-for-update", () => {
@@ -89,6 +90,7 @@ export function initializeUpdater(): void {
 			availableVersion: info.version,
 			progress: undefined,
 		});
+		setTrayUpdateReady(true);
 	});
 
 	autoUpdater.on("error", (error: Error) => {
@@ -176,6 +178,7 @@ export function restartAndInstall(): void {
 	}
 
 	logger.info("Restarting to install update");
+	setTrayUpdateReady(false);
 	setIsQuitting(true);
 	autoUpdater.quitAndInstall();
 }
