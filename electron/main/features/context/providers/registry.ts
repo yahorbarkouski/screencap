@@ -1,3 +1,4 @@
+import { appleMusicProvider } from "./AppleMusicProvider";
 import { chromiumProvider } from "./ChromiumProvider";
 import { cursorProvider } from "./CursorProvider";
 import { safariProvider } from "./SafariProvider";
@@ -8,6 +9,7 @@ const builtInProviders: ContextProvider[] = [
 	safariProvider,
 	chromiumProvider,
 	spotifyProvider,
+	appleMusicProvider,
 	cursorProvider,
 ];
 

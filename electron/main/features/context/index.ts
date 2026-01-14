@@ -6,6 +6,8 @@ export { buildActivityContext, buildContextKey } from "./keyBuilder";
 export type { ContextProvider } from "./providers";
 export {
 	collectForegroundSnapshot,
+	getAppleMusicAutomationError,
+	getAppleMusicAutomationState,
 	getAutomationState,
 	getChromiumAutomationError,
 	getChromiumAutomationState,

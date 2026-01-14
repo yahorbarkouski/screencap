@@ -83,6 +83,8 @@ function formatContentKind(kind: string | null): string {
 		twitch_vod: "Twitch VOD",
 		spotify_track: "Spotify Track",
 		spotify_episode: "Spotify Episode",
+		apple_music_track: "Apple Music",
+		apple_music_episode: "Apple Podcast",
 		web_page: "Web Page",
 	};
 	return map[kind] || kind;

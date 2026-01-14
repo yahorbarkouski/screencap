@@ -38,6 +38,8 @@ export type KnownContentKind =
 	| "twitch_vod"
 	| "spotify_track"
 	| "spotify_episode"
+	| "apple_music_track"
+	| "apple_music_episode"
 	| "web_page"
 	| "ide_workspace";
 

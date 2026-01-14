@@ -1,4 +1,10 @@
 export {
+	APPLE_MUSIC_BUNDLE_IDS,
+	appleMusicProvider,
+	getAppleMusicAutomationError,
+	getAppleMusicAutomationState,
+} from "./AppleMusicProvider";
+export {
 	chromiumProvider,
 	getChromiumAutomationError,
 	getChromiumAutomationState,

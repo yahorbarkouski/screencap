@@ -5,10 +5,10 @@ import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import type { Plugin } from "vite";
 
 const devCsp =
-	"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file: local-file: https://i.scdn.co; connect-src 'self' ws://localhost:* http://localhost:*; base-uri 'none'; object-src 'none'";
+	"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file: local-file: https://i.scdn.co https://*.mzstatic.com; connect-src 'self' ws://localhost:* http://localhost:*; base-uri 'none'; object-src 'none'";
 
 const prodCsp =
-	"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file: local-file: https://i.scdn.co; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'";
+	"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file: local-file: https://i.scdn.co https://*.mzstatic.com; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'";
 
 function cspPlugin(csp: string): Plugin {
 	return {

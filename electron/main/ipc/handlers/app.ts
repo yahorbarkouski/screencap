@@ -115,12 +115,22 @@ export function registerAppHandlers(): void {
 		IpcChannels.App.OpenExternal,
 		ipcOpenExternalArgs,
 		async (url: string) => {
-			const ALLOWED_PROTOCOLS = new Set(["http:", "https:", "spotify:"]);
+			const ALLOWED_PROTOCOLS = new Set([
+				"http:",
+				"https:",
+				"spotify:",
+				"itms:",
+			]);
 			try {
 				const parsed = new URL(url);
-				if (!ALLOWED_PROTOCOLS.has(parsed.protocol)) return;
+				logger.debug("openExternal", { url, protocol: parsed.protocol });
+				if (!ALLOWED_PROTOCOLS.has(parsed.protocol)) {
+					logger.debug("openExternal blocked", { protocol: parsed.protocol });
+					return;
+				}
 				await shell.openExternal(url, { activate: true });
-			} catch {
+			} catch (error) {
+				logger.error("openExternal failed", { url, error: String(error) });
 				return;
 			}
 		},

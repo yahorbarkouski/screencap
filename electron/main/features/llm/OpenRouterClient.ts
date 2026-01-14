@@ -15,12 +15,21 @@ function isOpenRouterKey(apiKey: string): boolean {
 	return apiKey.startsWith("sk-or-");
 }
 
-function getApiConfig(apiKey: string, model?: string): {
+type ApiConfig = {
 	url: string;
 	model: string;
 	headers: Record<string, string>;
 	supportsReasoningEffort: boolean;
-} {
+	supportsTemperature: boolean;
+	maxTokensKey: "max_tokens" | "max_completion_tokens";
+};
+
+function isReasoningModel(model: string): boolean {
+	const m = model.toLowerCase();
+	return m.includes("o1") || m.includes("o3") || m.startsWith("gpt-5");
+}
+
+function getApiConfig(apiKey: string, model?: string): ApiConfig {
 	if (isOpenRouterKey(apiKey)) {
 		return {
 			url: OPENROUTER_API_URL,
@@ -32,10 +41,14 @@ function getApiConfig(apiKey: string, model?: string): {
 				"X-Title": "Screencap",
 			},
 			supportsReasoningEffort: true,
+			supportsTemperature: true,
+			maxTokensKey: "max_tokens",
 		};
 	}
 
-	const normalizedModel = model?.trim().replace(/^openai\//, "") || DEFAULT_OPENAI_MODEL;
+	const normalizedModel =
+		model?.trim().replace(/^openai\//, "") || DEFAULT_OPENAI_MODEL;
+	const reasoning = isReasoningModel(normalizedModel);
 	return {
 		url: OPENAI_API_URL,
 		model: normalizedModel,
@@ -44,6 +57,8 @@ function getApiConfig(apiKey: string, model?: string): {
 			Authorization: `Bearer ${apiKey}`,
 		},
 		supportsReasoningEffort: false,
+		supportsTemperature: !reasoning,
+		maxTokensKey: reasoning ? "max_completion_tokens" : "max_tokens",
 	};
 }
 
@@ -128,10 +143,10 @@ export async function callOpenRouter<T>(
 	}
 
 	if (options?.maxTokens !== undefined) {
-		body.max_tokens = options.maxTokens;
+		body[config.maxTokensKey] = options.maxTokens;
 	}
 
-	if (options?.temperature !== undefined) {
+	if (options?.temperature !== undefined && config.supportsTemperature) {
 		body.temperature = options.temperature;
 	}
 
@@ -198,10 +213,10 @@ export async function callOpenRouterRaw(
 	}
 
 	if (options?.maxTokens !== undefined) {
-		body.max_tokens = options.maxTokens;
+		body[config.maxTokensKey] = options.maxTokens;
 	}
 
-	if (options?.temperature !== undefined) {
+	if (options?.temperature !== undefined && config.supportsTemperature) {
 		body.temperature = options.temperature;
 	}
 
