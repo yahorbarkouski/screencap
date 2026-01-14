@@ -1,3 +1,11 @@
+# [1.14.0](https://github.com/yahorbarkouski/screencap/compare/v1.13.0...v1.14.0) (2026-01-14)
+
+
+### Features
+
+* auto-download updates ([af370e1](https://github.com/yahorbarkouski/screencap/commit/af370e13ca146b6f0e42da1e743c30378dc2e87b))
+* mcp ([fcbb503](https://github.com/yahorbarkouski/screencap/commit/fcbb503a33b9a4f966bc9610b19c1468e61d5d6e))
+
 # [1.13.0](https://github.com/yahorbarkouski/screencap/compare/v1.12.1...v1.13.0) (2026-01-14)
 
 
