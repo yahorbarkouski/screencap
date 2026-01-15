@@ -1,3 +1,10 @@
+# [1.16.0](https://github.com/yahorbarkouski/screencap/compare/v1.15.0...v1.16.0) (2026-01-15)
+
+
+### Features
+
+* mcp final ([590e973](https://github.com/yahorbarkouski/screencap/commit/590e973ca2e8e9641b11ae0b84d6ade10e8cbc21))
+
 # [1.15.0](https://github.com/yahorbarkouski/screencap/compare/v1.14.0...v1.15.0) (2026-01-15)
 
 
