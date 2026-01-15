@@ -1,3 +1,10 @@
+# [1.15.0](https://github.com/yahorbarkouski/screencap/compare/v1.14.0...v1.15.0) (2026-01-15)
+
+
+### Features
+
+* mcp bundle ([5fcf558](https://github.com/yahorbarkouski/screencap/commit/5fcf5580e20fc1c50c26f73dd00b84d0739e428a))
+
 # [1.14.0](https://github.com/yahorbarkouski/screencap/compare/v1.13.0...v1.14.0) (2026-01-14)
 
 
