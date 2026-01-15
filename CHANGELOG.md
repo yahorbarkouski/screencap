@@ -1,3 +1,10 @@
+# [1.17.0](https://github.com/yahorbarkouski/screencap/compare/v1.16.0...v1.17.0) (2026-01-15)
+
+
+### Features
+
+* saving energy, storing crash logs ([05d4e0f](https://github.com/yahorbarkouski/screencap/commit/05d4e0f40c50c7e4381e637c46b995e9fe0f221c))
+
 # [1.16.0](https://github.com/yahorbarkouski/screencap/compare/v1.15.0...v1.16.0) (2026-01-15)
 
 
