@@ -491,8 +491,13 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 {
   "mcpServers": {
     "screencap": {
-      "command": "/Applications/Screencap.app/Contents/MacOS/Screencap",
-      "args": ["--mcp"]
+      "command": "/usr/bin/env",
+      "args": [
+        "-u",
+        "ELECTRON_RUN_AS_NODE",
+        "/Applications/Screencap.app/Contents/MacOS/Screencap",
+        "--mcp"
+      ]
     }
   }
 }

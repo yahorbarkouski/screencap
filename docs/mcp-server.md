@@ -14,12 +14,19 @@ Add the following to your Claude Desktop configuration file (`~/Library/Applicat
 {
   "mcpServers": {
     "screencap": {
-      "command": "/Applications/Screencap.app/Contents/MacOS/Screencap",
-      "args": ["--mcp"]
+      "command": "/usr/bin/env",
+      "args": [
+        "-u",
+        "ELECTRON_RUN_AS_NODE",
+        "/Applications/Screencap.app/Contents/MacOS/Screencap",
+        "--mcp"
+      ]
     }
   }
 }
 ```
+
+If you see an error like `/Applications/Screencap.app/Contents/MacOS/Screencap: bad option: --mcp`, your MCP host is launching the process with `ELECTRON_RUN_AS_NODE` set. Unsetting it (as shown above) is required, otherwise the Screencap binary runs in “Node mode” and will not start the app.
 
 ### Manual run
 
@@ -39,8 +46,13 @@ By default, the MCP server reads from the standard Screencap database location (
 {
   "mcpServers": {
     "screencap": {
-      "command": "/Applications/Screencap.app/Contents/MacOS/Screencap",
-      "args": ["--mcp"],
+      "command": "/usr/bin/env",
+      "args": [
+        "-u",
+        "ELECTRON_RUN_AS_NODE",
+        "/Applications/Screencap.app/Contents/MacOS/Screencap",
+        "--mcp"
+      ],
       "env": {
         "SCREENCAP_DB_PATH": "/path/to/custom/screencap.db"
       }
