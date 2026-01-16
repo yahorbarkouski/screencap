@@ -106,7 +106,7 @@ function extractIconUrls(html: string, baseUrl: string): string[] {
 }
 
 async function tryDownloadIcon(
-	url: string,
+	url: string
 ): Promise<{ bytes: Uint8Array; contentType: string | null } | null> {
 	const safeUrl = toSafeHttpUrl(url);
 	if (!safeUrl) return null;
@@ -129,7 +129,7 @@ async function tryDownloadIcon(
 
 async function discoverCandidateUrls(
 	host: string,
-	urlCanonical: string | null,
+	urlCanonical: string | null
 ): Promise<string[]> {
 	const candidates: string[] = [];
 
@@ -146,7 +146,8 @@ async function discoverCandidateUrls(
 	candidates.push(`https://${host}`);
 	candidates.push(`http://${host}`);
 
-	const firstPage = candidates.find((u) => !u.endsWith("/favicon.ico")) ?? null;
+	const firstPage =
+		candidates.find((u) => !u.endsWith("/favicon.ico")) ?? null;
 	if (!firstPage) return candidates;
 
 	try {
@@ -172,12 +173,21 @@ async function discoverCandidateUrls(
 }
 
 const inflight = new Map<string, Promise<string | null>>();
+const FAILURE_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const failedHosts = new Map<string, number>(); // host -> timestamp of failure
 
 export async function ensureFavicon(
 	host: string,
-	urlCanonical: string | null,
+	urlCanonical: string | null
 ): Promise<string | null> {
 	const key = normalizeHost(host);
+
+	// Check failure cache first
+	const failedAt = failedHosts.get(key);
+	if (failedAt && Date.now() - failedAt < FAILURE_CACHE_TTL_MS) {
+		return null; // Skip recently failed host
+	}
+
 	const existing = getFaviconPath(key);
 	if (existing && existsSync(existing)) return existing;
 
@@ -192,7 +202,10 @@ export async function ensureFavicon(
 			if (!result) continue;
 
 			const ext = inferExtension(result.contentType, url);
-			const filePath = join(getFaviconsDir(), `${safeFileBase(key)}.${ext}`);
+			const filePath = join(
+				getFaviconsDir(),
+				`${safeFileBase(key)}.${ext}`
+			);
 
 			try {
 				writeFileSync(filePath, result.bytes);
@@ -205,6 +218,8 @@ export async function ensureFavicon(
 			return filePath;
 		}
 
+		// Mark this host as failed
+		failedHosts.set(key, Date.now());
 		return null;
 	})();
 

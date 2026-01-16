@@ -30,6 +30,8 @@ export function openDatabase(): Database.Database {
 	logger.info("Opening database at:", dbPath);
 	db = new Database(dbPath);
 	db.pragma("foreign_keys = ON");
+	db.pragma("journal_mode = WAL");
+	db.pragma("synchronous = NORMAL");
 	return db;
 }
 

@@ -18,7 +18,7 @@ const logger = createLogger({ scope: "EventRepository" });
 type RawEventRow = Record<string, unknown>;
 
 function highResPathFromLowResPath(
-	path: string | null | undefined,
+	path: string | null | undefined
 ): string | null {
 	if (!path) return null;
 	if (!path.endsWith(".webp")) return null;
@@ -27,7 +27,7 @@ function highResPathFromLowResPath(
 
 function safeUnlink(
 	path: string | null | undefined,
-	context: { id: string; kind: string },
+	context: { id: string; kind: string }
 ): void {
 	if (!path) return;
 	try {
@@ -40,6 +40,11 @@ function safeUnlink(
 	}
 }
 
+// Cached statement for insertEvent
+let insertEventStmt: ReturnType<
+	ReturnType<typeof getDatabase>["prepare"]
+> | null = null;
+
 export function insertEvent(event: Partial<Event>): void {
 	if (!isDbOpen()) {
 		logger.error("Cannot insert event - database not open");
@@ -49,7 +54,8 @@ export function insertEvent(event: Partial<Event>): void {
 	const db = getDatabase();
 	logger.debug("Inserting event:", { id: event.id });
 
-	const stmt = db.prepare(`
+	if (!insertEventStmt) {
+		insertEventStmt = db.prepare(`
     INSERT INTO events (
       id, timestamp, end_timestamp, display_id, category, subcategories, 
       project, project_progress, project_progress_confidence, project_progress_evidence, potential_progress,
@@ -62,8 +68,10 @@ export function insertEvent(event: Partial<Event>): void {
       context_provider, context_confidence, context_key, context_json, shared_to_friends
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
+	}
 
-	stmt.run(
+	// biome-ignore lint/suspicious/noExplicitAny: better-sqlite3 accepts variadic arguments
+	(insertEventStmt.run as (...args: unknown[]) => void)(
 		event.id,
 		event.timestamp,
 		event.endTimestamp ?? event.timestamp,
@@ -103,15 +111,21 @@ export function insertEvent(event: Partial<Event>): void {
 		event.contextConfidence ?? null,
 		event.contextKey ?? null,
 		event.contextJson ?? null,
-		event.sharedToFriends ?? 0,
+		event.sharedToFriends ?? 0
 	);
 }
+
+// Cached statement for getEventById
+let getEventByIdStmt: ReturnType<
+	ReturnType<typeof getDatabase>["prepare"]
+> | null = null;
 
 export function getEventById(id: string): Event | null {
 	if (!isDbOpen()) return null;
 	const db = getDatabase();
-	const row = db
-		.prepare(`
+
+	if (!getEventByIdStmt) {
+		getEventByIdStmt = db.prepare(`
     SELECT
       e.*,
       f.path AS favicon_path,
@@ -121,17 +135,43 @@ export function getEventById(id: string): Event | null {
     LEFT JOIN favicons f ON f.host = e.url_host
     LEFT JOIN app_icons ai ON ai.bundle_id = e.app_bundle_id
     WHERE e.id = ?
-  `)
-		.get(id) as RawEventRow | undefined;
+  `);
+	}
+
+	const row = getEventByIdStmt.get(id) as RawEventRow | undefined;
 	return row ? transformRow<Event>(row) : null;
 }
 
-export function getEvents(options: GetEventsOptions): Event[] {
-	if (!isDbOpen()) return [];
+// Statement cache: maps filter pattern key to prepared statement
+const stmtCache = new Map<
+	string,
+	ReturnType<ReturnType<typeof getDatabase>["prepare"]>
+>();
 
-	const db = getDatabase();
+function getEventsCacheKey(options: GetEventsOptions): string {
+	const parts: string[] = [];
+	if (options.category) parts.push("cat");
+	if (options.project) parts.push("proj");
+	if (options.projectProgress !== undefined) parts.push("pp");
+	if (options.trackedAddiction) parts.push("ta");
+	if (options.hasTrackedAddiction !== undefined)
+		parts.push(options.hasTrackedAddiction ? "hta1" : "hta0");
+	if (options.appBundleId) parts.push("app");
+	if (options.urlHost) parts.push("url");
+	if (options.startDate) parts.push("sd");
+	if (options.endDate) parts.push("ed");
+	if (options.search) parts.push("s");
+	if (options.dismissed !== undefined) parts.push("d");
+	else parts.push("nd"); // not dismissed (default)
+	return parts.join("|");
+}
+
+function buildGetEventsQuery(options: GetEventsOptions): {
+	sql: string;
+	params: (string | number | null)[];
+} {
 	const conditions: string[] = ["1=1"];
-	const params: unknown[] = [];
+	const params: (string | number | null)[] = [];
 
 	if (options.category) {
 		conditions.push("e.category = ?");
@@ -157,7 +197,7 @@ export function getEvents(options: GetEventsOptions): Event[] {
 		conditions.push(
 			options.hasTrackedAddiction
 				? "e.tracked_addiction IS NOT NULL"
-				: "e.tracked_addiction IS NULL",
+				: "e.tracked_addiction IS NULL"
 		);
 	}
 
@@ -193,7 +233,11 @@ export function getEvents(options: GetEventsOptions): Event[] {
 		params.push(options.dismissed ? 1 : 0);
 	}
 
-	let query = `
+	// Always include LIMIT and OFFSET for consistent SQL template
+	params.push(options.limit ?? 1000);
+	params.push(options.offset ?? 0);
+
+	const sql = `
     SELECT
       e.*,
       f.path AS favicon_path,
@@ -204,25 +248,35 @@ export function getEvents(options: GetEventsOptions): Event[] {
     LEFT JOIN app_icons ai ON ai.bundle_id = e.app_bundle_id
     WHERE ${conditions.join(" AND ")}
     ORDER BY e.timestamp DESC
+    LIMIT ? OFFSET ?
   `;
 
-	if (options.limit) {
-		query += " LIMIT ?";
-		params.push(options.limit);
+	return { sql, params };
+}
+
+export function getEvents(options: GetEventsOptions): Event[] {
+	if (!isDbOpen()) return [];
+
+	const db = getDatabase();
+	const cacheKey = getEventsCacheKey(options);
+	const { sql, params } = buildGetEventsQuery(options);
+
+	let stmt = stmtCache.get(cacheKey);
+	if (!stmt) {
+		stmt = db.prepare(sql);
+		stmtCache.set(cacheKey, stmt);
 	}
 
-	if (options.offset) {
-		query += " OFFSET ?";
-		params.push(options.offset);
-	}
-
-	const rows = db.prepare(query).all(...params) as RawEventRow[];
+	// biome-ignore lint/suspicious/noExplicitAny: better-sqlite3 accepts variadic arguments
+	const rows = (stmt.all as (...args: unknown[]) => unknown[])(
+		...params
+	) as RawEventRow[];
 	return transformRows<Event>(rows);
 }
 
 export function listExpiredEventIds(
 	cutoffTimestamp: number,
-	limit: number,
+	limit: number
 ): string[] {
 	if (!isDbOpen()) return [];
 	if (limit <= 0) return [];
@@ -236,7 +290,7 @@ export function listExpiredEventIds(
       WHERE COALESCE(end_timestamp, timestamp) < ?
       ORDER BY timestamp ASC
       LIMIT ?
-    `,
+    `
 		)
 		.all(cutoffTimestamp, limit) as Array<{ id: string }>;
 
@@ -253,7 +307,7 @@ export interface HqCleanupCutoffs {
 
 export function listHqCleanupCandidates(
 	cutoffs: HqCleanupCutoffs,
-	limit: number,
+	limit: number
 ): Array<{ id: string; originalPath: string }> {
 	if (!isDbOpen()) return [];
 	if (limit <= 0) return [];
@@ -294,7 +348,7 @@ export function listHqCleanupCandidates(
         )
       ORDER BY e.timestamp ASC
       LIMIT ?
-    `,
+    `
 		)
 		.all(
 			cutoffs.regularCutoff,
@@ -302,7 +356,7 @@ export function listHqCleanupCandidates(
 			cutoffs.progressCutoff,
 			eodSubmittedBefore,
 			cutoffs.progressFallbackCutoff,
-			limit,
+			limit
 		) as Array<{
 		id: string;
 		original_path: string;
@@ -319,7 +373,7 @@ export function cleanupQueueForCompletedEvents(): number {
 			`
       DELETE FROM queue
       WHERE event_id IN (SELECT id FROM events WHERE status = 'completed')
-    `,
+    `
 		)
 		.run();
 	return result.changes;
@@ -334,11 +388,11 @@ export function recoverInterruptedEventProcessing(now = Date.now()): number {
         UPDATE queue
         SET next_attempt_at = ?
         WHERE event_id IN (SELECT id FROM events WHERE status = 'processing')
-      `,
+      `
 		).run(ts);
 		const result = db
 			.prepare(
-				"UPDATE events SET status = 'failed' WHERE status = 'processing'",
+				"UPDATE events SET status = 'failed' WHERE status = 'processing'"
 			)
 			.run();
 		return result.changes;
@@ -360,7 +414,7 @@ export function listPendingEventIdsMissingQueue(limit: number): string[] {
         AND NOT EXISTS (SELECT 1 FROM queue q WHERE q.event_id = e.id)
       ORDER BY e.timestamp DESC
       LIMIT ?
-    `,
+    `
 		)
 		.all(limit) as Array<{ id: string }>;
 	return rows.map((r) => r.id);
@@ -384,7 +438,7 @@ export function dismissEvents(ids: string[]): void {
 	const db = getDatabase();
 	const placeholders = ids.map(() => "?").join(",");
 	db.prepare(
-		`UPDATE events SET dismissed = 1 WHERE id IN (${placeholders})`,
+		`UPDATE events SET dismissed = 1 WHERE id IN (${placeholders})`
 	).run(...ids);
 }
 
@@ -394,7 +448,7 @@ export function relabelEvents(ids: string[], label: string): void {
 	const db = getDatabase();
 	const placeholders = ids.map(() => "?").join(",");
 	db.prepare(
-		`UPDATE events SET user_label = ?, confidence = 1 WHERE id IN (${placeholders})`,
+		`UPDATE events SET user_label = ?, confidence = 1 WHERE id IN (${placeholders})`
 	).run(label, ...ids);
 }
 
@@ -404,7 +458,7 @@ export function confirmAddiction(ids: string[]): void {
 	const db = getDatabase();
 	const placeholders = ids.map(() => "?").join(",");
 	db.prepare(
-		`UPDATE events SET tracked_addiction = addiction_candidate, addiction_candidate = NULL WHERE id IN (${placeholders})`,
+		`UPDATE events SET tracked_addiction = addiction_candidate, addiction_candidate = NULL WHERE id IN (${placeholders})`
 	).run(...ids);
 }
 
@@ -414,7 +468,7 @@ export function rejectAddiction(ids: string[]): void {
 	const db = getDatabase();
 	const placeholders = ids.map(() => "?").join(",");
 	db.prepare(
-		`UPDATE events SET tracked_addiction = NULL, addiction_candidate = NULL WHERE id IN (${placeholders})`,
+		`UPDATE events SET tracked_addiction = NULL, addiction_candidate = NULL WHERE id IN (${placeholders})`
 	).run(...ids);
 }
 
@@ -423,7 +477,9 @@ export function deleteEvent(id: string): void {
 
 	const db = getDatabase();
 	const event = db
-		.prepare("SELECT thumbnail_path, original_path FROM events WHERE id = ?")
+		.prepare(
+			"SELECT thumbnail_path, original_path FROM events WHERE id = ?"
+		)
 		.get(id) as
 		| { thumbnail_path: string | null; original_path: string | null }
 		| undefined;
@@ -460,19 +516,21 @@ export function deleteEvent(id: string): void {
 }
 
 export function getLatestEventByDisplayId(
-	displayId: string,
+	displayId: string
 ): LatestEventByDisplayId | null {
 	if (!isDbOpen()) return null;
 
 	const db = getDatabase();
 	const row = db
-		.prepare(`
+		.prepare(
+			`
     SELECT id, timestamp, end_timestamp, display_id, stable_hash, detail_hash, original_path, merged_count, context_key 
     FROM events 
     WHERE display_id = ? AND dismissed = 0
     ORDER BY timestamp DESC 
     LIMIT 1
-  `)
+  `
+		)
 		.get(displayId) as RawEventRow | undefined;
 
 	return row ? transformRow<LatestEventByDisplayId>(row) : null;
@@ -510,7 +568,9 @@ export function getDistinctCategories(): string[] {
 
 	const db = getDatabase();
 	const rows = db
-		.prepare("SELECT DISTINCT category FROM events WHERE category IS NOT NULL")
+		.prepare(
+			"SELECT DISTINCT category FROM events WHERE category IS NOT NULL"
+		)
 		.all() as { category: string }[];
 	return rows.map((r) => r.category);
 }
@@ -525,14 +585,14 @@ export function getDistinctProjects(): string[] {
 				SELECT project AS name FROM events WHERE project IS NOT NULL
 				UNION
 				SELECT content AS name FROM memory WHERE type = 'project'
-			) ORDER BY name COLLATE NOCASE ASC`,
+			) ORDER BY name COLLATE NOCASE ASC`
 		)
 		.all() as { name: string }[];
 	return rows.map((r) => r.name);
 }
 
 export function getEarliestEventTimestampForProject(
-	project: string,
+	project: string
 ): number | null {
 	if (!isDbOpen()) return null;
 	const db = getDatabase();
@@ -549,7 +609,7 @@ type DistinctFacetOptions = {
 };
 
 export function getDistinctProjectsInRange(
-	options: DistinctFacetOptions,
+	options: DistinctFacetOptions
 ): string[] {
 	if (!isDbOpen()) return [];
 
@@ -581,7 +641,7 @@ export function getDistinctProjectsInRange(
       FROM events e
       WHERE ${conditions.join(" AND ")}
       ORDER BY e.project COLLATE NOCASE ASC
-    `,
+    `
 		)
 		.all(...params) as { project: string }[];
 
@@ -590,18 +650,20 @@ export function getDistinctProjectsInRange(
 
 export function getCategoryStats(
 	startDate: number,
-	endDate: number,
+	endDate: number
 ): { category: string; count: number }[] {
 	if (!isDbOpen()) return [];
 
 	const db = getDatabase();
 	return db
-		.prepare(`
+		.prepare(
+			`
     SELECT category, COUNT(*) as count 
     FROM events 
     WHERE timestamp >= ? AND timestamp <= ? AND dismissed = 0
     GROUP BY category
-  `)
+  `
+		)
 		.all(startDate, endDate) as { category: string; count: number }[];
 }
 
@@ -611,7 +673,7 @@ export function getProjectCounts(): { project: string; count: number }[] {
 	const db = getDatabase();
 	return db
 		.prepare(
-			"SELECT project, COUNT(*) as count FROM events WHERE project IS NOT NULL GROUP BY project",
+			"SELECT project, COUNT(*) as count FROM events WHERE project IS NOT NULL GROUP BY project"
 		)
 		.all() as { project: string; count: number }[];
 }
@@ -632,12 +694,12 @@ export function updateAddictionName(oldName: string, newName: string): number {
 	const db = getDatabase();
 	const tracked = db
 		.prepare(
-			"UPDATE events SET tracked_addiction = ? WHERE tracked_addiction = ?",
+			"UPDATE events SET tracked_addiction = ? WHERE tracked_addiction = ?"
 		)
 		.run(newName, oldName);
 	const candidate = db
 		.prepare(
-			"UPDATE events SET addiction_candidate = ? WHERE addiction_candidate = ?",
+			"UPDATE events SET addiction_candidate = ? WHERE addiction_candidate = ?"
 		)
 		.run(newName, oldName);
 	return tracked.changes + candidate.changes;
@@ -683,7 +745,7 @@ export function getDistinctAppsInRange(options: DistinctFacetOptions): Array<{
       WHERE ${conditions.join(" AND ")}
       GROUP BY e.app_bundle_id
       ORDER BY COALESCE(MAX(e.app_name), e.app_bundle_id) COLLATE NOCASE ASC
-    `,
+    `
 		)
 		.all(...params) as Array<{
 		bundleId: string;
@@ -716,7 +778,7 @@ export interface AddictionStatsRow {
 }
 
 export function getAddictionStatsBatch(
-	names: string[],
+	names: string[]
 ): Record<string, AddictionStatsRow> {
 	if (!isDbOpen() || names.length === 0) return {};
 
@@ -740,7 +802,7 @@ export function getAddictionStatsBatch(
 		WHERE e.tracked_addiction IN (${placeholders})
 		  AND e.dismissed = 0
 		GROUP BY e.tracked_addiction
-	`,
+	`
 		)
 		.all(weekStart, now, prevWeekStart, weekStart, ...names) as Array<{
 		name: string;
@@ -766,7 +828,7 @@ export function getAddictionStatsBatch(
 			)
 			WHERE rn = 1
 		)
-	`,
+	`
 		)
 		.all(...names) as Array<{
 		name: string;
@@ -803,7 +865,7 @@ export interface ProjectStatsRow {
 }
 
 export function getProjectStatsBatch(
-	names: string[],
+	names: string[]
 ): Record<string, ProjectStatsRow> {
 	if (!isDbOpen() || names.length === 0) return {};
 
@@ -828,7 +890,7 @@ export function getProjectStatsBatch(
 		WHERE e.project IN (${placeholders})
 		  AND e.dismissed = 0
 		GROUP BY e.project
-	`,
+	`
 		)
 		.all(...uniqueCanonical) as Array<{
 		name: string;
@@ -854,7 +916,7 @@ export function getProjectStatsBatch(
 			)
 			WHERE rn = 1
 		)
-	`,
+	`
 		)
 		.all(...uniqueCanonical) as Array<{
 		name: string;
@@ -881,7 +943,7 @@ export function getProjectStatsBatch(
 			)
 			WHERE rn = 1
 		)
-	`,
+	`
 		)
 		.all(...uniqueCanonical) as Array<{
 		name: string;

@@ -5,6 +5,17 @@ export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
 
+export function debounce<T extends (...args: unknown[]) => void>(
+	fn: T,
+	ms: number
+): (...args: Parameters<T>) => void {
+	let timeoutId: ReturnType<typeof setTimeout> | null = null;
+	return (...args: Parameters<T>) => {
+		if (timeoutId) clearTimeout(timeoutId);
+		timeoutId = setTimeout(() => fn(...args), ms);
+	};
+}
+
 export function formatRelativeTime(timestamp: number): string {
 	const now = Date.now();
 	const diff = now - timestamp;
@@ -71,11 +82,13 @@ export function formatBytes(bytes: number): string {
 	const maximumFractionDigits =
 		unitIndex === 0 ? 0 : value >= 100 ? 0 : value >= 10 ? 1 : 2;
 
-	return `${new Intl.NumberFormat(undefined, { maximumFractionDigits }).format(value)} ${units[unitIndex]}`;
+	return `${new Intl.NumberFormat(undefined, {
+		maximumFractionDigits,
+	}).format(value)} ${units[unitIndex]}`;
 }
 
 export function groupEventsByDate<T extends { timestamp: number }>(
-	events: T[],
+	events: T[]
 ): Map<string, T[]> {
 	const groups = new Map<string, T[]>();
 	const today = new Date();

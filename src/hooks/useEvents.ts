@@ -1,5 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { debounce } from "@/lib/utils";
 import { useAppStore } from "@/stores/app";
+
+const DEBOUNCE_MS = 150;
 
 export function useEvents() {
 	const events = useAppStore((s) => s.events);
@@ -34,6 +37,11 @@ export function useEvents() {
 		}
 	}, [setEvents, filters, pagination]);
 
+	const debouncedFetch = useMemo(
+		() => debounce(fetchEvents, DEBOUNCE_MS),
+		[fetchEvents]
+	);
+
 	useEffect(() => {
 		isMounted.current = true;
 		return () => {
@@ -48,21 +56,22 @@ export function useEvents() {
 	useEffect(() => {
 		if (!window.api) return;
 
-		const unsubscribeCreated = window.api.on("event:created", () => {
-			fetchEvents();
-		});
-
-		const unsubscribeUpdated = window.api.on("event:updated", () => {
-			fetchEvents();
-		});
-
-		const unsubscribeChanged = window.api.on("events:changed", () => {
-			fetchEvents();
-		});
-
-		const unsubscribeProjects = window.api.on("projects:normalized", () => {
-			fetchEvents();
-		});
+		const unsubscribeCreated = window.api.on(
+			"event:created",
+			debouncedFetch
+		);
+		const unsubscribeUpdated = window.api.on(
+			"event:updated",
+			debouncedFetch
+		);
+		const unsubscribeChanged = window.api.on(
+			"events:changed",
+			debouncedFetch
+		);
+		const unsubscribeProjects = window.api.on(
+			"projects:normalized",
+			debouncedFetch
+		);
 
 		return () => {
 			unsubscribeCreated();
@@ -70,7 +79,7 @@ export function useEvents() {
 			unsubscribeChanged();
 			unsubscribeProjects();
 		};
-	}, [fetchEvents]);
+	}, [debouncedFetch]);
 
 	return { events, fetchEvents, hasNextPage, isLoading };
 }
