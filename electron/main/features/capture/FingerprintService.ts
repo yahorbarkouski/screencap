@@ -1,5 +1,8 @@
+import { performance } from "node:perf_hooks";
 import sharp from "sharp";
 import type { Fingerprint, FingerprintComparison } from "../../../shared/types";
+import { createPerfTracker } from "../../infra/log/perf";
+const perf = createPerfTracker("Perf.Fingerprint");
 
 type DHashSpec = {
 	hashWidth: number;
@@ -44,6 +47,7 @@ async function computeDHashHex(
 	input: Buffer,
 	spec: DHashSpec,
 ): Promise<string> {
+	const startedAt = perf.enabled ? performance.now() : 0;
 	const sampleWidth = spec.hashWidth + 1;
 	const sampleHeight = spec.hashHeight;
 
@@ -69,10 +73,18 @@ async function computeDHashHex(
 	}
 
 	const hexLen = Math.ceil(bits / 4);
-	return hexPad(acc.toString(16), hexLen);
+	const result = hexPad(acc.toString(16), hexLen);
+	if (perf.enabled) {
+		perf.track(
+			`fingerprint.dhash.${spec.hashWidth}x${spec.hashHeight}`,
+			performance.now() - startedAt,
+		);
+	}
+	return result;
 }
 
 export async function computeFingerprint(input: Buffer): Promise<Fingerprint> {
+	const startedAt = perf.enabled ? performance.now() : 0;
 	const [stableHash, detailHash] = await Promise.all([
 		computeDHashHex(input, {
 			hashWidth: 8,
@@ -88,6 +100,8 @@ export async function computeFingerprint(input: Buffer): Promise<Fingerprint> {
 		}),
 	]);
 
+	if (perf.enabled)
+		perf.track("fingerprint.total", performance.now() - startedAt);
 	return { stableHash, detailHash };
 }
 

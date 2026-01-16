@@ -6,6 +6,7 @@ import {
 	EyeIcon,
 	Loader2,
 } from "lucide-react";
+import { useState } from "react";
 import {
 	SettingsRow,
 	SettingsRows,
@@ -18,7 +19,6 @@ import { TabsContent } from "@/components/ui/tabs";
 import { Panel } from "@/components/wrapped/Panel";
 import { cn } from "@/lib/utils";
 import type { OcrResult, Settings } from "@/types";
-import { useState } from "react";
 
 const MCP_CONFIG = {
 	mcpServers: {

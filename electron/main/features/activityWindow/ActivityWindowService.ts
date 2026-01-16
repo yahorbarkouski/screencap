@@ -1,5 +1,6 @@
 import { mkdir, readdir, rename, rm } from "node:fs/promises";
 import { basename, join } from "node:path";
+import { performance } from "node:perf_hooks";
 import { powerMonitor, screen } from "electron";
 import { v4 as uuid } from "uuid";
 import { SELF_APP_BUNDLE_ID } from "../../../shared/appIdentity";
@@ -17,10 +18,12 @@ import type { ActivityContext, ForegroundSnapshot } from "../context";
 import { collectActivityContext, collectForegroundSnapshot } from "../context";
 import { chromiumProvider, safariProvider } from "../context/providers";
 import { type ActivitySegment, computeDominantSegment } from "./dominance";
+import { createPerfTracker } from "../../infra/log/perf";
 
 const logger = createLogger({ scope: "ActivityWindow" });
+const perf = createPerfTracker("Perf.ActivityWindow");
 
-const POLL_MS = 1_000;
+const POLL_MS = 3_000;
 const BROWSER_HOST_REFRESH_MS = 2_000;
 const MIN_STABLE_MS = 10_000;
 const MIN_DOMINANT_TOTAL_MS = 10_000;
@@ -284,6 +287,7 @@ async function captureCandidate(target: {
 	displayId: string;
 	urlHost: string | null;
 }): Promise<void> {
+	const startedAt = perf.enabled ? performance.now() : 0;
 	if (state.status !== "running") return;
 	if (powerMonitor.getSystemIdleTime() > IDLE_AWAY_SECONDS) return;
 	if (state.candidates.has(target.key)) return;
@@ -336,10 +340,13 @@ async function captureCandidate(target: {
 	} finally {
 		release();
 		state.captureInFlight = null;
+		if (perf.enabled)
+			perf.track("activity.captureCandidate", performance.now() - startedAt);
 	}
 }
 
 async function pollOnce(): Promise<void> {
+	const pollStartedAt = perf.enabled ? performance.now() : 0;
 	await withWindowLock(async () => {
 		if (state.status !== "running") return;
 		const idleTimeSeconds = powerMonitor.getSystemIdleTime();
@@ -377,7 +384,13 @@ async function pollOnce(): Promise<void> {
 			closeCurrent(activeAt);
 		}
 
+		const snapshotStart = perf.enabled ? performance.now() : 0;
 		const snapshot = await collectForegroundSnapshot();
+		if (perf.enabled)
+			perf.track(
+				"activity.collectForegroundSnapshot",
+				performance.now() - snapshotStart,
+			);
 		if (state.status !== "running") return;
 		if (!snapshot) return;
 
@@ -387,7 +400,10 @@ async function pollOnce(): Promise<void> {
 		const displayId =
 			snapshot.window.displayId ?? String(screen.getPrimaryDisplay().id);
 		const bundleId = snapshot.app.bundleId;
+		const hostStart = perf.enabled ? performance.now() : 0;
 		const urlHost = await resolveUrlHost(snapshot, displayId);
+		if (perf.enabled)
+			perf.track("activity.resolveUrlHost", performance.now() - hostStart);
 		const key = buildKey(displayId, bundleId, urlHost);
 
 		if (!state.current) {
@@ -420,6 +436,8 @@ async function pollOnce(): Promise<void> {
 
 		void captureCandidate({ key, bundleId, displayId, urlHost });
 	});
+	if (perf.enabled)
+		perf.track("activity.pollOnce", performance.now() - pollStartedAt);
 }
 
 export function startActivityWindowTracking(): void {

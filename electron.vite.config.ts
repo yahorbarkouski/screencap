@@ -34,6 +34,14 @@ function getBuildDate(): string {
 export default defineConfig(({ command }) => {
 	const csp = command === "serve" ? devCsp : prodCsp;
 	const isProd = command === "build";
+	const watchIgnored = [
+		"**/node_modules/**",
+		"**/.git/**",
+		"**/build/**",
+		"**/dist/**",
+		"**/screenshots/**",
+		"**/Library/**",
+	];
 
 	const buildDefines = {
 		__BUILD_DATE__: isProd ? JSON.stringify(getBuildDate()) : "undefined",
@@ -51,6 +59,9 @@ export default defineConfig(({ command }) => {
 				lib: {
 					entry: resolve(__dirname, "electron/main/index.ts"),
 				},
+				watch: {
+					exclude: watchIgnored,
+				},
 				rollupOptions: {
 					external: ["better-sqlite3", "sharp"],
 				},
@@ -63,6 +74,9 @@ export default defineConfig(({ command }) => {
 					entry: resolve(__dirname, "electron/preload/index.ts"),
 					formats: ["cjs"],
 				},
+				watch: {
+					exclude: watchIgnored,
+				},
 				rollupOptions: {
 					output: {
 						entryFileNames: "[name].cjs",
@@ -72,6 +86,12 @@ export default defineConfig(({ command }) => {
 		},
 		renderer: {
 			root: ".",
+			server: {
+				watch: {
+					usePolling: false,
+					ignored: watchIgnored,
+				},
+			},
 			build: {
 				rollupOptions: {
 					input: resolve(__dirname, "index.html"),

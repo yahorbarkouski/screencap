@@ -1,9 +1,12 @@
+import { performance } from "node:perf_hooks";
 import { createLogger } from "../../infra/log";
+import { createPerfTracker } from "../../infra/log/perf";
 import { repairAllRoomKeyEnvelopes } from "../rooms/RoomsService";
 import { getIdentity } from "../social/IdentityService";
 import { syncAllRooms } from "./SharedProjectsService";
 
 const logger = createLogger({ scope: "SharedProjectsBackgroundSync" });
+const perf = createPerfTracker("Perf.SharedProjectsSync");
 
 const SYNC_INTERVAL_MS = 30_000;
 const INITIAL_DELAY_MS = 5_000;
@@ -12,6 +15,7 @@ let syncInterval: NodeJS.Timeout | null = null;
 let hasRunRepair = false;
 
 async function runSync(): Promise<void> {
+	const startedAt = perf.enabled ? performance.now() : 0;
 	const identity = getIdentity();
 	if (!identity) return;
 
@@ -29,6 +33,8 @@ async function runSync(): Promise<void> {
 	} catch (error) {
 		logger.warn("Background sync failed", { error: String(error) });
 	}
+	if (perf.enabled)
+		perf.track("sharedProjects.syncAllRooms", performance.now() - startedAt);
 }
 
 export function startBackgroundSync(): void {
