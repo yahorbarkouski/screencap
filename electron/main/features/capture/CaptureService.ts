@@ -1,5 +1,6 @@
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { performance } from "node:perf_hooks";
 import { desktopCapturer, screen } from "electron";
 import sharp from "sharp";
 import { v4 as uuid } from "uuid";
@@ -7,8 +8,10 @@ import type { CaptureResult } from "../../../shared/types";
 import { createLogger } from "../../infra/log";
 import { getOriginalsDir, getThumbnailsDir } from "../../infra/paths";
 import { computeFingerprint } from "./FingerprintService";
+import { createPerfTracker } from "../../infra/log/perf";
 
 const logger = createLogger({ scope: "CaptureService" });
+const perf = createPerfTracker("Perf.Capture");
 
 const THUMBNAIL_WIDTH = 400;
 const ORIGINAL_WIDTH = 1280;
@@ -161,6 +164,7 @@ export async function processInstantCapture(
 		dirs?: { thumbnailsDir: string; originalsDir: string };
 	},
 ): Promise<CaptureResult[]> {
+	const totalStart = perf.enabled ? performance.now() : 0;
 	const highResDisplayId = options?.highResDisplayId ?? null;
 	const thumbnailsDir = options?.dirs?.thumbnailsDir ?? getThumbnailsDir();
 	const originalsDir = options?.dirs?.originalsDir ?? getOriginalsDir();
@@ -171,6 +175,7 @@ export async function processInstantCapture(
 	}));
 
 	const processPromises = rawSources.map(async (source) => {
+		const startedAt = perf.enabled ? performance.now() : 0;
 		const thumbnailPath = join(thumbnailsDir, `${source.id}.webp`);
 		const originalPath = join(originalsDir, `${source.id}.webp`);
 		const highResPath = highResPathForId(source.id, originalsDir);
@@ -219,7 +224,7 @@ export async function processInstantCapture(
 			...writePromises,
 		]);
 
-		return {
+		const result = {
 			id: source.id,
 			timestamp: capture.timestamp,
 			displayId: source.displayId,
@@ -230,9 +235,18 @@ export async function processInstantCapture(
 			width: source.width,
 			height: source.height,
 		};
+		if (perf.enabled)
+			perf.track(
+				"capture.processInstant.display",
+				performance.now() - startedAt,
+			);
+		return result;
 	});
 
-	return Promise.all(processPromises);
+	const results = await Promise.all(processPromises);
+	if (perf.enabled)
+		perf.track("capture.processInstant.total", performance.now() - totalStart);
+	return results;
 }
 
 export async function captureRawScreens(): Promise<RawCapture[]> {
@@ -275,11 +289,13 @@ export async function processRawCaptures(
 		dirs?: { thumbnailsDir: string; originalsDir: string };
 	},
 ): Promise<CaptureResult[]> {
+	const totalStart = perf.enabled ? performance.now() : 0;
 	const highResDisplayId = options?.highResDisplayId ?? null;
 	const thumbnailsDir = options?.dirs?.thumbnailsDir ?? getThumbnailsDir();
 	const originalsDir = options?.dirs?.originalsDir ?? getOriginalsDir();
 
 	const processPromises = rawCaptures.map(async (raw) => {
+		const startedAt = perf.enabled ? performance.now() : 0;
 		const thumbnailPath = join(thumbnailsDir, `${raw.id}.webp`);
 		const originalPath = join(originalsDir, `${raw.id}.webp`);
 		const highResPath = highResPathForId(raw.id, originalsDir);
@@ -328,7 +344,7 @@ export async function processRawCaptures(
 			...writePromises,
 		]);
 
-		return {
+		const result = {
 			id: raw.id,
 			timestamp: raw.timestamp,
 			displayId: raw.displayId,
@@ -339,9 +355,18 @@ export async function processRawCaptures(
 			width: raw.displayWidth,
 			height: raw.displayHeight,
 		};
+		if (perf.enabled)
+			perf.track(
+				"capture.processRaw.display",
+				performance.now() - startedAt,
+			);
+		return result;
 	});
 
-	return Promise.all(processPromises);
+	const results = await Promise.all(processPromises);
+	if (perf.enabled)
+		perf.track("capture.processRaw.total", performance.now() - totalStart);
+	return results;
 }
 
 interface RawSourceData {
@@ -356,6 +381,7 @@ export async function captureAllDisplays(options?: {
 	highResDisplayId?: string | null;
 	dirs?: { thumbnailsDir: string; originalsDir: string };
 }): Promise<CaptureResult[]> {
+	const totalStart = perf.enabled ? performance.now() : 0;
 	logger.info("Capturing all displays...");
 
 	const highResDisplayId = options?.highResDisplayId ?? null;
@@ -366,10 +392,13 @@ export async function captureAllDisplays(options?: {
 
 	const timestamp = Date.now();
 
+	const sourcesStart = perf.enabled ? performance.now() : 0;
 	const sources = await desktopCapturer.getSources({
 		types: ["screen"],
 		thumbnailSize: bestThumbnailSize(),
 	});
+	if (perf.enabled)
+		perf.track("capture.getSources", performance.now() - sourcesStart);
 
 	logger.debug(`Got ${sources.length} screen sources`);
 
@@ -401,6 +430,7 @@ export async function captureAllDisplays(options?: {
 	}
 
 	const processPromises = rawSources.map(async (raw) => {
+		const startedAt = perf.enabled ? performance.now() : 0;
 		const thumbnailPath = join(thumbnailsDir, `${raw.id}.webp`);
 		const originalPath = join(originalsDir, `${raw.id}.webp`);
 		const highResPath = highResPathForId(raw.id, originalsDir);
@@ -456,7 +486,7 @@ export async function captureAllDisplays(options?: {
 			thumbnailSize: thumbnail.length,
 		});
 
-		return {
+		const result = {
 			id: raw.id,
 			timestamp,
 			displayId: raw.displayId,
@@ -467,9 +497,20 @@ export async function captureAllDisplays(options?: {
 			width: raw.displayWidth,
 			height: raw.displayHeight,
 		};
+		if (perf.enabled)
+			perf.track(
+				"capture.allDisplays.display",
+				performance.now() - startedAt,
+			);
+		return result;
 	});
 
 	const results = await Promise.all(processPromises);
+	if (perf.enabled)
+		perf.track(
+			"capture.allDisplays.total",
+			performance.now() - totalStart,
+		);
 
 	logger.info(`Capture complete: ${results.length} results`);
 	return results;

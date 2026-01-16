@@ -14,6 +14,7 @@
 		"dev:fast": "electron-vite dev",
 		"eval:classification": "npm run rebuild:electron && electron-vite dev -- --eval-classification",
 		"build": "electron-vite build",
+		"build:local": "npm run build && electron-builder --mac.identity=null --mac.notarize=false",
 		"build:mcp": "npm run rebuild:node && tsup --config tsup.mcp.config.ts",
 		"preview": "electron-vite preview",
 		"rebuild:node": "node scripts/rebuild-node-natives.mjs",

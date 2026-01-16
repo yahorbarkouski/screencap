@@ -251,21 +251,30 @@ export interface HqCleanupCutoffs {
 	eodBufferMs: number;
 }
 
+export interface HqCleanupCursor {
+	timestamp: number;
+	id: string;
+}
+
 export function listHqCleanupCandidates(
 	cutoffs: HqCleanupCutoffs,
 	limit: number,
-): Array<{ id: string; originalPath: string }> {
+	cursor?: HqCleanupCursor,
+): Array<{ id: string; originalPath: string; timestamp: number }> {
 	if (!isDbOpen()) return [];
 	if (limit <= 0) return [];
 
 	const db = getDatabase();
 	const now = Date.now();
 	const eodSubmittedBefore = now - cutoffs.eodBufferMs;
+	const cursorClause = cursor
+		? "AND (e.timestamp > ? OR (e.timestamp = ? AND e.id > ?))"
+		: "";
 
 	const rows = db
 		.prepare(
 			`
-      SELECT e.id, e.original_path
+      SELECT e.id, e.original_path, e.timestamp
       FROM events e
       WHERE e.original_path IS NOT NULL
         AND (
@@ -292,23 +301,32 @@ export function listHqCleanupCandidates(
           (e.project_progress = 1 
            AND COALESCE(e.end_timestamp, e.timestamp) < ?)
         )
+      ${cursorClause}
       ORDER BY e.timestamp ASC
       LIMIT ?
     `,
 		)
 		.all(
-			cutoffs.regularCutoff,
-			cutoffs.sharedCutoff,
-			cutoffs.progressCutoff,
-			eodSubmittedBefore,
-			cutoffs.progressFallbackCutoff,
-			limit,
+			...[
+				cutoffs.regularCutoff,
+				cutoffs.sharedCutoff,
+				cutoffs.progressCutoff,
+				eodSubmittedBefore,
+				cutoffs.progressFallbackCutoff,
+				...(cursor ? [cursor.timestamp, cursor.timestamp, cursor.id] : []),
+				limit,
+			],
 		) as Array<{
 		id: string;
 		original_path: string;
+		timestamp: number;
 	}>;
 
-	return rows.map((r) => ({ id: r.id, originalPath: r.original_path }));
+	return rows.map((r) => ({
+		id: r.id,
+		originalPath: r.original_path,
+		timestamp: r.timestamp,
+	}));
 }
 
 export function cleanupQueueForCompletedEvents(): number {

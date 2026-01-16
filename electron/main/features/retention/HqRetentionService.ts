@@ -26,7 +26,6 @@ type HqRetentionRunReason = "startup" | "interval" | "manual";
 let interval: NodeJS.Timeout | null = null;
 let startupTimeout: NodeJS.Timeout | null = null;
 let isRunning = false;
-let rerunRequested = false;
 
 function yieldToEventLoop(): Promise<void> {
 	return new Promise((resolve) => setImmediate(resolve));
@@ -60,20 +59,23 @@ function buildCutoffs(): HqCleanupCutoffs {
 
 async function runHqCleanup(reason: HqRetentionRunReason): Promise<void> {
 	if (isRunning) {
-		rerunRequested = true;
 		return;
 	}
 
 	isRunning = true;
-	rerunRequested = false;
 
 	try {
 		const cutoffs = buildCutoffs();
 		let deleted = 0;
 		const startedAt = Date.now();
+		let cursor: { timestamp: number; id: string } | null = null;
 
 		for (;;) {
-			const candidates = listHqCleanupCandidates(cutoffs, BATCH_SIZE);
+			const candidates = listHqCleanupCandidates(
+				cutoffs,
+				BATCH_SIZE,
+				cursor ?? undefined,
+			);
 			if (candidates.length === 0) break;
 
 			for (const candidate of candidates) {
@@ -83,10 +85,12 @@ async function runHqCleanup(reason: HqRetentionRunReason): Promise<void> {
 				}
 			}
 
+			const last = candidates[candidates.length - 1];
+			cursor = { timestamp: last.timestamp, id: last.id };
+
 			await yieldToEventLoop();
 
 			if (Date.now() - startedAt >= MAX_RUN_TIME_MS) {
-				rerunRequested = true;
 				break;
 			}
 		}
@@ -104,10 +108,6 @@ async function runHqCleanup(reason: HqRetentionRunReason): Promise<void> {
 		logger.error("HQ cleanup failed", { reason, error });
 	} finally {
 		isRunning = false;
-		if (rerunRequested) {
-			rerunRequested = false;
-			void runHqCleanup("manual");
-		}
 	}
 }
 

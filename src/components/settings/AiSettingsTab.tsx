@@ -1,10 +1,12 @@
 import {
 	AlertCircle,
 	Check,
+	Copy,
 	ExternalLink,
 	EyeIcon,
 	Loader2,
 } from "lucide-react";
+import { useState } from "react";
 import {
 	SettingsRow,
 	SettingsRows,
@@ -17,6 +19,20 @@ import { TabsContent } from "@/components/ui/tabs";
 import { Panel } from "@/components/wrapped/Panel";
 import { cn } from "@/lib/utils";
 import type { OcrResult, Settings } from "@/types";
+
+const MCP_CONFIG = {
+	mcpServers: {
+		screencap: {
+			command: "/usr/bin/env",
+			args: [
+				"-u",
+				"ELECTRON_RUN_AS_NODE",
+				"/Applications/Screencap.app/Contents/MacOS/Screencap",
+				"--mcp",
+			],
+		},
+	},
+};
 
 type ConnectionTestResult = { success: boolean; error?: string };
 
@@ -339,6 +355,8 @@ export function AiSettingsTab({
 						) : null}
 					</div>
 				</Panel>
+
+				<McpIntegrationPanel />
 			</div>
 		</TabsContent>
 	);
@@ -377,5 +395,58 @@ function ConnectionBanner({
 				</>
 			)}
 		</div>
+	);
+}
+
+function McpIntegrationPanel() {
+	const [copied, setCopied] = useState(false);
+	const configJson = JSON.stringify(MCP_CONFIG, null, 2);
+
+	const handleCopy = async () => {
+		await navigator.clipboard.writeText(configJson);
+		setCopied(true);
+		setTimeout(() => setCopied(false), 2000);
+	};
+
+	return (
+		<Panel
+			title="MCP Integration"
+			meta="Let Claude Desktop or Cursor access your activity data"
+			className="max-w-3xl"
+			right={
+				<a
+					href="https://modelcontextprotocol.io/"
+					target="_blank"
+					rel="noopener noreferrer"
+					className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+				>
+					<ExternalLink className="h-3.5 w-3.5" />
+					Docs
+				</a>
+			}
+		>
+			<div className="space-y-2">
+				<div className="text-xs text-muted-foreground">
+					Add to your MCP client config:
+				</div>
+				<div className="relative">
+					<div className="rounded-lg border border-border bg-muted/50 p-3 pr-16 text-xs font-mono whitespace-pre overflow-x-auto">
+						{configJson}
+					</div>
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={handleCopy}
+						className="absolute bottom-2 right-2 h-7 px-2 text-xs"
+					>
+						{copied ? (
+							<Check className="h-3.5 w-3.5" />
+						) : (
+							<Copy className="h-3.5 w-3.5" />
+						)}
+					</Button>
+				</div>
+			</div>
+		</Panel>
 	);
 }

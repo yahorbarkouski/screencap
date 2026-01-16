@@ -16,6 +16,7 @@ import {
 } from "../features/socialFeed";
 import { initializeUpdater } from "../features/update";
 import { createLogger } from "../infra/log";
+import { startCpuSampler } from "../infra/log/cpu";
 import { initSessionLogStore } from "../infra/log/sessionLogStore";
 import { getSettings } from "../infra/settings";
 import { registerAllHandlers } from "../ipc";
@@ -74,6 +75,7 @@ export async function bootstrap(): Promise<void> {
 	await initSessionLogStore().catch(() => {});
 
 	logger.info("App starting...");
+	startCpuSampler();
 
 	const evalArgs = parseEvalArgs(process.argv);
 	if (evalArgs) {
