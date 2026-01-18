@@ -31,8 +31,9 @@ export function startCpuSampler(options?: CpuSamplerOptions): void {
 			pid: m.pid,
 			type: m.type,
 			cpu: Math.round(m.cpu.percentCPUUsage * 10) / 10,
-			idleWakeups: Math.round((m.cpu as { idleWakeupsPerSecond?: number })
-				.idleWakeupsPerSecond ?? 0),
+			idleWakeups: Math.round(
+				(m.cpu as { idleWakeupsPerSecond?: number }).idleWakeupsPerSecond ?? 0,
+			),
 		}));
 		logger.info("CPU sample", { top });
 	}, intervalMs);

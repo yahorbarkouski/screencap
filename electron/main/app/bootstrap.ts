@@ -10,6 +10,7 @@ import {
 import { startScheduler } from "../features/scheduler";
 import { startBackgroundSync } from "../features/sharedProjects";
 import { startShortcuts } from "../features/shortcuts";
+import { startReminderScheduler } from "../features/smartReminder";
 import {
 	startDayWrappedPublisher,
 	startSocialCommentNotifications,
@@ -117,6 +118,7 @@ export async function bootstrap(): Promise<void> {
 		startDayWrappedPublisher();
 	}
 	startSocialCommentNotifications();
+	startReminderScheduler();
 
 	setupLifecycleHandlers();
 

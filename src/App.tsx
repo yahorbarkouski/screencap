@@ -10,6 +10,7 @@ import { ProjectsView } from "@/components/memory/ProjectsView";
 import { OnboardingWizard } from "@/components/onboarding";
 import { EventPreviewModal } from "@/components/preview/EventPreviewModal";
 import { ProjectProgressView } from "@/components/progress/ProjectProgressView";
+import { RemindersView } from "@/components/reminders/RemindersView";
 import { SettingsView } from "@/components/settings/SettingsView";
 import { StoryView } from "@/components/story/StoryView";
 import { Timeline } from "@/components/timeline/Timeline";
@@ -119,6 +120,13 @@ export default function App() {
 		});
 	}, [setSettingsTab, setView]);
 
+	useEffect(() => {
+		if (!window.api) return;
+		return window.api.on("navigate:reminders" as never, () => {
+			setView("reminders");
+		});
+	}, [setView]);
+
 	const handleOnboardingComplete = useCallback(() => {
 		setShowOnboarding(false);
 		checkPermission();
@@ -149,6 +157,7 @@ export default function App() {
 						{view === "story" && <StoryView />}
 						{view === "projects" && <ProjectsView />}
 						{view === "addictions" && <AddictionsView />}
+						{view === "reminders" && <RemindersView />}
 						{view === "settings" && <SettingsView />}
 					</main>
 				</div>

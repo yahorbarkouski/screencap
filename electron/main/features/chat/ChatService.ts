@@ -1,4 +1,5 @@
 import { createLogger } from "../../infra/log";
+import { handleForbiddenRoomError } from "../rooms/RoomAccess";
 import {
 	decryptWithKey,
 	deriveDmKey,
@@ -114,6 +115,13 @@ export async function openProjectThread(roomId: string): Promise<string> {
 	});
 	if (!res.ok) {
 		const text = await res.text();
+		if (res.status === 403) {
+			handleForbiddenRoomError({
+				roomId,
+				error: { status: res.status, message: text },
+				source: "open_project_thread",
+			});
+		}
 		throw new Error(`openProjectThread failed: ${res.status} ${text}`);
 	}
 	const { threadId } = (await res.json()) as { threadId: string };
@@ -136,6 +144,21 @@ export async function fetchMessages(params: {
 	const res = await signedFetch(url, { method: "GET" });
 	if (!res.ok) {
 		const text = await res.text();
+		if (res.status === 403) {
+			let roomId: string | null = null;
+			try {
+				if (parseThreadKind(params.threadId) === "project") {
+					roomId = parseProjectRoomId(params.threadId);
+				}
+			} catch {}
+			if (roomId) {
+				handleForbiddenRoomError({
+					roomId,
+					error: { status: res.status, message: text },
+					source: "fetch_chat_messages",
+				});
+			}
+		}
 		throw new Error(`fetchMessages failed: ${res.status} ${text}`);
 	}
 

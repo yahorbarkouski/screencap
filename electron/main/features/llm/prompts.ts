@@ -315,3 +315,70 @@ TOMORROW
 - <1-3 actionable suggestions>
 `;
 }
+
+export interface ReminderContext {
+	userText: string;
+	ocrText: string | null;
+	appBundleId: string | null;
+	windowTitle: string | null;
+	urlHost: string | null;
+	contentKind: string | null;
+	hasImage: boolean;
+	currentDateTime: string;
+	timezone: string;
+}
+
+export function buildReminderParsePrompt(context: ReminderContext): string {
+	const contextParts: string[] = [];
+
+	if (context.windowTitle) {
+		contextParts.push(`Window: ${context.windowTitle}`);
+	}
+	if (context.urlHost) {
+		contextParts.push(`Website: ${context.urlHost}`);
+	}
+	if (context.contentKind) {
+		contextParts.push(`Content: ${context.contentKind}`);
+	}
+	if (context.ocrText) {
+		const truncatedOcr = context.ocrText.slice(0, 1000);
+		contextParts.push(`Text from screen:\n${truncatedOcr}`);
+	}
+
+	const contextSection =
+		contextParts.length > 0
+			? `\nCAPTURED CONTEXT:\n${contextParts.join("\n")}`
+			: "";
+
+	return `You parse user input into structured reminders/notes.
+
+You are given a screenshot of the captured region${context.hasImage ? "" : " (no image was provided)"}.
+If an image is provided, use it to identify people, objects, or places when relevant.
+If you confidently recognize a person, include their full name and a short, accurate 1-2 sentence context in the body.
+If recognition is uncertain, do not guess; keep the body generic.
+
+Current date/time: ${context.currentDateTime}
+Timezone: ${context.timezone}
+
+USER INPUT:
+${context.userText}
+${contextSection}
+
+Return ONLY valid JSON matching this schema:
+{
+  "title": string,      // Short title (max 100 chars), summarizing the reminder/note
+  "body": string | null, // Full description if needed, or null
+  "isReminder": boolean, // true if user wants to be reminded at a specific time
+  "remindAt": string | null, // ISO 8601 datetime string if isReminder is true, null otherwise
+  "confidence": number  // 0-1, how confident you are in the interpretation
+}
+
+Guidelines:
+- If user mentions a time like "in 2 hours", "tomorrow at 9am", "next Monday", compute the actual datetime
+- If user asks to be reminded but doesn't give a time, infer a reasonable reminder time within the next 24 hours
+- If user just wants to save a note without reminder, set isReminder: false
+- Extract a concise title from the user's intent
+- If a person/place/object is identifiable from the image, include the identified name and add 2-4 concise bullet topics to read about
+- Keep the body concise and actionable
+`;
+}

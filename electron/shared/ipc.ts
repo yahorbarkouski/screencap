@@ -25,6 +25,7 @@ import type {
 	Friend,
 	FriendRequest,
 	GetEventsOptions,
+	GetRemindersOptions,
 	GetTimelineFacetsOptions,
 	GitCommit,
 	InviteStatus,
@@ -38,6 +39,9 @@ import type {
 	ProjectShare,
 	ProjectStatsItem,
 	RecordedApp,
+	Reminder,
+	ReminderInput,
+	ReminderUpdate,
 	RendererLogEntry,
 	Room,
 	RoomInvite,
@@ -229,6 +233,15 @@ export const IpcChannels = {
 		ListCrashSessions: "logs:list-crash-sessions",
 		SaveCrashSessionToFile: "logs:save-crash-session-to-file",
 	},
+	Reminders: {
+		List: "reminders:list",
+		Get: "reminders:get",
+		Create: "reminders:create",
+		Update: "reminders:update",
+		Delete: "reminders:delete",
+		MarkCompleted: "reminders:mark-completed",
+		StartCapture: "reminders:start-capture",
+	},
 } as const;
 
 export const IpcEvents = {
@@ -247,6 +260,9 @@ export const IpcEvents = {
 	PreviewEvent: "preview:event",
 	OpenSettingsTab: "settings:open-tab",
 	SettingsChanged: "settings:changed",
+	RemindersChanged: "reminders:changed",
+	ReminderTriggered: "reminder:triggered",
+	SmartReminderCapturePreview: "smart-reminder:capture-preview",
 } as const;
 
 export interface IpcInvokeHandlers {
@@ -509,11 +525,28 @@ export interface IpcInvokeHandlers {
 	[IpcChannels.Logs.SaveCrashSessionToFile]: (
 		id: string,
 	) => Promise<string | null>;
+
+	[IpcChannels.Reminders.List]: (options?: GetRemindersOptions) => Reminder[];
+	[IpcChannels.Reminders.Get]: (id: string) => Reminder | null;
+	[IpcChannels.Reminders.Create]: (input: ReminderInput) => Reminder;
+	[IpcChannels.Reminders.Update]: (id: string, updates: ReminderUpdate) => void;
+	[IpcChannels.Reminders.Delete]: (id: string) => void;
+	[IpcChannels.Reminders.MarkCompleted]: (id: string) => void;
+	[IpcChannels.Reminders.StartCapture]: () => Promise<void>;
 }
 
 export interface ProjectProgressPreview {
 	imageBase64: string;
 	project: string | null;
+}
+
+export interface SmartReminderCapturePreviewPayload {
+	imageBase64: string;
+	appBundleId: string | null;
+	windowTitle: string | null;
+	urlHost: string | null;
+	contentKind: string | null;
+	contextJson: string | null;
 }
 
 export interface IpcEventPayloads {
@@ -537,4 +570,8 @@ export interface IpcEventPayloads {
 		| "social"
 		| "system";
 	[IpcEvents.SettingsChanged]: Settings;
+	[IpcEvents.RemindersChanged]: undefined;
+	[IpcEvents.ReminderTriggered]: Reminder;
+	[IpcEvents.SmartReminderCapturePreview]: SmartReminderCapturePreviewPayload;
+	"navigate:reminders": undefined;
 }

@@ -245,6 +245,26 @@ export function createTables(db: Database.Database): void {
       status TEXT NOT NULL DEFAULT 'pending',
       UNIQUE(room_id, to_user_id)
     );
+
+    CREATE TABLE IF NOT EXISTS reminders (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      body TEXT,
+      source_text TEXT,
+      remind_at INTEGER,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      triggered_at INTEGER,
+      completed_at INTEGER,
+      thumbnail_path TEXT,
+      original_path TEXT,
+      app_bundle_id TEXT,
+      window_title TEXT,
+      url_host TEXT,
+      content_kind TEXT,
+      context_json TEXT
+    );
   `);
 
 	logger.info("Tables created");
@@ -288,6 +308,9 @@ export function createIndexes(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_chat_messages_cache_thread_timestamp ON chat_messages_cache(thread_id, timestamp_ms);
     CREATE INDEX IF NOT EXISTS idx_room_invites_sent_room_id ON room_invites_sent(room_id);
     CREATE INDEX IF NOT EXISTS idx_room_invites_sent_to_user_id ON room_invites_sent(to_user_id);
+    CREATE INDEX IF NOT EXISTS idx_reminders_remind_at ON reminders(remind_at);
+    CREATE INDEX IF NOT EXISTS idx_reminders_status ON reminders(status);
+    CREATE INDEX IF NOT EXISTS idx_reminders_created_at ON reminders(created_at);
   `);
 
 	logger.info("Indexes created");

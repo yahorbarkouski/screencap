@@ -31,3 +31,11 @@ export function broadcastProjectsNormalized(result: {
 export function broadcastPermissionRequired(): void {
 	broadcast(IpcEvents.PermissionRequired);
 }
+
+export function broadcastRemindersChanged(): void {
+	broadcast(IpcEvents.RemindersChanged);
+}
+
+export function broadcastReminderTriggered(reminder: unknown): void {
+	broadcast(IpcEvents.ReminderTriggered, reminder);
+}

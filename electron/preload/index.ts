@@ -27,6 +27,7 @@ import type {
 	Friend,
 	FriendRequest,
 	GetEventsOptions,
+	GetRemindersOptions,
 	GetTimelineFacetsOptions,
 	GitCommit,
 	InviteStatus,
@@ -40,6 +41,9 @@ import type {
 	ProjectShare,
 	ProjectStatsItem,
 	RecordedApp,
+	Reminder,
+	ReminderInput,
+	ReminderUpdate,
 	RendererLogEntry,
 	Room,
 	RoomInvite,
@@ -58,7 +62,20 @@ import type {
 	WebsiteEntry,
 } from "../shared/types";
 
-const allowedEventChannels = new Set<string>(Object.values(IpcEvents));
+const allowedEventChannels = new Set<string>([
+	...Object.values(IpcEvents),
+	"selection-overlay:init",
+	"selection-overlay:hover-result",
+	"smart-reminder:popup-init",
+	"navigate:reminders",
+]);
+
+const allowedSendChannels = new Set<string>([
+	"selection-overlay:ready",
+	"selection-overlay:result",
+	"selection-overlay:hover",
+	"smart-reminder:popup-result",
+]);
 
 const api = {
 	app: {
@@ -483,6 +500,27 @@ const api = {
 			ipcRenderer.invoke(IpcChannels.Logs.SaveCrashSessionToFile, id),
 	},
 
+	reminders: {
+		list: (options?: GetRemindersOptions): Promise<Reminder[]> => {
+			if (options) {
+				return ipcRenderer.invoke(IpcChannels.Reminders.List, options);
+			}
+			return ipcRenderer.invoke(IpcChannels.Reminders.List);
+		},
+		get: (id: string): Promise<Reminder | null> =>
+			ipcRenderer.invoke(IpcChannels.Reminders.Get, id),
+		create: (input: ReminderInput): Promise<Reminder> =>
+			ipcRenderer.invoke(IpcChannels.Reminders.Create, input),
+		update: (id: string, updates: ReminderUpdate): Promise<void> =>
+			ipcRenderer.invoke(IpcChannels.Reminders.Update, id, updates),
+		delete: (id: string): Promise<void> =>
+			ipcRenderer.invoke(IpcChannels.Reminders.Delete, id),
+		markCompleted: (id: string): Promise<void> =>
+			ipcRenderer.invoke(IpcChannels.Reminders.MarkCompleted, id),
+		startCapture: (): Promise<void> =>
+			ipcRenderer.invoke(IpcChannels.Reminders.StartCapture),
+	},
+
 	on: (channel: string, callback: (...args: unknown[]) => void) => {
 		if (!allowedEventChannels.has(channel)) {
 			throw new Error("Invalid event channel");
@@ -493,6 +531,13 @@ const api = {
 		) => callback(...args);
 		ipcRenderer.on(channel, subscription);
 		return () => ipcRenderer.removeListener(channel, subscription);
+	},
+
+	send: (channel: string, ...args: unknown[]) => {
+		if (!allowedSendChannels.has(channel)) {
+			throw new Error("Invalid send channel");
+		}
+		ipcRenderer.send(channel, ...args);
 	},
 };
 
@@ -527,6 +572,7 @@ export {
 	type Story,
 	type PermissionStatus,
 	type GetEventsOptions,
+	type GetRemindersOptions,
 	type CategoryStats,
 	type StoryInput,
 	type EventSummary,
@@ -542,4 +588,7 @@ export {
 	type UpdateState,
 	type EodEntry,
 	type EodEntryInput,
+	type Reminder,
+	type ReminderInput,
+	type ReminderUpdate,
 };

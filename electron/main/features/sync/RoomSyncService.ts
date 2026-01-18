@@ -9,6 +9,7 @@ import { getEventById } from "../../infra/db/repositories/EventRepository";
 import { getRoomIdForProject } from "../../infra/db/repositories/ProjectRoomLinkRepository";
 import { createLogger } from "../../infra/log";
 import { getSettings } from "../../infra/settings/SettingsStore";
+import { handleForbiddenRoomError } from "../rooms/RoomAccess";
 import {
 	decryptRoomEventPayload,
 	encryptRoomEventPayload,
@@ -427,6 +428,14 @@ export async function fetchRoomEvents(params: {
 	const res = await signedFetch(url, { method: "GET" });
 	if (!res.ok) {
 		const text = await res.text();
+		if (res.status === 403) {
+			handleForbiddenRoomError({
+				roomId: params.roomId,
+				error: { status: res.status, message: text },
+				source: "fetch_room_events",
+			});
+			return [];
+		}
 		throw new Error(`fetchRoomEvents failed: ${res.status} ${text}`);
 	}
 

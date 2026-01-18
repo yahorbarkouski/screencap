@@ -237,6 +237,7 @@ export const useAppStore = create<AppState>((set, _get) => ({
 			captureNow: "Command+Shift+O",
 			captureProjectProgress: "Command+Shift+P",
 			endOfDay: "Command+Shift+E",
+			smartReminder: "Alt+Shift+R",
 		},
 		sharing: {
 			includeAppName: true,

@@ -1,4 +1,4 @@
-import { type ChildProcess, exec } from "node:child_process";
+import { type ChildProcess, exec, spawn } from "node:child_process";
 import { performance } from "node:perf_hooks";
 import { createPerfTracker } from "../../infra/log/perf";
 
@@ -122,6 +122,121 @@ export async function runAppleScript(
 
 	try {
 		return await executeScript(script, timeoutMs);
+	} finally {
+		releaseSlot();
+	}
+}
+
+async function executeJxaScript(
+	script: string,
+	timeoutMs: number,
+): Promise<AppleScriptResult> {
+	const startedAt = perf.enabled ? performance.now() : 0;
+	return new Promise((resolve) => {
+		let resolved = false;
+		let stdout = "";
+		let stderr = "";
+
+		const child = spawn("osascript", ["-l", "JavaScript", "-"], {
+			stdio: ["pipe", "pipe", "pipe"],
+		});
+
+		const cleanup = () => {
+			if (!child.killed) {
+				child.kill("SIGKILL");
+			}
+		};
+
+		const timer = setTimeout(() => {
+			if (!resolved) {
+				resolved = true;
+				cleanup();
+				if (perf.enabled) {
+					perf.track("jxa.exec", performance.now() - startedAt);
+					perf.count("jxa.timeout");
+				}
+				resolve({
+					success: false,
+					output: "",
+					error: "timeout",
+					timedOut: true,
+				});
+			}
+		}, timeoutMs);
+
+		child.stdout.on("data", (data) => {
+			stdout += data.toString();
+		});
+
+		child.stderr.on("data", (data) => {
+			stderr += data.toString();
+		});
+
+		child.on("close", (code) => {
+			if (resolved) return;
+			resolved = true;
+			clearTimeout(timer);
+
+			if (code !== 0) {
+				if (perf.enabled) {
+					perf.track("jxa.exec", performance.now() - startedAt);
+					perf.count("jxa.error");
+				}
+				resolve({
+					success: false,
+					output: stdout.trim(),
+					error: stderr.trim() || `exit code ${code}`,
+					timedOut: false,
+				});
+				return;
+			}
+
+			resolve({
+				success: true,
+				output: stdout.trim(),
+				error: null,
+				timedOut: false,
+			});
+			if (perf.enabled) {
+				perf.track("jxa.exec", performance.now() - startedAt);
+				perf.count("jxa.success");
+			}
+		});
+
+		child.on("error", (error) => {
+			if (resolved) return;
+			resolved = true;
+			clearTimeout(timer);
+			if (perf.enabled) {
+				perf.track("jxa.exec", performance.now() - startedAt);
+				perf.count("jxa.error");
+			}
+			resolve({
+				success: false,
+				output: "",
+				error: error.message,
+				timedOut: false,
+			});
+		});
+
+		child.stdin.write(script);
+		child.stdin.end();
+	});
+}
+
+export async function runJxa(
+	script: string,
+	timeoutMs: number = DEFAULT_TIMEOUT_MS,
+): Promise<AppleScriptResult> {
+	if (perf.enabled) {
+		perf.count("jxa.acquire");
+		if (globalState.inFlightCount >= MAX_CONCURRENT_CALLS)
+			perf.count("jxa.queue");
+	}
+	await acquireSlot();
+
+	try {
+		return await executeJxaScript(script, timeoutMs);
 	} finally {
 		releaseSlot();
 	}

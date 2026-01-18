@@ -23,6 +23,7 @@ import {
 } from "../../infra/db/repositories/RoomMembershipsRepository";
 import { createLogger } from "../../infra/log";
 import { getSharedRoomImagesDir } from "../../infra/paths";
+import { handleForbiddenRoomError } from "../rooms/RoomAccess";
 import { decryptRoomImageBytes } from "../rooms/RoomCrypto";
 import { getRoomKey } from "../rooms/RoomsService";
 import { getSocialApiBaseUrl } from "../social/config";
@@ -163,10 +164,24 @@ export async function syncRoom(
 	const latestEventTs = getLatestCachedEventTimestamp(roomId) ?? 0;
 	const hasEvents = latestEventTs > 0;
 	const since = backfill || !hasEvents ? undefined : latestEventTs;
-	const events = await fetchRoomEvents({
-		roomId,
-		since,
-	});
+	let events: Awaited<ReturnType<typeof fetchRoomEvents>>;
+	try {
+		events = await fetchRoomEvents({
+			roomId,
+			since,
+		});
+	} catch (error) {
+		if (
+			handleForbiddenRoomError({
+				roomId,
+				error,
+				source: "shared_projects_sync",
+			})
+		) {
+			return { count: 0 };
+		}
+		throw error;
+	}
 
 	if (events.length === 0) {
 		updateRoomMembershipLastSynced(roomId, Date.now());

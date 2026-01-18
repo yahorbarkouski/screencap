@@ -7,9 +7,10 @@ import { getEventById } from "../../infra/db/repositories/EventRepository";
 import { listRoomMembershipsByRole } from "../../infra/db/repositories/RoomMembershipsRepository";
 import { createLogger } from "../../infra/log";
 import { fetchMessages, openProjectThread } from "../chat/ChatService";
+import { handleForbiddenRoomError } from "../rooms/RoomAccess";
 import { listFriends } from "../social/FriendsService";
 import { getIdentity } from "../social/IdentityService";
-import { addUnreadForThread } from "./UnreadCommentState";
+import { addUnreadForThread, clearUnreadForThread } from "./UnreadCommentState";
 
 const logger = createLogger({ scope: "SocialCommentNotifications" });
 
@@ -157,6 +158,13 @@ async function ensureBaselineCursor(threadId: string): Promise<void> {
 	});
 }
 
+function clearRoomPollingState(roomId: string): void {
+	const threadId = `project_${roomId}`;
+	cursors.delete(threadId);
+	joinedProjectRoomIds.delete(roomId);
+	clearUnreadForThread(threadId);
+}
+
 async function pollOnce(): Promise<void> {
 	const identity = getIdentity();
 	if (!identity) return;
@@ -236,6 +244,16 @@ async function pollOnce(): Promise<void> {
 					}
 				}
 			} catch (error) {
+				if (
+					handleForbiddenRoomError({
+						roomId,
+						error,
+						source: "social_comment_poll",
+					})
+				) {
+					clearRoomPollingState(roomId);
+					continue;
+				}
 				logger.debug("Poll room failed", { roomId, error: String(error) });
 			}
 		}

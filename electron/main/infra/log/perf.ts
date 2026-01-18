@@ -44,10 +44,12 @@ export function createPerfTracker(
 			lastMs: Math.round(stat.lastMs),
 		}));
 
-		const counterEntries = Array.from(counters.entries()).map(([key, stat]) => ({
-			key,
-			count: stat.count,
-		}));
+		const counterEntries = Array.from(counters.entries()).map(
+			([key, stat]) => ({
+				key,
+				count: stat.count,
+			}),
+		);
 
 		logger.info("Perf summary", {
 			windowMs: Math.round(now - lastReportAt),

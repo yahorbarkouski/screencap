@@ -54,3 +54,9 @@ export function listRoomKeysCache(): RoomKeyCacheRow[] {
 		updatedAt: row.updated_at,
 	}));
 }
+
+export function deleteRoomKeyCache(roomId: string): void {
+	if (!isDbOpen()) return;
+	const db = getDatabase();
+	db.prepare("DELETE FROM room_keys_cache WHERE room_id = ?").run(roomId);
+}

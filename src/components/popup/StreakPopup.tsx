@@ -143,6 +143,12 @@ export function StreakPopup() {
 		window.close();
 	}, []);
 
+	const triggerSmartReminder = useCallback(() => {
+		if (!window.api?.reminders?.startCapture) return;
+		void window.api.reminders.startCapture();
+		window.close();
+	}, []);
+
 	useEffect(() => {
 		if (!window.api) return;
 		return window.api.on("shortcut:capture-now", () => {
@@ -437,6 +443,16 @@ export function StreakPopup() {
 									<span>Capture now</span>
 									<ShortcutKbd
 										accelerator={settings.shortcuts.captureNow}
+										className="h-4 px-1 text-[9px] rounded-sm"
+									/>
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									onSelect={triggerSmartReminder}
+									className="flex items-center justify-between gap-3"
+								>
+									<span>Smart reminder</span>
+									<ShortcutKbd
+										accelerator={settings.shortcuts.smartReminder}
 										className="h-4 px-1 text-[9px] rounded-sm"
 									/>
 								</DropdownMenuItem>

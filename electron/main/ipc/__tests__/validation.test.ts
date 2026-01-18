@@ -14,6 +14,7 @@ const VALID_SETTINGS: Settings = {
 		captureNow: "Command+Shift+O",
 		captureProjectProgress: "Command+Shift+P",
 		endOfDay: "Command+Shift+E",
+		smartReminder: "Command+Shift+R",
 	},
 	sharing: {
 		includeAppName: true,
@@ -174,6 +175,7 @@ describe("ipcSetSettingsArgs", () => {
 				captureNow: null,
 				captureProjectProgress: null,
 				endOfDay: null,
+				smartReminder: null,
 			},
 		};
 		const result = ipcSetSettingsArgs.safeParse([settingsWithNullShortcuts]);

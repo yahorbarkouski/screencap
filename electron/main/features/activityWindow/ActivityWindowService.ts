@@ -6,6 +6,7 @@ import { v4 as uuid } from "uuid";
 import { SELF_APP_BUNDLE_ID } from "../../../shared/appIdentity";
 import type { CaptureResult } from "../../../shared/types";
 import { createLogger } from "../../infra/log";
+import { createPerfTracker } from "../../infra/log/perf";
 import {
 	getOriginalsDir,
 	getTempCapturesDir,
@@ -18,7 +19,6 @@ import type { ActivityContext, ForegroundSnapshot } from "../context";
 import { collectActivityContext, collectForegroundSnapshot } from "../context";
 import { chromiumProvider, safariProvider } from "../context/providers";
 import { type ActivitySegment, computeDominantSegment } from "./dominance";
-import { createPerfTracker } from "../../infra/log/perf";
 
 const logger = createLogger({ scope: "ActivityWindow" });
 const perf = createPerfTracker("Perf.ActivityWindow");

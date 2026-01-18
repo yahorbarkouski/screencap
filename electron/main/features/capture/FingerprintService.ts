@@ -2,6 +2,7 @@ import { performance } from "node:perf_hooks";
 import sharp from "sharp";
 import type { Fingerprint, FingerprintComparison } from "../../../shared/types";
 import { createPerfTracker } from "../../infra/log/perf";
+
 const perf = createPerfTracker("Perf.Fingerprint");
 
 type DHashSpec = {

@@ -93,6 +93,14 @@ export function upsertCachedDayWrappedBatch(events: CachedDayWrapped[]): void {
 	})();
 }
 
+export function deleteCachedDayWrapped(roomId: string): void {
+	if (!isDbOpen()) return;
+	const db = getDatabase();
+	db.prepare("DELETE FROM room_day_wrapped_cache WHERE room_id = ?").run(
+		roomId,
+	);
+}
+
 export function getLatestCachedDayWrappedForAuthor(params: {
 	roomId: string;
 	authorUserId: string;

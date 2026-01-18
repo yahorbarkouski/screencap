@@ -1,5 +1,5 @@
-import Database from "better-sqlite3";
 import { performance } from "node:perf_hooks";
+import Database from "better-sqlite3";
 import { createLogger } from "../log";
 import { createPerfTracker } from "../log/perf";
 import { getDbPath } from "../paths";
@@ -66,7 +66,10 @@ function instrumentDatabase(database: Database.Database): void {
 	}) as Database.Database["prepare"];
 }
 
-function instrumentStatement<T extends Database.Statement>(stmt: T, sql: string): T {
+function instrumentStatement<T extends Database.Statement>(
+	stmt: T,
+	sql: string,
+): T {
 	const wrap = (method: "run" | "get" | "all") => {
 		const original = (stmt as Record<string, unknown>)[method];
 		if (typeof original !== "function") return;

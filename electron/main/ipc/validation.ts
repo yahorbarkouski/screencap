@@ -302,6 +302,7 @@ const zShortcutSettings = z
 		captureNow: zShortcutAccelerator,
 		captureProjectProgress: zShortcutAccelerator,
 		endOfDay: zShortcutAccelerator,
+		smartReminder: zShortcutAccelerator,
 	})
 	.strict();
 
@@ -418,6 +419,58 @@ export const ipcProjectJournalGetActivityArgs = z.tuple([
 			startAt: z.number().int().nonnegative(),
 			endAt: z.number().int().nonnegative(),
 			limitPerRepo: zPositiveInt.max(5000).optional(),
+		})
+		.strict(),
+]);
+
+const zReminderStatus = z.enum([
+	"pending",
+	"triggered",
+	"completed",
+	"cancelled",
+]);
+
+export const ipcGetRemindersArgs = z.union([
+	ipcNoArgs,
+	z.tuple([
+		z
+			.object({
+				status: zReminderStatus.optional(),
+				limit: zPositiveInt.max(1000).optional(),
+				offset: zNonNegativeInt.max(100000).optional(),
+				includeNotes: z.boolean().optional(),
+			})
+			.strict(),
+	]),
+]);
+
+export const ipcCreateReminderArgs = z.tuple([
+	z
+		.object({
+			id: zLimitedString(256),
+			title: zLimitedString(1000),
+			body: z.string().max(50000).nullable().optional(),
+			sourceText: z.string().max(50000).nullable().optional(),
+			remindAt: z.number().int().nullable().optional(),
+			thumbnailPath: zLimitedString(10000).nullable().optional(),
+			originalPath: zLimitedString(10000).nullable().optional(),
+			appBundleId: zLimitedString(500).nullable().optional(),
+			windowTitle: zLimitedString(2000).nullable().optional(),
+			urlHost: zLimitedString(500).nullable().optional(),
+			contentKind: zLimitedString(200).nullable().optional(),
+			contextJson: z.string().max(100000).nullable().optional(),
+		})
+		.strict(),
+]);
+
+export const ipcUpdateReminderArgs = z.tuple([
+	zLimitedString(256),
+	z
+		.object({
+			title: zLimitedString(1000).optional(),
+			body: z.string().max(50000).nullable().optional(),
+			remindAt: z.number().int().nullable().optional(),
+			status: zReminderStatus.optional(),
 		})
 		.strict(),
 ]);

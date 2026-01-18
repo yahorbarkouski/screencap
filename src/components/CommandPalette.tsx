@@ -1,6 +1,7 @@
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { Command } from "cmdk";
 import {
+	Bell,
 	BookOpen,
 	Bot,
 	Briefcase,
@@ -171,6 +172,14 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 							>
 								<Flame className="h-4 w-4" />
 								Go to Addictions
+							</Command.Item>
+							<Command.Item
+								value="go reminders"
+								className={itemClassName}
+								onSelect={() => navigateToView("reminders")}
+							>
+								<Bell className="h-4 w-4" />
+								Go to Reminders
 							</Command.Item>
 							<Command.Item
 								value="go settings"

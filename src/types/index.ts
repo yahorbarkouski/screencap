@@ -133,6 +133,7 @@ export interface ShortcutSettings {
 	captureNow: string | null;
 	captureProjectProgress: string | null;
 	endOfDay: string | null;
+	smartReminder: string | null;
 }
 
 export interface SharingSettings {
@@ -322,6 +323,7 @@ export type View =
 	| "story"
 	| "projects"
 	| "addictions"
+	| "reminders"
 	| "settings";
 
 export type SettingsTab =
@@ -645,6 +647,70 @@ export interface CrashSessionLogSummary {
 	sizeBytes: number;
 }
 
+export type ReminderStatus =
+	| "pending"
+	| "triggered"
+	| "completed"
+	| "cancelled";
+
+export interface Reminder {
+	id: string;
+	title: string;
+	body: string | null;
+	sourceText: string | null;
+	remindAt: number | null;
+	status: ReminderStatus;
+	createdAt: number;
+	updatedAt: number;
+	triggeredAt: number | null;
+	completedAt: number | null;
+	thumbnailPath: string | null;
+	originalPath: string | null;
+	appBundleId: string | null;
+	windowTitle: string | null;
+	urlHost: string | null;
+	contentKind: string | null;
+	contextJson: string | null;
+}
+
+export interface ReminderInput {
+	id: string;
+	title: string;
+	body?: string | null;
+	sourceText?: string | null;
+	remindAt?: number | null;
+	thumbnailPath?: string | null;
+	originalPath?: string | null;
+	appBundleId?: string | null;
+	windowTitle?: string | null;
+	urlHost?: string | null;
+	contentKind?: string | null;
+	contextJson?: string | null;
+}
+
+export interface ReminderUpdate {
+	title?: string;
+	body?: string | null;
+	remindAt?: number | null;
+	status?: ReminderStatus;
+}
+
+export interface GetRemindersOptions {
+	status?: ReminderStatus;
+	limit?: number;
+	offset?: number;
+	includeNotes?: boolean;
+}
+
+export interface SmartReminderCapturePreviewPayload {
+	imageBase64: string;
+	appBundleId: string | null;
+	windowTitle: string | null;
+	urlHost: string | null;
+	contentKind: string | null;
+	contextJson: string | null;
+}
+
 declare global {
 	interface Window {
 		api: {
@@ -937,6 +1003,15 @@ declare global {
 				listCrashSessions: () => Promise<CrashSessionLogSummary[]>;
 				saveCrashSessionToFile: (id: string) => Promise<string | null>;
 			};
+			reminders: {
+				list: (options?: GetRemindersOptions) => Promise<Reminder[]>;
+				get: (id: string) => Promise<Reminder | null>;
+				create: (input: ReminderInput) => Promise<Reminder>;
+				update: (id: string, updates: ReminderUpdate) => Promise<void>;
+				delete: (id: string) => Promise<void>;
+				markCompleted: (id: string) => Promise<void>;
+				startCapture: () => Promise<void>;
+			};
 			on: (
 				channel:
 					| "permission:required"
@@ -952,9 +1027,23 @@ declare global {
 					| "shortcut:end-of-day"
 					| "preview:event"
 					| "settings:open-tab"
-					| "settings:changed",
+					| "settings:changed"
+					| "reminders:changed"
+					| "reminder:triggered"
+					| "smart-reminder:capture-preview"
+					| "selection-overlay:init"
+					| "selection-overlay:hover-result"
+					| "smart-reminder:popup-init",
 				callback: (...args: unknown[]) => void,
 			) => () => void;
+			send: (
+				channel:
+					| "selection-overlay:ready"
+					| "selection-overlay:result"
+					| "selection-overlay:hover"
+					| "smart-reminder:popup-result",
+				...args: unknown[]
+			) => void;
 		};
 	}
 }

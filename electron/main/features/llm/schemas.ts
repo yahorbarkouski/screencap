@@ -37,3 +37,13 @@ export const ClassificationStage2Schema = z.object({
 });
 
 export type ClassificationStage2 = z.infer<typeof ClassificationStage2Schema>;
+
+export const ReminderParseSchema = z.object({
+	title: z.string(),
+	body: z.string().nullable(),
+	isReminder: z.boolean(),
+	remindAt: z.string().nullable(),
+	confidence: z.number().min(0).max(1),
+});
+
+export type ReminderParse = z.infer<typeof ReminderParseSchema>;

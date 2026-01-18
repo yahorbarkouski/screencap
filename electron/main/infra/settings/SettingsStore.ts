@@ -27,6 +27,7 @@ const DEFAULT_SETTINGS: Settings = {
 		captureNow: "Command+Shift+O",
 		captureProjectProgress: "Command+Shift+P",
 		endOfDay: "Command+Shift+E",
+		smartReminder: "Alt+Space",
 	},
 	sharing: {
 		includeAppName: true,
@@ -110,6 +111,9 @@ const zShortcutSettings = z
 			DEFAULT_SETTINGS.shortcuts.captureProjectProgress,
 		),
 		endOfDay: zShortcutAccelerator.catch(DEFAULT_SETTINGS.shortcuts.endOfDay),
+		smartReminder: zShortcutAccelerator.catch(
+			DEFAULT_SETTINGS.shortcuts.smartReminder,
+		),
 	})
 	.strip()
 	.catch(DEFAULT_SETTINGS.shortcuts);
@@ -350,6 +354,10 @@ export function getApiKey(): string | null {
 
 export function getCaptureInterval(): number {
 	return getSettings().captureInterval;
+}
+
+export function isLlmEnabled(): boolean {
+	return getSettings().llmEnabled;
 }
 
 export function invalidateCache(): void {

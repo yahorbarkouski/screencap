@@ -3,5 +3,6 @@ export {
 	getCaptureInterval,
 	getSettings,
 	invalidateCache,
+	isLlmEnabled,
 	setSettings,
 } from "./SettingsStore";

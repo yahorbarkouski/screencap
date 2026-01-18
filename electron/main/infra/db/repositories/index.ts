@@ -8,6 +8,7 @@ export * from "./ProjectRepoRepository";
 export * from "./ProjectRoomLinkRepository";
 export * from "./ProjectShareRepository";
 export * from "./QueueRepository";
+export * from "./ReminderRepository";
 export * from "./RoomEventsCacheRepository";
 export * from "./RoomKeysCacheRepository";
 export * from "./RoomMembersCacheRepository";

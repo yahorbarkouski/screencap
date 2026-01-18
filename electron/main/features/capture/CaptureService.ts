@@ -6,9 +6,9 @@ import sharp from "sharp";
 import { v4 as uuid } from "uuid";
 import type { CaptureResult } from "../../../shared/types";
 import { createLogger } from "../../infra/log";
+import { createPerfTracker } from "../../infra/log/perf";
 import { getOriginalsDir, getThumbnailsDir } from "../../infra/paths";
 import { computeFingerprint } from "./FingerprintService";
-import { createPerfTracker } from "../../infra/log/perf";
 
 const logger = createLogger({ scope: "CaptureService" });
 const perf = createPerfTracker("Perf.Capture");
@@ -356,10 +356,7 @@ export async function processRawCaptures(
 			height: raw.displayHeight,
 		};
 		if (perf.enabled)
-			perf.track(
-				"capture.processRaw.display",
-				performance.now() - startedAt,
-			);
+			perf.track("capture.processRaw.display", performance.now() - startedAt);
 		return result;
 	});
 
@@ -498,19 +495,13 @@ export async function captureAllDisplays(options?: {
 			height: raw.displayHeight,
 		};
 		if (perf.enabled)
-			perf.track(
-				"capture.allDisplays.display",
-				performance.now() - startedAt,
-			);
+			perf.track("capture.allDisplays.display", performance.now() - startedAt);
 		return result;
 	});
 
 	const results = await Promise.all(processPromises);
 	if (perf.enabled)
-		perf.track(
-			"capture.allDisplays.total",
-			performance.now() - totalStart,
-		);
+		perf.track("capture.allDisplays.total", performance.now() - totalStart);
 
 	logger.info(`Capture complete: ${results.length} results`);
 	return results;
@@ -551,4 +542,165 @@ export async function captureForClassification(): Promise<Buffer | null> {
 		.toBuffer();
 
 	return resized;
+}
+
+export interface RegionBounds {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+	displayId: string;
+	scaleFactor: number;
+}
+
+export interface RegionCaptureResult {
+	id: string;
+	timestamp: number;
+	thumbnailPath: string;
+	originalPath: string;
+	previewBase64: string;
+	width: number;
+	height: number;
+}
+
+export async function captureRegion(
+	bounds: RegionBounds,
+): Promise<RegionCaptureResult | null> {
+	const centerX = bounds.x + bounds.width / 2;
+	const centerY = bounds.y + bounds.height / 2;
+	const display = screen.getDisplayNearestPoint({ x: centerX, y: centerY });
+
+	if (!display) {
+		logger.warn("Display not found for region capture", {
+			displayId: bounds.displayId,
+			center: { x: centerX, y: centerY },
+		});
+		return null;
+	}
+
+	const displayIdStr = String(display.id);
+
+	const sources = await desktopCapturer.getSources({
+		types: ["screen"],
+		thumbnailSize: bestThumbnailSize(),
+	});
+
+	let source = sources.find((s) => s.display_id === displayIdStr);
+
+	if (!source) {
+		source = sources.find((s) => s.id.includes(displayIdStr));
+	}
+
+	if (!source && sources.length === 1) {
+		source = sources[0];
+	}
+
+	if (!source) {
+		const displays = screen.getAllDisplays();
+		const displayIndex = displays.findIndex((d) => d.id === display.id);
+		if (displayIndex >= 0 && displayIndex < sources.length) {
+			source = sources[displayIndex];
+		}
+	}
+
+	if (!source) {
+		logger.warn("Source not found for region capture", {
+			displayId: displayIdStr,
+			availableSources: sources.map((s) => ({
+				id: s.id,
+				display_id: s.display_id,
+			})),
+		});
+		return null;
+	}
+
+	const nativeImage = source.thumbnail;
+	if (nativeImage.isEmpty()) {
+		logger.warn("Region capture: image is empty");
+		return null;
+	}
+
+	const bgra = nativeImageToBgra(nativeImage);
+	const timestamp = Date.now();
+	const id = uuid();
+
+	const capturedScale = bgra.width / display.size.width;
+
+	const cropX = Math.round((bounds.x - display.bounds.x) * capturedScale);
+	const cropY = Math.round((bounds.y - display.bounds.y) * capturedScale);
+	const cropWidth = Math.round(bounds.width * capturedScale);
+	const cropHeight = Math.round(bounds.height * capturedScale);
+
+	const safeCropX = Math.max(0, Math.min(cropX, bgra.width - 1));
+	const safeCropY = Math.max(0, Math.min(cropY, bgra.height - 1));
+	const safeCropWidth = Math.min(cropWidth, bgra.width - safeCropX);
+	const safeCropHeight = Math.min(cropHeight, bgra.height - safeCropY);
+
+	if (safeCropWidth <= 0 || safeCropHeight <= 0) {
+		logger.warn("Region capture: invalid crop dimensions", {
+			safeCropWidth,
+			safeCropHeight,
+		});
+		return null;
+	}
+
+	const thumbnailsDir = getThumbnailsDir();
+	const originalsDir = getOriginalsDir();
+	const thumbnailPath = join(thumbnailsDir, `${id}.webp`);
+	const originalPath = join(originalsDir, `${id}.webp`);
+
+	const base = createSharpFromBgra(
+		bgra.buffer,
+		bgra.width,
+		bgra.height,
+	).extract({
+		left: safeCropX,
+		top: safeCropY,
+		width: safeCropWidth,
+		height: safeCropHeight,
+	});
+
+	const [original, thumbnail, previewBuffer] = await Promise.all([
+		base
+			.clone()
+			.resize(ORIGINAL_WIDTH, null, { withoutEnlargement: true })
+			.removeAlpha()
+			.recomb(BGRA_TO_RGB_RECOMB)
+			.webp({ quality: WEBP_QUALITY, effort: WEBP_EFFORT })
+			.toBuffer(),
+		base
+			.clone()
+			.resize(THUMBNAIL_WIDTH, null, { withoutEnlargement: true })
+			.removeAlpha()
+			.recomb(BGRA_TO_RGB_RECOMB)
+			.webp({ quality: WEBP_QUALITY, effort: WEBP_EFFORT })
+			.toBuffer(),
+		base
+			.clone()
+			.resize(PREVIEW_WIDTH, null, { withoutEnlargement: true })
+			.removeAlpha()
+			.recomb(BGRA_TO_RGB_RECOMB)
+			.jpeg({ quality: PREVIEW_JPEG_QUALITY })
+			.toBuffer(),
+	]);
+
+	await Promise.all([
+		writeFile(originalPath, original),
+		writeFile(thumbnailPath, thumbnail),
+	]);
+
+	logger.info("Region captured and saved", {
+		id,
+		bounds: { x: safeCropX, y: safeCropY, w: safeCropWidth, h: safeCropHeight },
+	});
+
+	return {
+		id,
+		timestamp,
+		thumbnailPath,
+		originalPath,
+		previewBase64: previewBuffer.toString("base64"),
+		width: bounds.width,
+		height: bounds.height,
+	};
 }

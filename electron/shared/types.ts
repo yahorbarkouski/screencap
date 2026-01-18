@@ -133,6 +133,7 @@ export interface ShortcutSettings {
 	captureNow: string | null;
 	captureProjectProgress: string | null;
 	endOfDay: string | null;
+	smartReminder: string | null;
 }
 
 export interface SharingSettings {
@@ -746,4 +747,59 @@ export interface CrashSessionLogSummary {
 	id: string;
 	createdAt: string;
 	sizeBytes: number;
+}
+
+export type ReminderStatus =
+	| "pending"
+	| "triggered"
+	| "completed"
+	| "cancelled";
+
+export interface Reminder {
+	id: string;
+	title: string;
+	body: string | null;
+	sourceText: string | null;
+	remindAt: number | null;
+	status: ReminderStatus;
+	createdAt: number;
+	updatedAt: number;
+	triggeredAt: number | null;
+	completedAt: number | null;
+	thumbnailPath: string | null;
+	originalPath: string | null;
+	appBundleId: string | null;
+	windowTitle: string | null;
+	urlHost: string | null;
+	contentKind: string | null;
+	contextJson: string | null;
+}
+
+export interface ReminderInput {
+	id: string;
+	title: string;
+	body?: string | null;
+	sourceText?: string | null;
+	remindAt?: number | null;
+	thumbnailPath?: string | null;
+	originalPath?: string | null;
+	appBundleId?: string | null;
+	windowTitle?: string | null;
+	urlHost?: string | null;
+	contentKind?: string | null;
+	contextJson?: string | null;
+}
+
+export interface ReminderUpdate {
+	title?: string;
+	body?: string | null;
+	remindAt?: number | null;
+	status?: ReminderStatus;
+}
+
+export interface GetRemindersOptions {
+	status?: ReminderStatus;
+	limit?: number;
+	offset?: number;
+	includeNotes?: boolean;
 }

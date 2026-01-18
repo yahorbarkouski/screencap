@@ -39,3 +39,9 @@ export function deleteProjectRoomLink(projectName: string): void {
 		projectName,
 	);
 }
+
+export function deleteProjectRoomLinkByRoomId(roomId: string): void {
+	if (!isDbOpen()) return;
+	const db = getDatabase();
+	db.prepare("DELETE FROM project_room_links WHERE room_id = ?").run(roomId);
+}

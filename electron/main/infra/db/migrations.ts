@@ -195,6 +195,7 @@ export function runMigrations(db: Database.Database): void {
 
 	migrateQueue(db);
 	migrateRoomTables(db);
+	migrateRemindersTable(db);
 
 	logger.info("Migrations complete");
 }
@@ -290,4 +291,34 @@ function migrateRoomTables(db: Database.Database): void {
 		"TEXT",
 		columns,
 	);
+}
+
+function migrateRemindersTable(db: Database.Database): void {
+	if (!tableExists(db, "reminders")) {
+		db.exec(`
+			CREATE TABLE reminders (
+				id TEXT PRIMARY KEY,
+				title TEXT NOT NULL,
+				body TEXT,
+				source_text TEXT,
+				remind_at INTEGER,
+				status TEXT NOT NULL DEFAULT 'pending',
+				created_at INTEGER NOT NULL,
+				updated_at INTEGER NOT NULL,
+				triggered_at INTEGER,
+				completed_at INTEGER,
+				thumbnail_path TEXT,
+				original_path TEXT,
+				app_bundle_id TEXT,
+				window_title TEXT,
+				url_host TEXT,
+				content_kind TEXT,
+				context_json TEXT
+			)
+		`);
+		db.exec("CREATE INDEX idx_reminders_remind_at ON reminders(remind_at)");
+		db.exec("CREATE INDEX idx_reminders_status ON reminders(status)");
+		db.exec("CREATE INDEX idx_reminders_created_at ON reminders(created_at)");
+		logger.info("Created reminders table");
+	}
 }

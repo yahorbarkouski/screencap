@@ -33,6 +33,7 @@ import {
 	signedFetch,
 } from "../social/IdentityService";
 import { isFriendsFeedRoomName } from "../socialFeed/constants";
+import { handleForbiddenRoomError } from "./RoomAccess";
 import {
 	createRoomKeyEnvelope,
 	decodeRoomKeyB64,
@@ -245,6 +246,13 @@ export async function uploadOwnKeyEnvelopeIfMissing(
 	});
 
 	if (!res.ok) {
+		if (res.status === 403) {
+			handleForbiddenRoomError({
+				roomId,
+				error: { status: res.status },
+				source: "upload_room_key_envelope",
+			});
+		}
 		logger.warn("Failed to upload own key envelope", {
 			roomId,
 			status: res.status,
@@ -320,6 +328,14 @@ export async function fetchAndSyncRoomMembers(
 		});
 
 		if (!res.ok) {
+			if (res.status === 403) {
+				handleForbiddenRoomError({
+					roomId,
+					error: { status: res.status },
+					source: "fetch_room_members",
+				});
+				return listRoomMembers(roomId);
+			}
 			logger.warn("Failed to fetch room members from server", {
 				roomId,
 				status: res.status,

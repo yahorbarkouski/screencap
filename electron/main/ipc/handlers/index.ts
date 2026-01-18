@@ -9,6 +9,7 @@ export { registerPermissionHandlers } from "./permissions";
 export { registerPopupHandlers } from "./popup";
 export { registerProjectJournalHandlers } from "./projectJournal";
 export { registerPublishingHandlers } from "./publishing";
+export { registerRemindersHandlers } from "./reminders";
 export { registerRoomsHandlers } from "./rooms";
 export { registerSchedulerHandlers } from "./scheduler";
 export { registerSettingsHandlers } from "./settings";
