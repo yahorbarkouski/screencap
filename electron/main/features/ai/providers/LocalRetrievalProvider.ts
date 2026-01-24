@@ -1,6 +1,10 @@
 import type { ClassificationResult, Event } from "../../../../shared/types";
 import { getEvents } from "../../../infra/db/repositories/EventRepository";
+import { getMemories } from "../../../infra/db/repositories/MemoryRepository";
+import { createLogger } from "../../../infra/log";
 import type { ClassificationProvider, ProviderAvailability } from "../types";
+
+const logger = createLogger({ scope: "LocalRetrievalProvider" });
 
 const MAX_CANDIDATES = 250;
 const MIN_CATEGORY_SAMPLES = 25;
@@ -234,6 +238,17 @@ export const localRetrievalProvider: ClassificationProvider = {
 	},
 
 	async classify(input): Promise<ClassificationResult | null> {
+		const memories = getMemories();
+		const addictions = memories.filter((m) => m.type === "addiction");
+
+		if (addictions.length > 0) {
+			logger.info(
+				"Skipping local retrieval: addictions configured, need LLM for detection",
+				{ addictionsCount: addictions.length },
+			);
+			return null;
+		}
+
 		const ctx = input.context;
 		const candidates = candidateEvents({
 			appBundleId: ctx?.appBundleId ?? null,
@@ -261,6 +276,12 @@ export const localRetrievalProvider: ClassificationProvider = {
 			windowTitle: ctx?.windowTitle ?? null,
 			appName: ctx?.appName ?? null,
 			urlHost: ctx?.urlHost ?? null,
+		});
+
+		logger.info("Local retrieval succeeded", {
+			category: picked.category,
+			confidence: picked.confidence,
+			project,
 		});
 
 		return {

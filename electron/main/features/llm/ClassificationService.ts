@@ -89,11 +89,24 @@ export async function classifyScreenshot(
 	context: ScreenContext | null = null,
 	model?: string | null,
 ): Promise<ClassificationResult | null> {
-	logger.debug("Starting classification...", { hasContext: !!context });
+	logger.debug("Starting vision classification", { hasContext: !!context });
 
 	const memories = getMemories();
 	const addictions = buildAddictionOptions(memories);
 	const isMetaAddictionScreen = shouldDisableAddictionTracking(context);
+
+	logger.info("Addiction tracking setup", {
+		configuredAddictions: addictions.map((a) => ({ id: a.id, name: a.name })),
+		addictionsCount: addictions.length,
+		isMetaScreen: isMetaAddictionScreen,
+		context: context
+			? {
+					appName: context.appName,
+					appBundleId: context.appBundleId,
+					urlHost: context.urlHost,
+				}
+			: null,
+	});
 
 	const stage1 = await callOpenRouter<ClassificationStage1>(
 		[
@@ -116,6 +129,13 @@ export async function classifyScreenshot(
 		{ model: model?.trim() || undefined },
 	);
 
+	logger.info("Stage1 addiction triage result", {
+		trackingEnabled: stage1.addiction_triage.tracking_enabled,
+		potentiallyAddictive: stage1.addiction_triage.potentially_addictive,
+		rawCandidates: stage1.addiction_triage.candidates,
+		candidatesCount: stage1.addiction_triage.candidates.length,
+	});
+
 	const projectProgress = normalizeProjectProgress(
 		stage1.project,
 		stage1.project_progress,
@@ -135,6 +155,24 @@ export async function classifyScreenshot(
 		addictions.length > 0 &&
 		stage1.addiction_triage.tracking_enabled &&
 		!isMetaAddictionScreen;
+
+	const rawCandidateIds = stage1.addiction_triage.candidates.map(
+		(c) => c.addiction_id,
+	);
+	const matchedCandidateIds = stage1.addiction_triage.candidates
+		.filter((c) => addictions.some((a) => a.id === c.addiction_id))
+		.map((c) => c.addiction_id);
+
+	logger.info("Candidate filtering", {
+		trackingEnabled,
+		rawCandidateIds,
+		matchedCandidateIds,
+		unmatchedIds: rawCandidateIds.filter(
+			(id) => !matchedCandidateIds.includes(id),
+		),
+		addictionIds: addictions.map((a) => a.id),
+	});
+
 	const candidates = trackingEnabled
 		? stage1.addiction_triage.candidates
 				.filter((c) => addictions.some((a) => a.id === c.addiction_id))
@@ -144,12 +182,21 @@ export async function classifyScreenshot(
 				.filter((a): a is AddictionOption => !!a)
 		: [];
 
+	logger.info("Final candidates for stage2", {
+		candidatesCount: candidates.length,
+		candidates: candidates.map((c) => ({ id: c.id, name: c.name })),
+		willRunStage2: trackingEnabled && candidates.length > 0,
+	});
+
 	if (trackingEnabled && candidates.length > 0) {
+		const stage2Prompt = buildSystemPromptStage2(candidates, context);
+		logger.debug("Stage2 system prompt", { prompt: stage2Prompt });
+
 		const stage2 = await callOpenRouter<ClassificationStage2>(
 			[
 				{
 					role: "system",
-					content: buildSystemPromptStage2(candidates, context),
+					content: stage2Prompt,
 				},
 				{
 					role: "user",
@@ -179,7 +226,29 @@ export async function classifyScreenshot(
 			{ model: model?.trim() || undefined },
 		);
 
+		logger.info("Stage2 verification result", {
+			decision: stage2.decision,
+			addictionId: stage2.addiction_id,
+			confidence: stage2.confidence,
+			evidence: stage2.evidence,
+			manualPrompt: stage2.manual_prompt,
+		});
+
 		const resolved = normalizeStage2Decision(candidates, stage2);
+
+		logger.info("Stage2 resolved decision", {
+			confirmed: resolved.confirmed
+				? { id: resolved.confirmed.id, name: resolved.confirmed.name }
+				: null,
+			candidate: resolved.candidate
+				? {
+						id: resolved.candidate.option.id,
+						name: resolved.candidate.option.name,
+						confidence: resolved.candidate.confidence,
+					}
+				: null,
+		});
+
 		if (resolved.confirmed) {
 			trackedAddiction = { detected: true, name: resolved.confirmed.name };
 			addictionCandidate = null;
@@ -217,6 +286,12 @@ export async function classifyScreenshot(
 			: (addictionCandidate?.prompt ?? null),
 	};
 
-	logger.debug("Classification complete", { category: result.category });
+	logger.info("Vision classification complete", {
+		category: result.category,
+		trackedAddiction: result.tracked_addiction,
+		addictionCandidate: result.addiction_candidate,
+		addictionConfidence: result.addiction_confidence,
+	});
+
 	return result;
 }

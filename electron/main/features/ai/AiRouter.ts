@@ -60,7 +60,18 @@ export class AiRouter {
 		ctx: ClassificationProviderContext,
 		order: string[],
 	): Promise<ClassificationDecision> {
+		logger.info("Starting classification", {
+			providerOrder: order,
+			mode: ctx.mode,
+			hasApiKey: !!ctx.apiKey,
+			allowVisionUploads: ctx.allowVisionUploads,
+			hasImage: !!input.imageBase64,
+			hasOcrText: !!input.ocrText,
+			hasContext: !!input.context,
+		});
+
 		if (ctx.mode === "off") {
+			logger.info("Classification skipped: mode is off");
 			return { ok: false, providerId: null, result: null, attempts: [] };
 		}
 
@@ -69,6 +80,7 @@ export class AiRouter {
 		for (const id of order) {
 			const provider = this.providers.get(id);
 			if (!provider) {
+				logger.warn("Provider not registered", { providerId: id });
 				attempts.push({
 					providerId: id,
 					available: false,
@@ -82,6 +94,10 @@ export class AiRouter {
 			try {
 				availability = await provider.isAvailable(ctx);
 			} catch (error) {
+				logger.warn("Provider availability check failed", {
+					providerId: id,
+					error: String(error),
+				});
 				attempts.push({
 					providerId: id,
 					available: false,
@@ -92,6 +108,10 @@ export class AiRouter {
 			}
 
 			if (!availability.available) {
+				logger.info("Provider not available", {
+					providerId: id,
+					reason: availability.reason,
+				});
 				attempts.push({
 					providerId: id,
 					available: false,
@@ -101,6 +121,7 @@ export class AiRouter {
 				continue;
 			}
 
+			logger.info("Trying provider", { providerId: id });
 			const started = performance.now();
 			try {
 				const result = await provider.classify(input, ctx);
@@ -113,13 +134,21 @@ export class AiRouter {
 						latencyMs,
 						error: null,
 					});
-					logger.debug("Classification succeeded", {
+					logger.info("Classification succeeded", {
 						providerId: id,
 						latencyMs,
+						category: result.category,
+						trackedAddiction: result.tracked_addiction,
+						addictionCandidate: result.addiction_candidate,
+						addictionConfidence: result.addiction_confidence,
 					});
 					return { ok: true, providerId: id, result, attempts };
 				}
 
+				logger.info("Provider returned null (fallback to next)", {
+					providerId: id,
+					latencyMs,
+				});
 				attempts.push({
 					providerId: id,
 					available: true,
@@ -128,6 +157,11 @@ export class AiRouter {
 				});
 			} catch (error) {
 				const latencyMs = Math.round(performance.now() - started);
+				logger.warn("Provider classification failed", {
+					providerId: id,
+					latencyMs,
+					error: String(error),
+				});
 				attempts.push({
 					providerId: id,
 					available: true,
@@ -137,6 +171,7 @@ export class AiRouter {
 			}
 		}
 
+		logger.warn("All providers failed", { attempts });
 		return { ok: false, providerId: null, result: null, attempts };
 	}
 }

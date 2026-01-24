@@ -443,6 +443,17 @@ async function processQueueItem(item: {
 
 		if (decision.ok) {
 			const result = decision.result;
+
+			logger.info("Classification result received", {
+				eventId: item.eventId,
+				providerId: decision.providerId,
+				category: result.category,
+				trackedAddiction: result.tracked_addiction,
+				addictionCandidate: result.addiction_candidate,
+				addictionConfidence: result.addiction_confidence,
+				addictionPrompt: result.addiction_prompt,
+			});
+
 			const latest = getEventById(item.eventId);
 			const hasManualCaption = (latest?.caption ?? "").trim().length > 0;
 			const isManualProgress = latest?.projectProgressEvidence === "manual";
@@ -452,12 +463,22 @@ async function processQueueItem(item: {
 				name: latest?.appName ?? event.appName,
 				windowTitle: latest?.windowTitle ?? event.windowTitle,
 			});
+
+			logger.info("Addiction tracking status", {
+				eventId: item.eventId,
+				shouldDisable: shouldDisableAddictionTracking,
+				appBundleId: latest?.appBundleId ?? event.appBundleId,
+				appName: latest?.appName ?? event.appName,
+			});
+
 			if (
 				shouldDisableAddictionTracking &&
 				(result.tracked_addiction.detected || result.addiction_candidate)
 			) {
-				logger.debug("Meta screen detected, clearing addiction signals", {
+				logger.info("Meta screen detected, clearing addiction signals", {
 					eventId: item.eventId,
+					trackedAddiction: result.tracked_addiction,
+					addictionCandidate: result.addiction_candidate,
 				});
 			}
 
@@ -510,19 +531,7 @@ async function processQueueItem(item: {
 					? 1
 					: 0;
 
-			updateEvent(item.eventId, {
-				category,
-				subcategories: JSON.stringify(result.subcategories),
-				project,
-				projectProgress: resolvedProgress,
-				projectProgressConfidence: progressShown
-					? result.project_progress.confidence
-					: null,
-				projectProgressEvidence: resolvedEvidence,
-				potentialProgress,
-				tags: JSON.stringify(tags),
-				confidence: result.confidence,
-				caption: resolvedCaption,
+			const finalAddictionData = {
 				trackedAddiction: shouldDisableAddictionTracking
 					? null
 					: result.tracked_addiction.detected
@@ -537,12 +546,37 @@ async function processQueueItem(item: {
 				addictionPrompt: shouldDisableAddictionTracking
 					? null
 					: (result.addiction_prompt ?? null),
+			};
+
+			logger.info("Saving addiction data to event", {
+				eventId: item.eventId,
+				...finalAddictionData,
+			});
+
+			updateEvent(item.eventId, {
+				category,
+				subcategories: JSON.stringify(result.subcategories),
+				project,
+				projectProgress: resolvedProgress,
+				projectProgressConfidence: progressShown
+					? result.project_progress.confidence
+					: null,
+				projectProgressEvidence: resolvedEvidence,
+				potentialProgress,
+				tags: JSON.stringify(tags),
+				confidence: result.confidence,
+				caption: resolvedCaption,
+				...finalAddictionData,
 				status: "completed",
 			});
 
 			removeFromQueue(item.id);
 			broadcastEventUpdated(item.eventId);
-			logger.debug("Processed queue item", { eventId: item.eventId });
+			logger.info("Processed queue item", {
+				eventId: item.eventId,
+				category,
+				...finalAddictionData,
+			});
 		} else {
 			throw new Error(
 				`All providers failed: ${decision.attempts.map((a) => `${a.providerId}:${a.error ?? "ok"}`).join(",")}`,
