@@ -161,6 +161,12 @@ export function getEvents(options: GetEventsOptions): Event[] {
 		);
 	}
 
+	if (options.needsAddictionReview) {
+		conditions.push(
+			"e.addiction_candidate IS NOT NULL AND e.tracked_addiction IS NULL",
+		);
+	}
+
 	if (options.appBundleId) {
 		conditions.push("e.app_bundle_id = ?");
 		params.push(options.appBundleId);

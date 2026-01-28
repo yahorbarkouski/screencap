@@ -54,6 +54,7 @@ const zGetEventsOptions = z
 		projectProgress: z.boolean().optional(),
 		trackedAddiction: zLimitedString(200).optional(),
 		hasTrackedAddiction: z.boolean().optional(),
+		needsAddictionReview: z.boolean().optional(),
 		appBundleId: zLimitedString(500).optional(),
 		urlHost: zLimitedString(500).optional(),
 		startDate: z.number().int().optional(),

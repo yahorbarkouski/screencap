@@ -1,4 +1,5 @@
 import {
+	AlertCircle,
 	AppWindow,
 	BookOpen,
 	Briefcase,
@@ -282,6 +283,13 @@ export const TimelineFilters = memo(function TimelineFilters() {
 			projectProgress: filtersRef.current.projectProgress ? undefined : true,
 		});
 	}, [updateFilters]);
+	const toggleNeedsReview = useCallback(() => {
+		updateFilters({
+			needsAddictionReview: filtersRef.current.needsAddictionReview
+				? undefined
+				: true,
+		});
+	}, [updateFilters]);
 
 	const projectOptions = useMemo(
 		() => projects.map((p) => ({ value: p, label: p })),
@@ -388,6 +396,15 @@ export const TimelineFilters = memo(function TimelineFilters() {
 				label: "Progress",
 				icon: <TrendingUp className="h-3 w-3" />,
 				onRemove: () => updateFilters({ projectProgress: undefined }),
+			});
+		}
+
+		if (filters.needsAddictionReview) {
+			result.push({
+				key: "needsReview",
+				label: "Needs Review",
+				icon: <AlertCircle className="h-3 w-3" />,
+				onRemove: () => updateFilters({ needsAddictionReview: undefined }),
 			});
 		}
 
@@ -548,6 +565,20 @@ export const TimelineFilters = memo(function TimelineFilters() {
 						>
 							<TrendingUp className="h-4 w-4" />
 							Progress only
+						</Button>
+
+						<Button
+							variant={filters.needsAddictionReview ? "secondary" : "outline"}
+							size="sm"
+							className={cn(
+								"h-8 gap-2 no-drag",
+								filters.needsAddictionReview &&
+									"bg-orange-500/20 text-orange-500 hover:bg-orange-500/30",
+							)}
+							onClick={toggleNeedsReview}
+						>
+							<AlertCircle className="h-4 w-4" />
+							Needs Review
 						</Button>
 					</div>
 				</div>

@@ -286,6 +286,7 @@ export interface EventFilters {
 	category?: string;
 	project?: string;
 	projectProgress?: boolean;
+	needsAddictionReview?: boolean;
 	appBundleId?: string;
 	urlHost?: string;
 	startDate?: number;
