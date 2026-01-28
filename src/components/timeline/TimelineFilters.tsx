@@ -2,6 +2,7 @@ import {
 	AppWindow,
 	BookOpen,
 	Briefcase,
+	Flame,
 	Gamepad2,
 	Globe,
 	HelpCircle,
@@ -19,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { DateRangeSelect } from "@/components/ui/date-range-select";
 import { Input } from "@/components/ui/input";
+import { useMemories } from "@/hooks/useMemories";
 import { cn } from "@/lib/utils";
 import { getTodayFilters, useAppStore } from "@/stores/app";
 import type { RecordedApp, WebsiteEntry } from "@/types";
@@ -98,6 +100,7 @@ export const TimelineFilters = memo(function TimelineFilters() {
 	const [apps, setApps] = useState<RecordedApp[]>([]);
 	const [websites, setWebsites] = useState<WebsiteEntry[]>([]);
 	const [filtersExpanded, setFiltersExpanded] = useState(false);
+	const { addictions } = useMemories();
 	const filtersRef = useRef(filters);
 	const debounceRef = useRef<NodeJS.Timeout>();
 
@@ -282,6 +285,20 @@ export const TimelineFilters = memo(function TimelineFilters() {
 			projectProgress: filtersRef.current.projectProgress ? undefined : true,
 		});
 	}, [updateFilters]);
+	const handleAddictionChange = useCallback(
+		(v?: string) => updateFilters({ trackedAddiction: v }),
+		[updateFilters],
+	);
+
+	const addictionOptions = useMemo(
+		() =>
+			addictions.map((a) => ({
+				value: a.content,
+				label: a.content,
+				icon: <Flame className="h-4 w-4" />,
+			})),
+		[addictions],
+	);
 
 	const projectOptions = useMemo(
 		() => projects.map((p) => ({ value: p, label: p })),
@@ -388,6 +405,15 @@ export const TimelineFilters = memo(function TimelineFilters() {
 				label: "Progress",
 				icon: <TrendingUp className="h-3 w-3" />,
 				onRemove: () => updateFilters({ projectProgress: undefined }),
+			});
+		}
+
+		if (filters.trackedAddiction) {
+			result.push({
+				key: "addiction",
+				label: filters.trackedAddiction,
+				icon: <Flame className="h-3 w-3" />,
+				onRemove: () => updateFilters({ trackedAddiction: undefined }),
 			});
 		}
 
@@ -533,6 +559,21 @@ export const TimelineFilters = memo(function TimelineFilters() {
 								dropdownMinWidth={200}
 								options={websiteOptions}
 								className="w-[160px] no-drag"
+							/>
+						)}
+
+						{addictions.length > 0 && (
+							<Combobox
+								value={filters.trackedAddiction}
+								onValueChange={handleAddictionChange}
+								placeholder="Addiction"
+								allLabel="All Addictions"
+								allIcon={<Flame className="h-4 w-4" />}
+								searchable
+								searchPlaceholder="Search addictions..."
+								emptyText="No addictions."
+								options={addictionOptions}
+								className="w-[150px] no-drag"
 							/>
 						)}
 
