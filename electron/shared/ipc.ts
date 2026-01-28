@@ -115,6 +115,7 @@ export const IpcChannels = {
 	},
 	Storage: {
 		GetEvents: "storage:get-events",
+		GetEventsCount: "storage:get-events-count",
 		GetUnifiedEvents: "storage:get-unified-events",
 		GetEvent: "storage:get-event",
 		GetEventScreenshots: "storage:get-event-screenshots",
@@ -315,6 +316,7 @@ export interface IpcInvokeHandlers {
 	[IpcChannels.Scheduler.IsRunning]: () => boolean;
 
 	[IpcChannels.Storage.GetEvents]: (options: GetEventsOptions) => Event[];
+	[IpcChannels.Storage.GetEventsCount]: (options: GetEventsOptions) => number;
 	[IpcChannels.Storage.GetUnifiedEvents]: (
 		options: GetEventsOptions,
 	) => Event[];

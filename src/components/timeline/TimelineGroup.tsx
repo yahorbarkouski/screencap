@@ -10,6 +10,7 @@ interface TimelineGroupProps {
 	showProject?: boolean;
 	showPagination?: boolean;
 	hasNextPage?: boolean;
+	totalPages?: number;
 }
 
 export function TimelineGroup({
@@ -18,6 +19,7 @@ export function TimelineGroup({
 	showProject = false,
 	showPagination = false,
 	hasNextPage = false,
+	totalPages = 1,
 }: TimelineGroupProps) {
 	const pagination = useAppStore((s) => s.pagination);
 	const setPagination = useAppStore((s) => s.setPagination);
@@ -28,7 +30,7 @@ export function TimelineGroup({
 				<h3 className="text-sm font-medium text-muted-foreground">{date}</h3>
 				{showPagination && (
 					<div className="flex items-center gap-1 text-xs text-muted-foreground">
-						<span>{pagination.page + 1}</span>
+						<span>Page {pagination.page + 1} of {totalPages}</span>
 						<Button
 							variant="ghost"
 							size="icon"

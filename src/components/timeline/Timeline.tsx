@@ -18,9 +18,11 @@ const SelectedBulkActions = memo(function SelectedBulkActions() {
 const TimelineList = memo(function TimelineList({
 	groups,
 	hasNextPage,
+	totalPages,
 }: {
 	groups: Map<string, Event[]>;
 	hasNextPage: boolean;
+	totalPages: number;
 }) {
 	if (groups.size === 0) {
 		return (
@@ -43,6 +45,7 @@ const TimelineList = memo(function TimelineList({
 					events={dateEvents}
 					showPagination={index === 0}
 					hasNextPage={hasNextPage}
+					totalPages={totalPages}
 				/>
 			))}
 		</>
@@ -50,7 +53,7 @@ const TimelineList = memo(function TimelineList({
 });
 
 export function Timeline() {
-	const { events, hasNextPage, isLoading } = useEvents();
+	const { events, hasNextPage, totalPages, isLoading } = useEvents();
 	const groupedEvents = useMemo(() => {
 		return groupEventsByDate(events);
 	}, [events]);
@@ -68,7 +71,7 @@ export function Timeline() {
 							<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
 						</div>
 					) : (
-						<TimelineList groups={groupedEvents} hasNextPage={hasNextPage} />
+						<TimelineList groups={groupedEvents} hasNextPage={hasNextPage} totalPages={totalPages} />
 					)}
 				</div>
 			</ScrollArea>

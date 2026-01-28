@@ -220,6 +220,78 @@ export function getEvents(options: GetEventsOptions): Event[] {
 	return transformRows<Event>(rows);
 }
 
+export function getEventsCount(options: GetEventsOptions): number {
+	if (!isDbOpen()) return 0;
+
+	const db = getDatabase();
+	const conditions: string[] = ["1=1"];
+	const params: unknown[] = [];
+
+	if (options.category) {
+		conditions.push("category = ?");
+		params.push(options.category);
+	}
+
+	if (options.project) {
+		conditions.push("project = ?");
+		params.push(options.project);
+	}
+
+	if (options.projectProgress !== undefined) {
+		conditions.push("project_progress = ?");
+		params.push(options.projectProgress ? 1 : 0);
+	}
+
+	if (options.trackedAddiction) {
+		conditions.push("tracked_addiction = ?");
+		params.push(options.trackedAddiction);
+	}
+
+	if (options.hasTrackedAddiction !== undefined) {
+		conditions.push(
+			options.hasTrackedAddiction
+				? "tracked_addiction IS NOT NULL"
+				: "tracked_addiction IS NULL",
+		);
+	}
+
+	if (options.appBundleId) {
+		conditions.push("app_bundle_id = ?");
+		params.push(options.appBundleId);
+	}
+
+	if (options.urlHost) {
+		conditions.push("url_host = ?");
+		params.push(options.urlHost);
+	}
+
+	if (options.startDate) {
+		conditions.push("timestamp >= ?");
+		params.push(options.startDate);
+	}
+
+	if (options.endDate) {
+		conditions.push("timestamp <= ?");
+		params.push(options.endDate);
+	}
+
+	if (options.search) {
+		conditions.push("(caption LIKE ? OR tags LIKE ?)");
+		params.push(`%${options.search}%`, `%${options.search}%`);
+	}
+
+	if (options.dismissed === undefined) {
+		conditions.push("dismissed = 0");
+	} else {
+		conditions.push("dismissed = ?");
+		params.push(options.dismissed ? 1 : 0);
+	}
+
+	const query = `SELECT COUNT(*) as count FROM events WHERE ${conditions.join(" AND ")}`;
+	const row = db.prepare(query).get(...params) as { count: number };
+	return row.count;
+}
+
 export function listExpiredEventIds(
 	cutoffTimestamp: number,
 	limit: number,

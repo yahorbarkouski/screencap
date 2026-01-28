@@ -788,6 +788,19 @@ declare global {
 					search?: string;
 					dismissed?: boolean;
 				}) => Promise<Event[]>;
+				getEventsCount: (options: {
+					category?: string;
+					project?: string;
+					projectProgress?: boolean;
+					trackedAddiction?: string;
+					hasTrackedAddiction?: boolean;
+					appBundleId?: string;
+					urlHost?: string;
+					startDate?: number;
+					endDate?: number;
+					search?: string;
+					dismissed?: boolean;
+				}) => Promise<number>;
 				getUnifiedEvents: (options: {
 					limit?: number;
 					offset?: number;

@@ -175,6 +175,8 @@ const api = {
 	storage: {
 		getEvents: (options: GetEventsOptions): Promise<Event[]> =>
 			ipcRenderer.invoke(IpcChannels.Storage.GetEvents, options),
+		getEventsCount: (options: GetEventsOptions): Promise<number> =>
+			ipcRenderer.invoke(IpcChannels.Storage.GetEventsCount, options),
 		getUnifiedEvents: (
 			options: GetEventsOptions & { includeRemote?: boolean },
 		): Promise<Event[]> =>

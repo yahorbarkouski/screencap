@@ -8,6 +8,7 @@ export function useEvents() {
 	const pagination = useAppStore((s) => s.pagination);
 	const isMounted = useRef(true);
 	const [hasNextPage, setHasNextPage] = useState(false);
+	const [totalPages, setTotalPages] = useState(1);
 	const [isLoading, setIsLoading] = useState(true);
 	const requestIdRef = useRef(0);
 
@@ -18,13 +19,17 @@ export function useEvents() {
 		setIsLoading(true);
 		try {
 			const { page, pageSize } = pagination;
-			const result = await window.api.storage.getEvents({
-				...filters,
-				limit: pageSize + 1,
-				offset: page * pageSize,
-			});
+			const [result, count] = await Promise.all([
+				window.api.storage.getEvents({
+					...filters,
+					limit: pageSize + 1,
+					offset: page * pageSize,
+				}),
+				window.api.storage.getEventsCount(filters),
+			]);
 			if (isMounted.current && requestId === requestIdRef.current) {
 				setHasNextPage(result.length > pageSize);
+				setTotalPages(Math.max(1, Math.ceil(count / pageSize)));
 				setEvents(result.slice(0, pageSize));
 			}
 		} finally {
@@ -72,5 +77,5 @@ export function useEvents() {
 		};
 	}, [fetchEvents]);
 
-	return { events, fetchEvents, hasNextPage, isLoading };
+	return { events, fetchEvents, hasNextPage, totalPages, isLoading };
 }
