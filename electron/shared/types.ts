@@ -266,6 +266,7 @@ export interface GetEventsOptions {
 	projectProgress?: boolean;
 	trackedAddiction?: string;
 	hasTrackedAddiction?: boolean;
+	needsAddictionReview?: boolean;
 	appBundleId?: string;
 	urlHost?: string;
 	startDate?: number;
