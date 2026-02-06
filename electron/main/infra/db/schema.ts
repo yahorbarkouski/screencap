@@ -277,6 +277,7 @@ export function createIndexes(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp);
     CREATE INDEX IF NOT EXISTS idx_events_display_timestamp ON events(display_id, timestamp);
     CREATE INDEX IF NOT EXISTS idx_events_category ON events(category);
+    CREATE INDEX IF NOT EXISTS idx_events_project ON events(project);
     CREATE INDEX IF NOT EXISTS idx_events_project_progress ON events(project_progress);
     CREATE INDEX IF NOT EXISTS idx_events_project_progress_project_timestamp ON events(project_progress, project, timestamp);
     CREATE INDEX IF NOT EXISTS idx_events_status ON events(status);

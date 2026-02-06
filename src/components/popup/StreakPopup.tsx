@@ -42,6 +42,7 @@ export function StreakPopup() {
 	const [daylineMode, setDaylineMode] = useState<DaylineViewMode>("categories");
 	const [selectedLabels, setSelectedLabels] = useState<Set<string>>(new Set());
 	const [view, setView] = useState<"day" | "social">("day");
+	const [today, setToday] = useState(() => startOfDay(new Date()));
 	const [day, setDay] = useState(() => startOfDay(new Date()));
 	const { settings } = useSettings();
 	const [socialSelectedEvent, setSocialSelectedEvent] =
@@ -62,15 +63,11 @@ export function StreakPopup() {
 	}, []);
 
 	useEffect(() => {
-		setSelectedLabels(new Set());
-	}, []);
-
-	useEffect(() => {
 		if (view !== "social" && socialSelectedEvent) {
 			setSocialSelectedEvent(null);
 		}
 	}, [socialSelectedEvent, view]);
-	const todayStartMs = useMemo(() => startOfDay(new Date()).getTime(), []);
+	const todayStartMs = useMemo(() => today.getTime(), [today]);
 	const dayStartMs = useMemo(() => startOfDay(day).getTime(), [day]);
 	const dayEndMs = useMemo(() => endOfDay(day).getTime(), [day]);
 	const canGoForward = dayStartMs < todayStartMs;
@@ -160,6 +157,16 @@ export function StreakPopup() {
 		if (!window.api) return;
 		return window.api.on("popup:reset-to-personal", () => {
 			setView("day");
+		});
+	}, []);
+
+	useEffect(() => {
+		if (!window.api) return;
+		return window.api.on("popup:shown", () => {
+			const now = startOfDay(new Date());
+			setToday(now);
+			setDay(now);
+			setSelectedLabels(new Set());
 		});
 	}, []);
 

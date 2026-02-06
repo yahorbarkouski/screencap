@@ -1021,6 +1021,7 @@ declare global {
 					| "projects:normalized"
 					| "update:state"
 					| "popup:reset-to-personal"
+					| "popup:shown"
 					| "shortcut:capture-now"
 					| "shortcut:capture-project-progress-preview"
 					| "shortcut:capture-project-progress"

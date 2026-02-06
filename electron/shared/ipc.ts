@@ -252,6 +252,7 @@ export const IpcEvents = {
 	ProjectsNormalized: "projects:normalized",
 	UpdateState: "update:state",
 	PopupResetToPersonal: "popup:reset-to-personal",
+	PopupShown: "popup:shown",
 	ShortcutCaptureNow: "shortcut:capture-now",
 	ShortcutCaptureProjectProgressPreview:
 		"shortcut:capture-project-progress-preview",
@@ -557,6 +558,7 @@ export interface IpcEventPayloads {
 	[IpcEvents.ProjectsNormalized]: { updatedRows: number; groups: number };
 	[IpcEvents.UpdateState]: UpdateState;
 	[IpcEvents.PopupResetToPersonal]: undefined;
+	[IpcEvents.PopupShown]: undefined;
 	[IpcEvents.ShortcutCaptureNow]: undefined;
 	[IpcEvents.ShortcutCaptureProjectProgressPreview]: ProjectProgressPreview;
 	[IpcEvents.ShortcutCaptureProjectProgress]: string | null;
