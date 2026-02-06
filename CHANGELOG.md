@@ -1,3 +1,10 @@
+## [1.18.1](https://github.com/yahorbarkouski/screencap/compare/v1.18.0...v1.18.1) (2026-02-06)
+
+
+### Bug Fixes
+
+* projects page freezing and popup day reset ([26596a2](https://github.com/yahorbarkouski/screencap/commit/26596a2ca2a32a1e5569b01094ce5f033394d047))
+
 # [1.18.0](https://github.com/yahorbarkouski/screencap/compare/v1.17.1...v1.18.0) (2026-01-24)
 
 
