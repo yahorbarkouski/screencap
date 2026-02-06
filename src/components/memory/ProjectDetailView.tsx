@@ -288,19 +288,33 @@ export function ProjectDetailView({
 		refreshGit();
 	}, [refreshGit, tab]);
 
+	const progressDebounceRef = useRef<ReturnType<typeof setTimeout>>();
+	const debouncedRefreshProgress = useCallback(() => {
+		if (progressDebounceRef.current) clearTimeout(progressDebounceRef.current);
+		progressDebounceRef.current = setTimeout(refreshProgress, 5_000);
+	}, [refreshProgress]);
+
 	useEffect(() => {
 		if (!window.api) return;
-		const offCreated = window.api.on("event:created", refreshProgress);
-		const offUpdated = window.api.on("event:updated", refreshProgress);
-		const offChanged = window.api.on("events:changed", refreshProgress);
-		const offProjects = window.api.on("projects:normalized", refreshProgress);
+		const offCreated = window.api.on("event:created", debouncedRefreshProgress);
+		const offUpdated = window.api.on("event:updated", debouncedRefreshProgress);
+		const offChanged = window.api.on(
+			"events:changed",
+			debouncedRefreshProgress,
+		);
+		const offProjects = window.api.on(
+			"projects:normalized",
+			debouncedRefreshProgress,
+		);
 		return () => {
+			if (progressDebounceRef.current)
+				clearTimeout(progressDebounceRef.current);
 			offCreated();
 			offUpdated();
 			offChanged();
 			offProjects();
 		};
-	}, [refreshProgress]);
+	}, [debouncedRefreshProgress]);
 
 	const allProgressEvents = progress.events;
 

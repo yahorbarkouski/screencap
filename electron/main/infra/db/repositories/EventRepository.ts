@@ -926,24 +926,23 @@ export function getProjectStatsBatch(
 		last_event_at: number | null;
 	}>;
 
-	const progressCoverRows = db
+	const coverRows = db
 		.prepare(
 			`
-		SELECT
-			e.project AS name,
-			e.original_path,
-			e.thumbnail_path,
-			e.project_progress
-		FROM events e
-		WHERE e.id IN (
-			SELECT id FROM (
-				SELECT id, project,
-					ROW_NUMBER() OVER (PARTITION BY project ORDER BY timestamp DESC) AS rn
-				FROM events
-				WHERE project IN (${placeholders}) AND dismissed = 0 AND project_progress = 1
-			)
-			WHERE rn = 1
+		SELECT name, original_path, thumbnail_path, project_progress FROM (
+			SELECT
+				e.project AS name,
+				e.original_path,
+				e.thumbnail_path,
+				e.project_progress,
+				ROW_NUMBER() OVER (
+					PARTITION BY e.project
+					ORDER BY e.project_progress DESC, e.timestamp DESC
+				) AS rn
+			FROM events e
+			WHERE e.project IN (${placeholders}) AND e.dismissed = 0
 		)
+		WHERE rn = 1
 	`,
 		)
 		.all(...uniqueCanonical) as Array<{
@@ -953,41 +952,13 @@ export function getProjectStatsBatch(
 		project_progress: number;
 	}>;
 
-	const fallbackCoverRows = db
-		.prepare(
-			`
-		SELECT
-			e.project AS name,
-			e.original_path,
-			e.thumbnail_path,
-			e.project_progress
-		FROM events e
-		WHERE e.id IN (
-			SELECT id FROM (
-				SELECT id, project,
-					ROW_NUMBER() OVER (PARTITION BY project ORDER BY timestamp DESC) AS rn
-				FROM events
-				WHERE project IN (${placeholders}) AND dismissed = 0
-			)
-			WHERE rn = 1
-		)
-	`,
-		)
-		.all(...uniqueCanonical) as Array<{
-		name: string;
-		original_path: string | null;
-		thumbnail_path: string | null;
-		project_progress: number;
-	}>;
-
-	const progressMap = new Map(progressCoverRows.map((r) => [r.name, r]));
-	const fallbackMap = new Map(fallbackCoverRows.map((r) => [r.name, r]));
+	const coverMap = new Map(coverRows.map((r) => [r.name, r]));
 
 	const result: Record<string, ProjectStatsRow> = {};
 	for (const name of names) {
 		const canonical = canonicalizeProject(name) ?? name;
 		const stats = countRows.find((r) => r.name === canonical);
-		const cover = progressMap.get(canonical) ?? fallbackMap.get(canonical);
+		const cover = coverMap.get(canonical);
 		result[name] = {
 			name,
 			eventCount: stats?.event_count ?? 0,
