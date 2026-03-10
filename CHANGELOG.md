@@ -1,3 +1,10 @@
+# [1.19.0](https://github.com/yahorbarkouski/screencap/compare/v1.18.1...v1.19.0) (2026-03-10)
+
+
+### Features
+
+* add iOS TestFlight release pipeline ([6af4509](https://github.com/yahorbarkouski/screencap/commit/6af450975376cfe02db810e53538d9ad0f439bfb))
+
 ## [1.18.1](https://github.com/yahorbarkouski/screencap/compare/v1.18.0...v1.18.1) (2026-02-06)
 
 
