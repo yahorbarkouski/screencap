@@ -573,6 +573,63 @@ export interface SocialIdentity {
 	username: string;
 }
 
+export type DevicePlatform = "macos" | "ios";
+
+export type DevicePairingSessionStatus =
+	| "pending"
+	| "claimed"
+	| "approved"
+	| "expired";
+
+export interface DevicePairingSession {
+	id: string;
+	code: string;
+	pairingUrl: string;
+	status: DevicePairingSessionStatus;
+	createdAt: number;
+	expiresAt: number;
+	claimedDeviceName: string | null;
+	claimedAt: number | null;
+	approvedAt: number | null;
+}
+
+export interface PairedDevice {
+	deviceId: string;
+	deviceName: string | null;
+	platform: DevicePlatform;
+	addedAt: number;
+	lastSeenAt: number | null;
+	isCurrent: boolean;
+}
+
+export interface MobileActivityHourBucket {
+	hour: number;
+	durationSeconds: number;
+	category: AutomationCategory;
+	appName: string | null;
+}
+
+export interface MobileActivityDay {
+	deviceId: string;
+	deviceName: string | null;
+	platform: "ios";
+	dayStartMs: number;
+	buckets: MobileActivityHourBucket[];
+	syncedAt: number;
+}
+
+export interface GetMobileActivityDaysOptions {
+	startDate?: number;
+	endDate?: number;
+}
+
+export interface MobileActivitySyncStatus {
+	inFlight: boolean;
+	lastAttemptAt: number | null;
+	lastSuccessAt: number | null;
+	lastError: string | null;
+}
+
 export type AvatarPattern = "ascii";
 
 export interface AvatarSettings {

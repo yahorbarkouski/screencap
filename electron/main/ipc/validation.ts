@@ -63,7 +63,23 @@ const zGetEventsOptions = z
 	})
 	.strict();
 
+const zGetMobileActivityDaysOptions = z
+	.object({
+		startDate: z.number().int().optional(),
+		endDate: z.number().int().optional(),
+	})
+	.strict();
+
 export const ipcGetEventsArgs = z.tuple([zGetEventsOptions]);
+
+export const ipcGetMobileActivityDaysArgs = z.tuple([
+	zGetMobileActivityDaysOptions,
+]);
+
+export const ipcSyncMobileActivityArgs = z.union([
+	ipcNoArgs,
+	z.tuple([zGetMobileActivityDaysOptions]),
+]);
 
 export const ipcGetUnifiedEventsArgs = z.tuple([
 	zGetEventsOptions.extend({

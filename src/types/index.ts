@@ -489,6 +489,63 @@ export interface SocialIdentity {
 	username: string;
 }
 
+export type DevicePlatform = "macos" | "ios";
+
+export type DevicePairingSessionStatus =
+	| "pending"
+	| "claimed"
+	| "approved"
+	| "expired";
+
+export interface DevicePairingSession {
+	id: string;
+	code: string;
+	pairingUrl: string;
+	status: DevicePairingSessionStatus;
+	createdAt: number;
+	expiresAt: number;
+	claimedDeviceName: string | null;
+	claimedAt: number | null;
+	approvedAt: number | null;
+}
+
+export interface PairedDevice {
+	deviceId: string;
+	deviceName: string | null;
+	platform: DevicePlatform;
+	addedAt: number;
+	lastSeenAt: number | null;
+	isCurrent: boolean;
+}
+
+export interface MobileActivityHourBucket {
+	hour: number;
+	durationSeconds: number;
+	category: AutomationCategory;
+	appName: string | null;
+}
+
+export interface MobileActivityDay {
+	deviceId: string;
+	deviceName: string | null;
+	platform: "ios";
+	dayStartMs: number;
+	buckets: MobileActivityHourBucket[];
+	syncedAt: number;
+}
+
+export interface GetMobileActivityDaysOptions {
+	startDate?: number;
+	endDate?: number;
+}
+
+export interface MobileActivitySyncStatus {
+	inFlight: boolean;
+	lastAttemptAt: number | null;
+	lastSuccessAt: number | null;
+	lastError: string | null;
+}
+
 export interface Friend {
 	userId: string;
 	username: string;
@@ -946,6 +1003,24 @@ declare global {
 				acceptFriendRequest: (requestId: string) => Promise<void>;
 				rejectFriendRequest: (requestId: string) => Promise<void>;
 				syncAvatarSettings: (avatarSettings: AvatarSettings) => Promise<void>;
+			};
+			mobileActivity: {
+				listDays: (
+					options: GetMobileActivityDaysOptions,
+				) => Promise<MobileActivityDay[]>;
+				sync: (
+					options?: GetMobileActivityDaysOptions,
+				) => Promise<{ count: number }>;
+				getSyncStatus: () => Promise<MobileActivitySyncStatus>;
+			};
+			devicePairing: {
+				createSession: () => Promise<DevicePairingSession>;
+				getSession: (sessionId: string) => Promise<DevicePairingSession | null>;
+				approveSession: (
+					sessionId: string,
+				) => Promise<DevicePairingSession | null>;
+				listDevices: () => Promise<PairedDevice[]>;
+				revokeDevice: (deviceId: string) => Promise<void>;
 			};
 			chat: {
 				listThreads: () => Promise<ChatThread[]>;

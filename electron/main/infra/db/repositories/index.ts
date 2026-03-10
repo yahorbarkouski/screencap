@@ -4,6 +4,8 @@ export * from "./EventRepository";
 export * from "./EventScreenshotRepository";
 export * from "./FaviconRepository";
 export * from "./MemoryRepository";
+export * from "./MobileActivityDayRepository";
+export * from "./MobilePairedDeviceRepository";
 export * from "./ProjectRepoRepository";
 export * from "./ProjectRoomLinkRepository";
 export * from "./ProjectShareRepository";

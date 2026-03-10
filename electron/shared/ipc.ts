@@ -17,6 +17,7 @@ import type {
 	CrashSessionLogSummary,
 	CreateShareResult,
 	DayWrappedSnapshot,
+	DevicePairingSession,
 	EodEntry,
 	EodEntryInput,
 	Event,
@@ -25,6 +26,7 @@ import type {
 	Friend,
 	FriendRequest,
 	GetEventsOptions,
+	GetMobileActivityDaysOptions,
 	GetRemindersOptions,
 	GetTimelineFacetsOptions,
 	GitCommit,
@@ -32,7 +34,10 @@ import type {
 	LLMTestResult,
 	LogsCollectResult,
 	Memory,
+	MobileActivityDay,
+	MobileActivitySyncStatus,
 	OcrResult,
+	PairedDevice,
 	PeriodType,
 	PermissionStatus,
 	ProjectRepo,
@@ -193,6 +198,18 @@ export const IpcChannels = {
 		AcceptFriendRequest: "social:accept-friend-request",
 		RejectFriendRequest: "social:reject-friend-request",
 		SyncAvatarSettings: "social:sync-avatar-settings",
+	},
+	MobileActivity: {
+		ListDays: "mobile-activity:list-days",
+		Sync: "mobile-activity:sync",
+		GetSyncStatus: "mobile-activity:get-sync-status",
+	},
+	DevicePairing: {
+		CreateSession: "device-pairing:create-session",
+		GetSession: "device-pairing:get-session",
+		ApproveSession: "device-pairing:approve-session",
+		ListDevices: "device-pairing:list-devices",
+		RevokeDevice: "device-pairing:revoke-device",
 	},
 	Chat: {
 		ListThreads: "chat:list-threads",
@@ -448,6 +465,25 @@ export interface IpcInvokeHandlers {
 	[IpcChannels.Social.SyncAvatarSettings]: (
 		avatarSettings: AvatarSettings,
 	) => Promise<void>;
+
+	[IpcChannels.MobileActivity.ListDays]: (
+		options: GetMobileActivityDaysOptions,
+	) => MobileActivityDay[];
+	[IpcChannels.MobileActivity.Sync]: (
+		options?: GetMobileActivityDaysOptions,
+	) => Promise<{ count: number }>;
+	[IpcChannels.MobileActivity.GetSyncStatus]: () => MobileActivitySyncStatus;
+
+	[IpcChannels.DevicePairing
+		.CreateSession]: () => Promise<DevicePairingSession>;
+	[IpcChannels.DevicePairing.GetSession]: (
+		sessionId: string,
+	) => Promise<DevicePairingSession | null>;
+	[IpcChannels.DevicePairing.ApproveSession]: (
+		sessionId: string,
+	) => Promise<DevicePairingSession | null>;
+	[IpcChannels.DevicePairing.ListDevices]: () => Promise<PairedDevice[]>;
+	[IpcChannels.DevicePairing.RevokeDevice]: (deviceId: string) => Promise<void>;
 
 	[IpcChannels.Chat.ListThreads]: () => Promise<ChatThread[]>;
 	[IpcChannels.Chat.OpenDmThread]: (friendUserId: string) => Promise<string>;

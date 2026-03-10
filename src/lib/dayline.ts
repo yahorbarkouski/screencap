@@ -1,5 +1,5 @@
 import { DOT_ALPHA_BY_LEVEL, type Rgb, rgba } from "@/lib/color";
-import type { Event } from "@/types";
+import type { Event, MobileActivityDay } from "@/types";
 
 const BROWSER_APP_NAMES = new Set([
 	"Safari",
@@ -37,6 +37,9 @@ export type DaylineSlot = {
 	category: ActivityCategory;
 	addiction: string | null;
 	appName: string | null;
+	source?: "mac" | "iphone" | "both";
+	macCount?: number;
+	iphoneCount?: number;
 };
 
 export const SLOT_MINUTES = 10;
@@ -100,6 +103,12 @@ export function slotLevel(count: number): 0 | 1 | 2 | 3 | 4 {
 export interface DaylineOptions {
 	showDominantWebsites?: boolean;
 }
+
+type IphoneAggregateSlot = {
+	count: number;
+	categoryCounts: Map<ActivityCategory, number>;
+	appCounts: Map<string, number>;
+};
 
 export function computeDaylineSlots(
 	events: Event[],
@@ -178,9 +187,138 @@ export function computeDaylineSlots(
 				category: dominantCategory(categoryCounts),
 				addiction: dominantMapKey(addictionCounts),
 				appName,
+				source: count > 0 ? "mac" : undefined,
+				macCount: count,
+				iphoneCount: 0,
 			};
 		},
 	);
+}
+
+function mobileBucketLevel(durationSeconds: number): number {
+	if (durationSeconds <= 0) return 0;
+	const minutes = durationSeconds / 60;
+	if (minutes <= 15) return 1;
+	if (minutes <= 30) return 2;
+	if (minutes <= 45) return 3;
+	return 4;
+}
+
+function chooseWeightedLabel<T extends string>(params: {
+	macLabel: T | null;
+	macWeight: number;
+	iphoneCounts: Map<T, number>;
+	fallback: T;
+}): T {
+	let bestLabel = params.macLabel ?? params.fallback;
+	let bestWeight = params.macWeight;
+	let bestIsMac = params.macLabel !== null && params.macWeight > 0;
+
+	for (const [label, weight] of params.iphoneCounts) {
+		if (weight > bestWeight) {
+			bestLabel = label;
+			bestWeight = weight;
+			bestIsMac = false;
+			continue;
+		}
+		if (weight === bestWeight && bestIsMac) {
+			continue;
+		}
+		if (weight === bestWeight && !bestIsMac && label < bestLabel) {
+			bestLabel = label;
+		}
+	}
+
+	return bestLabel;
+}
+
+function buildIphoneAggregateSlots(
+	mobileDays: MobileActivityDay[],
+	dayStartMs: number,
+): IphoneAggregateSlot[] {
+	const slots = Array.from({ length: SLOTS_PER_DAY }, () => ({
+		count: 0,
+		categoryCounts: new Map<ActivityCategory, number>(),
+		appCounts: new Map<string, number>(),
+	}));
+
+	for (const day of mobileDays) {
+		if (day.dayStartMs !== dayStartMs) continue;
+		for (const bucket of day.buckets) {
+			const level = mobileBucketLevel(bucket.durationSeconds);
+			if (level <= 0) continue;
+			for (let slice = 0; slice < SLOTS_PER_HOUR; slice += 1) {
+				const idx = bucket.hour * SLOTS_PER_HOUR + slice;
+				const slot = slots[idx];
+				slot.count = Math.max(slot.count, level);
+				const category = toCategory(bucket.category);
+				slot.categoryCounts.set(
+					category,
+					(slot.categoryCounts.get(category) ?? 0) + level,
+				);
+				if (bucket.appName) {
+					slot.appCounts.set(
+						bucket.appName,
+						(slot.appCounts.get(bucket.appName) ?? 0) + level,
+					);
+				}
+			}
+		}
+	}
+
+	return slots;
+}
+
+export function computeCombinedDaylineSlots(
+	events: Event[],
+	mobileDays: MobileActivityDay[],
+	dayStartMs: number,
+	options: DaylineOptions = {},
+): DaylineSlot[] {
+	const macSlots = computeDaylineSlots(events, dayStartMs, options);
+	const iphoneSlots = buildIphoneAggregateSlots(mobileDays, dayStartMs);
+
+	return macSlots.map((macSlot, idx) => {
+		const iphoneSlot = iphoneSlots[idx];
+		const hasMac = macSlot.count > 0;
+		const hasIphone = iphoneSlot.count > 0;
+		const source =
+			hasMac && hasIphone
+				? "both"
+				: hasIphone
+					? "iphone"
+					: hasMac
+						? "mac"
+						: undefined;
+
+		const category = chooseWeightedLabel<ActivityCategory>({
+			macLabel: hasMac ? macSlot.category : null,
+			macWeight: macSlot.count,
+			iphoneCounts: iphoneSlot.categoryCounts,
+			fallback: "Unknown",
+		});
+
+		const appName =
+			hasMac || iphoneSlot.appCounts.size > 0
+				? chooseWeightedLabel<string>({
+						macLabel: macSlot.appName,
+						macWeight: macSlot.appName ? macSlot.count : 0,
+						iphoneCounts: iphoneSlot.appCounts,
+						fallback: "Unknown",
+					})
+				: null;
+
+		return {
+			startMs: macSlot.startMs,
+			count: Math.max(macSlot.count, iphoneSlot.count),
+			category,
+			addiction: macSlot.addiction,
+			appName: appName === "Unknown" ? null : appName,
+			source,
+			macCount: macSlot.count,
+			iphoneCount: iphoneSlot.count,
+		};
+	});
 }
 
 export function countCoveredSlots(events: Event[], dayStartMs: number): number {

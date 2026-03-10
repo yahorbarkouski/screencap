@@ -30,7 +30,9 @@ export function TimelineGroup({
 				<h3 className="text-sm font-medium text-muted-foreground">{date}</h3>
 				{showPagination && (
 					<div className="flex items-center gap-1 text-xs text-muted-foreground">
-						<span>Page {pagination.page + 1} of {totalPages}</span>
+						<span>
+							Page {pagination.page + 1} of {totalPages}
+						</span>
 						<Button
 							variant="ghost"
 							size="icon"

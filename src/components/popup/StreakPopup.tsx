@@ -20,8 +20,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ShortcutKbd } from "@/components/ui/shortcut-kbd";
 import { useSettings } from "@/hooks/useSettings";
-import { computeDaylineSlots, SLOTS_PER_HOUR } from "@/lib/dayline";
-import type { Event, SharedEvent } from "@/types";
+import { computeCombinedDaylineSlots, SLOTS_PER_HOUR } from "@/lib/dayline";
+import type { Event, MobileActivityDay, SharedEvent } from "@/types";
 import { AvatarDisplay } from "./AvatarDisplay";
 import {
 	Dayline,
@@ -36,6 +36,7 @@ import { usePopupAutoHeight } from "./usePopupAutoHeight";
 
 export function StreakPopup() {
 	const [events, setEvents] = useState<Event[]>([]);
+	const [mobileDays, setMobileDays] = useState<MobileActivityDay[]>([]);
 	const [hasPreviousDays, setHasPreviousDays] = useState(true);
 	const rootRef = useRef<HTMLDivElement | null>(null);
 	const [isQuitConfirmOpen, setIsQuitConfirmOpen] = useState(false);
@@ -76,18 +77,47 @@ export function StreakPopup() {
 	usePopupAutoHeight(rootRef);
 
 	useEffect(() => {
-		const fetchEvents = async () => {
+		const fetchDayData = async () => {
 			if (!window.api) return;
-			const result = await window.api.storage.getEvents({
+			const [eventResult, mobileResult] = await Promise.all([
+				window.api.storage.getEvents({
+					startDate: dayStartMs,
+					endDate: dayEndMs,
+					dismissed: false,
+				}),
+				window.api.mobileActivity.listDays({
+					startDate: dayStartMs,
+					endDate: dayStartMs,
+				}),
+			]);
+			setEvents(eventResult);
+			setMobileDays(mobileResult);
+		};
+		void fetchDayData();
+		const interval = setInterval(fetchDayData, 30000);
+		return () => clearInterval(interval);
+	}, [dayEndMs, dayStartMs]);
+
+	useEffect(() => {
+		if (!window.api?.mobileActivity) return;
+		let cancelled = false;
+		void window.api.mobileActivity
+			.sync({
 				startDate: dayStartMs,
 				endDate: dayEndMs,
-				dismissed: false,
-			});
-			setEvents(result);
+			})
+			.then(async () => {
+				if (cancelled || !window.api?.mobileActivity) return;
+				const days = await window.api.mobileActivity.listDays({
+					startDate: dayStartMs,
+					endDate: dayStartMs,
+				});
+				if (!cancelled) setMobileDays(days);
+			})
+			.catch(() => {});
+		return () => {
+			cancelled = true;
 		};
-		void fetchEvents();
-		const interval = setInterval(fetchEvents, 30000);
-		return () => clearInterval(interval);
 	}, [dayEndMs, dayStartMs]);
 
 	useEffect(() => {
@@ -105,10 +135,10 @@ export function StreakPopup() {
 
 	const slots = useMemo(
 		() =>
-			computeDaylineSlots(events, dayStartMs, {
+			computeCombinedDaylineSlots(events, mobileDays, dayStartMs, {
 				showDominantWebsites: settings.showDominantWebsites,
 			}),
-		[events, dayStartMs, settings.showDominantWebsites],
+		[events, mobileDays, dayStartMs, settings.showDominantWebsites],
 	);
 	const titleDate = format(day, "EEE, MMM d");
 

@@ -204,6 +204,26 @@ export function createTables(db: Database.Database): void {
       synced_at INTEGER NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS mobile_activity_days_cache (
+      device_id TEXT NOT NULL,
+      device_name TEXT,
+      platform TEXT NOT NULL,
+      day_start_ms INTEGER NOT NULL,
+      buckets_json TEXT NOT NULL,
+      synced_at INTEGER NOT NULL,
+      PRIMARY KEY(device_id, day_start_ms)
+    );
+
+    CREATE TABLE IF NOT EXISTS mobile_paired_devices (
+      device_id TEXT PRIMARY KEY,
+      device_name TEXT,
+      platform TEXT NOT NULL,
+      sign_pub_key_spki_der_b64 TEXT NOT NULL,
+      dh_pub_key_spki_der_b64 TEXT NOT NULL,
+      added_at INTEGER NOT NULL,
+      last_seen_at INTEGER
+    );
+
     CREATE TABLE IF NOT EXISTS room_members_cache (
       room_id TEXT NOT NULL,
       user_id TEXT NOT NULL,
@@ -306,6 +326,9 @@ export function createIndexes(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_room_events_cache_room_timestamp ON room_events_cache(room_id, timestamp_ms);
     CREATE INDEX IF NOT EXISTS idx_room_events_cache_author ON room_events_cache(author_user_id);
     CREATE INDEX IF NOT EXISTS idx_room_events_cache_project ON room_events_cache(project);
+    CREATE INDEX IF NOT EXISTS idx_mobile_activity_days_day_start ON mobile_activity_days_cache(day_start_ms);
+    CREATE INDEX IF NOT EXISTS idx_mobile_activity_days_synced_at ON mobile_activity_days_cache(synced_at);
+    CREATE INDEX IF NOT EXISTS idx_mobile_paired_devices_added_at ON mobile_paired_devices(added_at);
     CREATE INDEX IF NOT EXISTS idx_chat_messages_cache_thread_timestamp ON chat_messages_cache(thread_id, timestamp_ms);
     CREATE INDEX IF NOT EXISTS idx_room_invites_sent_room_id ON room_invites_sent(room_id);
     CREATE INDEX IF NOT EXISTS idx_room_invites_sent_to_user_id ON room_invites_sent(to_user_id);

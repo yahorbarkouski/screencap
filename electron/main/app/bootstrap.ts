@@ -1,6 +1,7 @@
 import { app } from "electron";
 import type { ClassificationEvalOptions } from "../features/aiEval";
 import { runClassificationEval } from "../features/aiEval";
+import { startMobileActivitySync } from "../features/mobileActivity";
 import { checkScreenCapturePermission } from "../features/permissions";
 import { startQueueProcessor } from "../features/queue";
 import {
@@ -114,6 +115,7 @@ export async function bootstrap(): Promise<void> {
 
 	initializeUpdater();
 	startBackgroundSync();
+	startMobileActivitySync();
 	if (getSettings().social.dayWrapped.enabled) {
 		startDayWrappedPublisher();
 	}

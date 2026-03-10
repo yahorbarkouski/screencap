@@ -12,13 +12,13 @@ import { AddMemoryDialog } from "@/components/memory/AddMemoryDialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMemories } from "@/hooks/useMemories";
 import {
-	computeDaylineSlots,
+	computeCombinedDaylineSlots,
 	countCoveredSlots,
 	SLOT_MINUTES,
 	SLOTS_PER_HOUR,
 } from "@/lib/dayline";
 import { useAppStore } from "@/stores/app";
-import type { EodContentV2, EodEntry, Event } from "@/types";
+import type { EodContentV2, EodEntry, Event, MobileActivityDay } from "@/types";
 import {
 	type DaylineViewMode,
 	StoryViewHeader,
@@ -49,8 +49,12 @@ export function StoryView() {
 		startOfDay(new Date()),
 	);
 	const [dayEvents, setDayEvents] = useState<Event[]>([]);
+	const [dayMobileDays, setDayMobileDays] = useState<MobileActivityDay[]>([]);
 	const [dayStats, setDayStats] = useState<CategoryStat[]>([]);
 	const [prevDayEvents, setPrevDayEvents] = useState<Event[]>([]);
+	const [prevDayMobileDays, setPrevDayMobileDays] = useState<
+		MobileActivityDay[]
+	>([]);
 	const [prevDayStats, setPrevDayStats] = useState<CategoryStat[]>([]);
 	const [calendarEvents, setCalendarEvents] = useState<Event[]>([]);
 	const [scope, setScope] = useState<JournalScope>("all");
@@ -110,8 +114,15 @@ export function StoryView() {
 			}),
 			window.api.storage.getStats(selectedStartMs, selectedEndMs),
 		]);
+		const mobileDays = window.api.mobileActivity
+			? await window.api.mobileActivity.listDays({
+					startDate: selectedStartMs,
+					endDate: selectedStartMs,
+				})
+			: [];
 
 		setDayEvents(events);
+		setDayMobileDays(mobileDays);
 		setDayStats(stats);
 	}, [selectedEndMs, selectedStartMs]);
 
@@ -125,8 +136,15 @@ export function StoryView() {
 			}),
 			window.api.storage.getStats(prevStartMs, prevEndMs),
 		]);
+		const mobileDays = window.api.mobileActivity
+			? await window.api.mobileActivity.listDays({
+					startDate: prevStartMs,
+					endDate: prevStartMs,
+				})
+			: [];
 
 		setPrevDayEvents(events);
+		setPrevDayMobileDays(mobileDays);
 		setPrevDayStats(stats);
 	}, [prevEndMs, prevStartMs]);
 
@@ -157,18 +175,28 @@ export function StoryView() {
 
 	const slots = useMemo(
 		() =>
-			computeDaylineSlots(dayEvents, selectedStartMs, {
+			computeCombinedDaylineSlots(dayEvents, dayMobileDays, selectedStartMs, {
 				showDominantWebsites: settings.showDominantWebsites,
 			}),
-		[dayEvents, selectedStartMs, settings.showDominantWebsites],
+		[dayEvents, dayMobileDays, selectedStartMs, settings.showDominantWebsites],
 	);
 
 	const prevSlots = useMemo(
 		() =>
-			computeDaylineSlots(prevDayEvents, prevStartMs, {
-				showDominantWebsites: settings.showDominantWebsites,
-			}),
-		[prevDayEvents, prevStartMs, settings.showDominantWebsites],
+			computeCombinedDaylineSlots(
+				prevDayEvents,
+				prevDayMobileDays,
+				prevStartMs,
+				{
+					showDominantWebsites: settings.showDominantWebsites,
+				},
+			),
+		[
+			prevDayEvents,
+			prevDayMobileDays,
+			prevStartMs,
+			settings.showDominantWebsites,
+		],
 	);
 
 	const activeSlots = useMemo(() => slots.map((s) => s.count > 0), [slots]);

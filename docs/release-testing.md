@@ -11,7 +11,16 @@ This document describes how to validate the auto-update flow end-to-end.
    - `APPLE_APP_SPECIFIC_PASSWORD` - App-specific password for notarization
    - `APPLE_TEAM_ID` - Apple Developer Team ID (e.g., `ZY8VMC3J6G`)
 
-2. At least two releases published to GitHub Releases
+2. Optional iOS / TestFlight secrets if you want the release workflow to publish the iPhone companion:
+   - `IOS_DIST_CERT_P12_BASE64`
+   - `IOS_DIST_CERT_P12_PASSWORD`
+   - `APPSTORE_API_KEY_ID`
+   - `APPSTORE_ISSUER_ID`
+   - `APPSTORE_API_PRIVATE_KEY`
+
+3. At least two releases published to GitHub Releases
+
+For the full iOS setup, see [iOS TestFlight Release Setup](/Users/yahorbarkouski/screencal/docs/ios-testflight-release.md).
 
 ## Local Signed Build
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { AvatarPicker } from "@/components/settings/AvatarPicker";
+import { IPhoneCompanionPanel } from "@/components/settings/IPhoneCompanionPanel";
 import {
 	SettingsRow,
 	SettingsRows,
@@ -57,6 +58,8 @@ export function SocialTab({ settings, updateSetting }: SocialTabProps) {
 						/>
 					</Panel>
 				)}
+
+				<IPhoneCompanionPanel identity={identity} />
 
 				<Panel
 					title="Friend Sharing Privacy"

@@ -19,6 +19,7 @@ import type {
 	CrashSessionLogSummary,
 	CreateShareResult,
 	DayWrappedSnapshot,
+	DevicePairingSession,
 	EodEntry,
 	EodEntryInput,
 	Event,
@@ -27,6 +28,7 @@ import type {
 	Friend,
 	FriendRequest,
 	GetEventsOptions,
+	GetMobileActivityDaysOptions,
 	GetRemindersOptions,
 	GetTimelineFacetsOptions,
 	GitCommit,
@@ -34,7 +36,10 @@ import type {
 	LLMTestResult,
 	LogsCollectResult,
 	Memory,
+	MobileActivityDay,
+	MobileActivitySyncStatus,
 	OcrResult,
+	PairedDevice,
 	PeriodType,
 	PermissionStatus,
 	ProjectRepo,
@@ -361,6 +366,36 @@ const api = {
 			ipcRenderer.invoke(IpcChannels.Social.RejectFriendRequest, requestId),
 		syncAvatarSettings: (avatarSettings: AvatarSettings): Promise<void> =>
 			ipcRenderer.invoke(IpcChannels.Social.SyncAvatarSettings, avatarSettings),
+	},
+
+	mobileActivity: {
+		listDays: (
+			options: GetMobileActivityDaysOptions,
+		): Promise<MobileActivityDay[]> =>
+			ipcRenderer.invoke(IpcChannels.MobileActivity.ListDays, options),
+		sync: (
+			options?: GetMobileActivityDaysOptions,
+		): Promise<{ count: number }> => {
+			if (options) {
+				return ipcRenderer.invoke(IpcChannels.MobileActivity.Sync, options);
+			}
+			return ipcRenderer.invoke(IpcChannels.MobileActivity.Sync);
+		},
+		getSyncStatus: (): Promise<MobileActivitySyncStatus> =>
+			ipcRenderer.invoke(IpcChannels.MobileActivity.GetSyncStatus),
+	},
+
+	devicePairing: {
+		createSession: (): Promise<DevicePairingSession> =>
+			ipcRenderer.invoke(IpcChannels.DevicePairing.CreateSession),
+		getSession: (sessionId: string): Promise<DevicePairingSession | null> =>
+			ipcRenderer.invoke(IpcChannels.DevicePairing.GetSession, sessionId),
+		approveSession: (sessionId: string): Promise<DevicePairingSession | null> =>
+			ipcRenderer.invoke(IpcChannels.DevicePairing.ApproveSession, sessionId),
+		listDevices: (): Promise<PairedDevice[]> =>
+			ipcRenderer.invoke(IpcChannels.DevicePairing.ListDevices),
+		revokeDevice: (deviceId: string): Promise<void> =>
+			ipcRenderer.invoke(IpcChannels.DevicePairing.RevokeDevice, deviceId),
 	},
 
 	chat: {

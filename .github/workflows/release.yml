@@ -13,7 +13,9 @@ jobs:
   build-and-release:
     runs-on: macos-latest
     env:
-      HAS_SIGNING_CERT: ${{ secrets.APPLE_CERT_P12_BASE64 != '' }}
+      HAS_MAC_SIGNING_CERT: ${{ secrets.APPLE_CERT_P12_BASE64 != '' }}
+      HAS_IOS_SIGNING_CERT: ${{ secrets.IOS_DIST_CERT_P12_BASE64 != '' }}
+      HAS_TESTFLIGHT_CREDS: ${{ secrets.APPSTORE_API_KEY_ID != '' && secrets.APPSTORE_ISSUER_ID != '' && secrets.APPSTORE_API_PRIVATE_KEY != '' && secrets.APPLE_TEAM_ID != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,7 +39,7 @@ jobs:
         run: npm run build
 
       - name: Import Code Signing Certificates
-        if: env.HAS_SIGNING_CERT == 'true'
+        if: env.HAS_MAC_SIGNING_CERT == 'true'
         uses: apple-actions/import-codesign-certs@v3
         with:
           p12-file-base64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
@@ -46,7 +48,7 @@ jobs:
       - name: Package Electron app (dry run)
         run: npx electron-builder --config electron-builder.yml --publish never
         env:
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ env.HAS_SIGNING_CERT }}
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ env.HAS_MAC_SIGNING_CERT }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
@@ -78,7 +80,54 @@ jobs:
         run: npx electron-builder --config electron-builder.yml --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ env.HAS_SIGNING_CERT }}
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ env.HAS_MAC_SIGNING_CERT }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Import iOS Distribution Certificate
+        if: steps.semantic.outputs.new_release_published == 'true' && env.HAS_IOS_SIGNING_CERT == 'true' && env.HAS_TESTFLIGHT_CREDS == 'true'
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
+          p12-password: ${{ secrets.IOS_DIST_CERT_P12_PASSWORD }}
+
+      - name: Write App Store Connect API key
+        if: steps.semantic.outputs.new_release_published == 'true' && env.HAS_IOS_SIGNING_CERT == 'true' && env.HAS_TESTFLIGHT_CREDS == 'true'
+        id: appstore_api_key
+        run: |
+          key_path="$RUNNER_TEMP/AuthKey_${{ secrets.APPSTORE_API_KEY_ID }}.p8"
+          printf '%s' "${{ secrets.APPSTORE_API_PRIVATE_KEY }}" > "$key_path"
+          chmod 600 "$key_path"
+          echo "path=$key_path" >> "$GITHUB_OUTPUT"
+
+      - name: Build iOS IPA for TestFlight
+        if: steps.semantic.outputs.new_release_published == 'true' && env.HAS_IOS_SIGNING_CERT == 'true' && env.HAS_TESTFLIGHT_CREDS == 'true'
+        id: build_ios
+        run: ./scripts/build-ios-testflight.sh
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_API_KEY_PATH: ${{ steps.appstore_api_key.outputs.path }}
+          IOS_MARKETING_VERSION: ${{ steps.semantic.outputs.new_release_version }}
+          IOS_BUILD_NUMBER: ${{ github.run_number }}
+          IOS_TESTFLIGHT_INTERNAL_ONLY: true
+
+      - name: Upload iOS IPA artifact
+        if: steps.build_ios.outputs.ipa_path != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: screencap-ios-ipa
+          path: |
+            ${{ steps.build_ios.outputs.ipa_path }}
+            ${{ steps.build_ios.outputs.export_options_path }}
+
+      - name: Upload iOS build to TestFlight
+        if: steps.build_ios.outputs.ipa_path != ''
+        uses: Apple-Actions/upload-testflight-build@v4
+        with:
+          app-path: ${{ steps.build_ios.outputs.ipa_path }}
+          issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ secrets.APPSTORE_API_KEY_ID }}
+          api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
