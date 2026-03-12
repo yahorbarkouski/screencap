@@ -44,6 +44,7 @@ jobs:
         with:
           p12-file-base64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
           p12-password: ${{ secrets.APPLE_CERT_P12_PASSWORD }}
+          keychain: signing_mac_temp
 
       - name: Package Electron app (dry run)
         run: npx electron-builder --config electron-builder.yml --publish never
@@ -91,6 +92,7 @@ jobs:
         with:
           p12-file-base64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
           p12-password: ${{ secrets.IOS_DIST_CERT_P12_PASSWORD }}
+          keychain: signing_ios_temp
 
       - name: Write App Store Connect API key
         if: steps.semantic.outputs.new_release_published == 'true' && env.HAS_IOS_SIGNING_CERT == 'true' && env.HAS_TESTFLIGHT_CREDS == 'true'
