@@ -1,3 +1,10 @@
+# [1.20.0](https://github.com/yahorbarkouski/screencap/compare/v1.19.0...v1.20.0) (2026-03-12)
+
+
+### Features
+
+* trigger ios build ([0091d56](https://github.com/yahorbarkouski/screencap/commit/0091d56558c99c343199ab57e4fa7c12b6e53973))
+
 # [1.19.0](https://github.com/yahorbarkouski/screencap/compare/v1.18.1...v1.19.0) (2026-03-10)
 
 
