@@ -1,3 +1,10 @@
+## [1.20.1](https://github.com/yahorbarkouski/screencap/compare/v1.20.0...v1.20.1) (2026-03-12)
+
+
+### Bug Fixes
+
+* ci ([0567521](https://github.com/yahorbarkouski/screencap/commit/0567521666cd3b84af34aeed887d0afc9479518a))
+
 # [1.20.0](https://github.com/yahorbarkouski/screencap/compare/v1.19.0...v1.20.0) (2026-03-12)
 
 
