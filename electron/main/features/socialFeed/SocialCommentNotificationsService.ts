@@ -29,6 +29,7 @@ let inFlight = false;
 let startedAtMs: number | null = null;
 const cursors = new Map<string, ThreadCursor>();
 const joinedProjectRoomIds = new Set<string>();
+
 let lastSoundAtMs = 0;
 
 let cachedFriendMap: Map<string, string> | null = null;
