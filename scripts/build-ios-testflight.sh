@@ -24,7 +24,8 @@ require_env() {
 }
 
 bool_to_plist() {
-	local value="${1,,}"
+	local value
+	value="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
 	if [[ "$value" == "true" || "$value" == "yes" || "$value" == "1" ]]; then
 		echo "<true/>"
 		return
@@ -94,6 +95,7 @@ xcodebuild \
 	-authenticationKeyID "$APPSTORE_API_KEY_ID" \
 	-authenticationKeyIssuerID "$APPSTORE_ISSUER_ID" \
 	DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+	CODE_SIGN_IDENTITY="Apple Distribution" \
 	MARKETING_VERSION="$IOS_MARKETING_VERSION" \
 	CURRENT_PROJECT_VERSION="$IOS_BUILD_NUMBER" \
 	clean archive

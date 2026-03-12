@@ -10,6 +10,11 @@ settings:
     MARKETING_VERSION: "1.0"
     CODE_SIGN_STYLE: Automatic
     GENERATE_INFOPLIST_FILE: NO
+  configs:
+    Debug:
+      CODE_SIGN_IDENTITY: Apple Development
+    Release:
+      CODE_SIGN_IDENTITY: Apple Distribution
 targets:
   ScreencapMobile:
     type: application
@@ -30,6 +35,11 @@ targets:
         PRODUCT_NAME: Screencap
         INFOPLIST_KEY_CFBundleDisplayName: Screencap
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+      configs:
+        Debug:
+          CODE_SIGN_IDENTITY: Apple Development
+        Release:
+          CODE_SIGN_IDENTITY: Apple Distribution
     dependencies:
       - sdk: AVFoundation.framework
       - sdk: FamilyControls.framework
@@ -60,6 +70,11 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: app.screencap.mobile.widget
         PRODUCT_NAME: ScreencapWidget
         SKIP_INSTALL: YES
+      configs:
+        Debug:
+          CODE_SIGN_IDENTITY: Apple Development
+        Release:
+          CODE_SIGN_IDENTITY: Apple Distribution
     dependencies:
       - sdk: AppIntents.framework
       - sdk: WidgetKit.framework
@@ -83,6 +98,11 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: app.screencap.mobile.report
         PRODUCT_NAME: ScreencapReport
         SKIP_INSTALL: YES
+      configs:
+        Debug:
+          CODE_SIGN_IDENTITY: Apple Development
+        Release:
+          CODE_SIGN_IDENTITY: Apple Distribution
     dependencies:
       - sdk: DeviceActivity.framework
       - sdk: ManagedSettings.framework
