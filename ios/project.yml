@@ -24,10 +24,21 @@ targets:
     sources:
       - path: Shared
       - path: ScreencapMobile/Sources
-    resources:
-      - path: ScreencapMobile/Resources
+      - path: ScreencapMobile/Resources/Assets.xcassets
+        buildPhase: resources
+      - path: ScreencapMobile/Resources/LaunchScreen.storyboard
+        buildPhase: resources
     info:
       path: ScreencapMobile/Info.plist
+      properties:
+        CFBundleDisplayName: Screencap
+        CFBundleIconName: AppIcon
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSRequiresIPhoneOS: true
+        UILaunchStoryboardName: LaunchScreen
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
     entitlements:
       path: ScreencapMobile/ScreencapMobile.entitlements
     settings:
@@ -65,6 +76,9 @@ targets:
     info:
       path: ScreencapMobileWidget/Info.plist
       properties:
+        CFBundleDisplayName: Screencap
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     entitlements:
@@ -96,6 +110,9 @@ targets:
     info:
       path: ScreencapMobileReport/Info.plist
       properties:
+        CFBundleDisplayName: Screencap
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         EXAppExtensionAttributes:
           EXExtensionPointIdentifier: com.apple.deviceactivityui.report-extension
     entitlements:

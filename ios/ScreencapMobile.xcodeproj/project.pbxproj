@@ -19,6 +19,7 @@
 		37F24F99A144AA7B3C9860AA /* CycleWidgetModeIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00301FC5F6AA19960E6C246E /* CycleWidgetModeIntent.swift */; };
 		39D22F5E8673CD2C6FBE279B /* PairingCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7B8D220D88BE60EA2ECDB1A /* PairingCrypto.swift */; };
 		40AED04027B8BA92CD3FD125 /* FamilyControls.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BFD20477C1ED4E808B382B1 /* FamilyControls.framework */; };
+		455FC51B4CDA882BFF5B3CBE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 770E7635254D25270FA60BBE /* Assets.xcassets */; };
 		460687DB41EFFB0008637009 /* AppGroupStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC1E2088EE3B70E0204B026D /* AppGroupStore.swift */; };
 		4BA0FA2C0AAFD125CEF7E4BB /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC55B067D5C094F7DD4B0FC5 /* WidgetKit.framework */; };
 		4F440209A01435107B0021EC /* DayWrappedRendering.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCEEB4F6243006091B7520E7 /* DayWrappedRendering.swift */; };
@@ -42,6 +43,7 @@
 		CD0DD12E4C960AE648575C54 /* BackendClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C4E94F368E973DEF6F51543 /* BackendClient.swift */; };
 		D6F1E9E37EE1C4C9054BB933 /* AppGroupStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC1E2088EE3B70E0204B026D /* AppGroupStore.swift */; };
 		D7D9C15035336DB8780B08B2 /* PairingCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7B8D220D88BE60EA2ECDB1A /* PairingCrypto.swift */; };
+		DF17C77B37E8F52A385E5081 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0C305A98AC6FBC76965EDEA0 /* LaunchScreen.storyboard */; };
 		E0DACC7EB6BEAC2E528B821A /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC55B067D5C094F7DD4B0FC5 /* WidgetKit.framework */; };
 		E5FDFC351EF0EF38623DCD47 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 76D0B3277101A9FB5520B194 /* ManagedSettings.framework */; };
 		E63301BCC0404C0A7804123A /* BackendClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C4E94F368E973DEF6F51543 /* BackendClient.swift */; };
@@ -95,6 +97,7 @@
 /* Begin PBXFileReference section */
 		00301FC5F6AA19960E6C246E /* CycleWidgetModeIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CycleWidgetModeIntent.swift; sourceTree = "<group>"; };
 		04B5EBDF6564DB0F09F23455 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		0C305A98AC6FBC76965EDEA0 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		1C37A501D304C18E2A2006CA /* ScreencapMobileWidgetExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = ScreencapMobileWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		2C4E94F368E973DEF6F51543 /* BackendClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendClient.swift; sourceTree = "<group>"; };
 		346E3C8BC5FAFFC3D05D8F92 /* ScreencapMobileReportExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = ScreencapMobileReportExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -106,6 +109,7 @@
 		6E49CD77098A1C4184F278BD /* DayWrappedWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayWrappedWidgetView.swift; sourceTree = "<group>"; };
 		6E5CBE302D1F4817024B4655 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		76D0B3277101A9FB5520B194 /* ManagedSettings.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettings.framework; path = System/Library/Frameworks/ManagedSettings.framework; sourceTree = SDKROOT; };
+		770E7635254D25270FA60BBE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		850A7FED666CEC80B61FD9F8 /* DeviceActivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DeviceActivity.framework; path = System/Library/Frameworks/DeviceActivity.framework; sourceTree = SDKROOT; };
 		95B5F3E993D46AC531DC13CC /* QRCodeScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeScannerView.swift; sourceTree = "<group>"; };
 		9BFFBDC35F80E2E3C3F02F8E /* ScreencapMobileWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreencapMobileWidgetBundle.swift; sourceTree = "<group>"; };
@@ -210,9 +214,20 @@
 			path = ScreencapMobile/Sources;
 			sourceTree = "<group>";
 		};
+		C1AF4D43AA8BB9B07EDF7DA4 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				770E7635254D25270FA60BBE /* Assets.xcassets */,
+				0C305A98AC6FBC76965EDEA0 /* LaunchScreen.storyboard */,
+			);
+			name = Resources;
+			path = ScreencapMobile/Resources;
+			sourceTree = "<group>";
+		};
 		E863C317725C9A11EC5ABDE1 = {
 			isa = PBXGroup;
 			children = (
+				C1AF4D43AA8BB9B07EDF7DA4 /* Resources */,
 				EE3B11800737902445421023 /* Shared */,
 				940D5FB9238EC6CB04E4987E /* Sources */,
 				1355492F13BE72172B4B7CE8 /* Sources */,
@@ -280,6 +295,7 @@
 			buildConfigurationList = DFBB44EB8DDDDFC5FE897DA7 /* Build configuration list for PBXNativeTarget "ScreencapMobile" */;
 			buildPhases = (
 				A7AFE41BC72ED2319237F862 /* Sources */,
+				0D3307EA462A989371C0D625 /* Resources */,
 				634005771B41A9D07961A2AC /* Frameworks */,
 				DF6CADF24B849E9B425A6FAA /* Embed Foundation Extensions */,
 				2D8EBAF2E76B52D7284C725E /* Embed ExtensionKit Extensions */,
@@ -328,6 +344,18 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		0D3307EA462A989371C0D625 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				455FC51B4CDA882BFF5B3CBE /* Assets.xcassets in Resources */,
+				DF17C77B37E8F52A385E5081 /* LaunchScreen.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		A7AFE41BC72ED2319237F862 /* Sources */ = {
