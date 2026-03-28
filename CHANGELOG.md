@@ -1,3 +1,10 @@
+# [1.23.0](https://github.com/yahorbarkouski/screencap/compare/v1.22.0...v1.23.0) (2026-03-28)
+
+
+### Features
+
+* fix ios app store bundle metadata ([1fd4ad7](https://github.com/yahorbarkouski/screencap/commit/1fd4ad714a39684300d8e9d2c2fb60e025fe3a5a))
+
 # [1.22.0](https://github.com/yahorbarkouski/screencap/compare/v1.21.0...v1.22.0) (2026-03-28)
 
 
