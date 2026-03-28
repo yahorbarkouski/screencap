@@ -12,9 +12,10 @@ settings:
     GENERATE_INFOPLIST_FILE: NO
   configs:
     Debug:
+      CODE_SIGN_STYLE: Automatic
       CODE_SIGN_IDENTITY: Apple Development
     Release:
-      CODE_SIGN_IDENTITY: Apple Distribution
+      CODE_SIGN_STYLE: Manual
 targets:
   ScreencapMobile:
     type: application
@@ -39,7 +40,9 @@ targets:
         Debug:
           CODE_SIGN_IDENTITY: Apple Development
         Release:
+          CODE_SIGN_STYLE: Manual
           CODE_SIGN_IDENTITY: Apple Distribution
+          PROVISIONING_PROFILE_SPECIFIER: $(IOS_APP_PROFILE_SPECIFIER)
     dependencies:
       - sdk: AVFoundation.framework
       - sdk: FamilyControls.framework
@@ -74,7 +77,9 @@ targets:
         Debug:
           CODE_SIGN_IDENTITY: Apple Development
         Release:
+          CODE_SIGN_STYLE: Manual
           CODE_SIGN_IDENTITY: Apple Distribution
+          PROVISIONING_PROFILE_SPECIFIER: $(IOS_WIDGET_PROFILE_SPECIFIER)
     dependencies:
       - sdk: AppIntents.framework
       - sdk: WidgetKit.framework
@@ -102,7 +107,9 @@ targets:
         Debug:
           CODE_SIGN_IDENTITY: Apple Development
         Release:
+          CODE_SIGN_STYLE: Manual
           CODE_SIGN_IDENTITY: Apple Distribution
+          PROVISIONING_PROFILE_SPECIFIER: $(IOS_REPORT_PROFILE_SPECIFIER)
     dependencies:
       - sdk: DeviceActivity.framework
       - sdk: ManagedSettings.framework

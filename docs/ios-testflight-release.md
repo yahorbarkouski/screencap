@@ -27,6 +27,12 @@ On a new release from `main`, the release workflow can:
   - Base64-encoded Apple Distribution `.p12`
 - `IOS_DIST_CERT_P12_PASSWORD`
   - Password for the `.p12`
+- `IOS_APP_PROFILE_BASE64`
+  - Base64-encoded App Store provisioning profile for `app.screencap.mobile`
+- `IOS_WIDGET_PROFILE_BASE64`
+  - Base64-encoded App Store provisioning profile for `app.screencap.mobile.widget`
+- `IOS_REPORT_PROFILE_BASE64`
+  - Base64-encoded App Store provisioning profile for `app.screencap.mobile.report`
 - `APPSTORE_API_KEY_ID`
   - App Store Connect API key ID
 - `APPSTORE_ISSUER_ID`
@@ -43,10 +49,11 @@ Before the workflow can succeed, Apple-side setup must already exist:
    - `app.screencap.mobile`
    - `app.screencap.mobile.widget`
    - `app.screencap.mobile.report`
-3. App Group configured:
+3. App Store provisioning profiles created for all three bundle IDs and exported into the GitHub secrets above
+4. App Group configured:
    - `group.app.screencap.mobile`
-4. `Family Controls` capability enabled for the app and report extension
-5. Apple approval for TestFlight/App Store use of the `Family Controls` entitlement
+5. `Family Controls` capability enabled for the app and report extension
+6. Apple approval for TestFlight/App Store use of the `Family Controls` entitlement
 
 Without entitlement approval, local development installs can still work, but TestFlight distribution may fail.
 

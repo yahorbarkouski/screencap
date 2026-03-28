@@ -15,6 +15,7 @@ jobs:
     env:
       HAS_MAC_SIGNING_CERT: ${{ secrets.APPLE_CERT_P12_BASE64 != '' }}
       HAS_IOS_SIGNING_CERT: ${{ secrets.IOS_DIST_CERT_P12_BASE64 != '' }}
+      HAS_IOS_PROFILES: ${{ secrets.IOS_APP_PROFILE_BASE64 != '' && secrets.IOS_WIDGET_PROFILE_BASE64 != '' && secrets.IOS_REPORT_PROFILE_BASE64 != '' }}
       HAS_TESTFLIGHT_CREDS: ${{ secrets.APPSTORE_API_KEY_ID != '' && secrets.APPSTORE_ISSUER_ID != '' && secrets.APPSTORE_API_PRIVATE_KEY != '' && secrets.APPLE_TEAM_ID != '' }}
     steps:
       - name: Checkout
@@ -88,7 +89,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: Import iOS Distribution Certificate
-        if: steps.semantic.outputs.new_release_published == 'true' && env.HAS_IOS_SIGNING_CERT == 'true' && env.HAS_TESTFLIGHT_CREDS == 'true'
+        if: steps.semantic.outputs.new_release_published == 'true' && env.HAS_IOS_SIGNING_CERT == 'true' && env.HAS_IOS_PROFILES == 'true'
         uses: apple-actions/import-codesign-certs@v3
         with:
           p12-file-base64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
@@ -96,24 +97,44 @@ jobs:
           keychain: signing_ios_temp
           keychain-password: ${{ github.run_id }}-ios-signing
 
-      - name: Write App Store Connect API key
-        if: steps.semantic.outputs.new_release_published == 'true' && env.HAS_IOS_SIGNING_CERT == 'true' && env.HAS_TESTFLIGHT_CREDS == 'true'
-        id: appstore_api_key
+      - name: Install iOS Provisioning Profiles
+        if: steps.semantic.outputs.new_release_published == 'true' && env.HAS_IOS_SIGNING_CERT == 'true' && env.HAS_IOS_PROFILES == 'true'
+        id: provisioning_profiles
         run: |
-          key_path="$RUNNER_TEMP/AuthKey_${{ secrets.APPSTORE_API_KEY_ID }}.p8"
-          printf '%s' "${{ secrets.APPSTORE_API_PRIVATE_KEY }}" > "$key_path"
-          chmod 600 "$key_path"
-          echo "path=$key_path" >> "$GITHUB_OUTPUT"
+          profiles_dir="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$profiles_dir"
+
+          install_profile() {
+            local base64_content="$1"
+            local label="$2"
+            local raw_path="$RUNNER_TEMP/$label.mobileprovision"
+            local plist_path="$RUNNER_TEMP/$label.plist"
+            local profile_name
+            local uuid
+
+            printf '%s' "$base64_content" | openssl base64 -d -A -out "$raw_path"
+            security cms -D -i "$raw_path" > "$plist_path"
+
+            profile_name="$(/usr/libexec/PlistBuddy -c 'Print :Name' "$plist_path")"
+            uuid="$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$plist_path")"
+
+            cp "$raw_path" "$profiles_dir/$uuid.mobileprovision"
+            echo "${label}_name=$profile_name" >> "$GITHUB_OUTPUT"
+          }
+
+          install_profile "${{ secrets.IOS_APP_PROFILE_BASE64 }}" "app_profile"
+          install_profile "${{ secrets.IOS_WIDGET_PROFILE_BASE64 }}" "widget_profile"
+          install_profile "${{ secrets.IOS_REPORT_PROFILE_BASE64 }}" "report_profile"
 
       - name: Build iOS IPA for TestFlight
-        if: steps.semantic.outputs.new_release_published == 'true' && env.HAS_IOS_SIGNING_CERT == 'true' && env.HAS_TESTFLIGHT_CREDS == 'true'
+        if: steps.semantic.outputs.new_release_published == 'true' && env.HAS_IOS_SIGNING_CERT == 'true' && env.HAS_IOS_PROFILES == 'true'
         id: build_ios
         run: ./scripts/build-ios-testflight.sh
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
-          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
-          APPSTORE_API_KEY_PATH: ${{ steps.appstore_api_key.outputs.path }}
+          IOS_APP_PROFILE_NAME: ${{ steps.provisioning_profiles.outputs.app_profile_name }}
+          IOS_WIDGET_PROFILE_NAME: ${{ steps.provisioning_profiles.outputs.widget_profile_name }}
+          IOS_REPORT_PROFILE_NAME: ${{ steps.provisioning_profiles.outputs.report_profile_name }}
           IOS_MARKETING_VERSION: ${{ steps.semantic.outputs.new_release_version }}
           IOS_BUILD_NUMBER: ${{ github.run_number }}
           IOS_TESTFLIGHT_INTERNAL_ONLY: true
@@ -128,7 +149,7 @@ jobs:
             ${{ steps.build_ios.outputs.export_options_path }}
 
       - name: Upload iOS build to TestFlight
-        if: steps.build_ios.outputs.ipa_path != ''
+        if: steps.build_ios.outputs.ipa_path != '' && env.HAS_TESTFLIGHT_CREDS == 'true'
         uses: Apple-Actions/upload-testflight-build@v4
         with:
           app-path: ${{ steps.build_ios.outputs.ipa_path }}

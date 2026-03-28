@@ -52,9 +52,9 @@ Use native `xcodebuild` in GitHub Actions and upload with the official Apple Tes
 2. The macOS Electron release continues unchanged.
 3. If iOS signing secrets and App Store Connect credentials are present:
    - import an Apple Distribution certificate
-   - write the App Store Connect API key to a temporary file
-   - archive the `ScreencapMobile` app for `generic/platform=iOS`
-   - export a signed `.ipa` using automatic signing and `app-store-connect` export mode
+   - install explicit App Store provisioning profiles for the app, widget, and report extension
+   - archive the `ScreencapMobile` app for `generic/platform=iOS` with manual signing
+   - export a signed `.ipa` using `app-store-connect` export mode
    - upload the `.ipa` to TestFlight
 4. Upload the built `.ipa` as a workflow artifact for debugging.
 
@@ -63,6 +63,9 @@ Use native `xcodebuild` in GitHub Actions and upload with the official Apple Tes
 Required GitHub secrets:
 - `IOS_DIST_CERT_P12_BASE64`
 - `IOS_DIST_CERT_P12_PASSWORD`
+- `IOS_APP_PROFILE_BASE64`
+- `IOS_WIDGET_PROFILE_BASE64`
+- `IOS_REPORT_PROFILE_BASE64`
 - `APPSTORE_API_KEY_ID`
 - `APPSTORE_ISSUER_ID`
 - `APPSTORE_API_PRIVATE_KEY`
