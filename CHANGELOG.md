@@ -1,3 +1,10 @@
+# [1.28.0](https://github.com/yahorbarkouski/screencap/compare/v1.27.0...v1.28.0) (2026-03-28)
+
+
+### Features
+
+* improve iphone widget sync and diagnostics ([f31e0a0](https://github.com/yahorbarkouski/screencap/commit/f31e0a07297d26384cc4cd6b046fc36f4bc7bbab))
+
 # [1.27.0](https://github.com/yahorbarkouski/screencap/compare/v1.26.0...v1.27.0) (2026-03-28)
 
 
