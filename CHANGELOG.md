@@ -1,3 +1,10 @@
+# [1.25.0](https://github.com/yahorbarkouski/screencap/compare/v1.24.0...v1.25.0) (2026-03-28)
+
+
+### Features
+
+* remove alpha from ios app icons ([1283e31](https://github.com/yahorbarkouski/screencap/commit/1283e311599521c6e050cdc5b2c4a5c39097a59c))
+
 # [1.24.0](https://github.com/yahorbarkouski/screencap/compare/v1.23.0...v1.24.0) (2026-03-28)
 
 
