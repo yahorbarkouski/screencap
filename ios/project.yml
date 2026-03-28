@@ -36,15 +36,15 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSRequiresIPhoneOS: true
+        NSCameraUsageDescription: Screencap uses the camera to scan the pairing QR code from your Mac when you connect your iPhone companion app.
         UILaunchStoryboardName: LaunchScreen
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-    entitlements:
-      path: ScreencapMobile/ScreencapMobile.entitlements
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.screencap.mobile
         PRODUCT_NAME: Screencap
+        CODE_SIGN_ENTITLEMENTS: ScreencapMobile/ScreencapMobile.entitlements
         INFOPLIST_KEY_CFBundleDisplayName: Screencap
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         TARGETED_DEVICE_FAMILY: "1"
@@ -81,12 +81,11 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
-    entitlements:
-      path: ScreencapMobileWidget/ScreencapMobileWidget.entitlements
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.screencap.mobile.widget
         PRODUCT_NAME: ScreencapWidget
+        CODE_SIGN_ENTITLEMENTS: ScreencapMobileWidget/ScreencapMobileWidget.entitlements
         SKIP_INSTALL: YES
         TARGETED_DEVICE_FAMILY: "1"
       configs:
@@ -115,12 +114,11 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         EXAppExtensionAttributes:
           EXExtensionPointIdentifier: com.apple.deviceactivityui.report-extension
-    entitlements:
-      path: ScreencapMobileReport/ScreencapMobileReport.entitlements
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.screencap.mobile.report
         PRODUCT_NAME: ScreencapReport
+        CODE_SIGN_ENTITLEMENTS: ScreencapMobileReport/ScreencapMobileReport.entitlements
         SKIP_INSTALL: YES
         TARGETED_DEVICE_FAMILY: "1"
       configs:
