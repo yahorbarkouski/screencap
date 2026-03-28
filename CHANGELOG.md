@@ -1,3 +1,10 @@
+# [1.24.0](https://github.com/yahorbarkouski/screencap/compare/v1.23.0...v1.24.0) (2026-03-28)
+
+
+### Features
+
+* fix ios app icon asset packaging ([4824e7a](https://github.com/yahorbarkouski/screencap/commit/4824e7aed2ce54c013579c100695b2d6c449de46))
+
 # [1.23.0](https://github.com/yahorbarkouski/screencap/compare/v1.22.0...v1.23.0) (2026-03-28)
 
 
