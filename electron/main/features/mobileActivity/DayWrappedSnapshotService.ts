@@ -29,6 +29,7 @@ const BROWSER_APP_NAMES = new Set([
 export type MobileWrappedSource = "none" | "mac" | "iphone" | "both";
 
 export interface MobileWrappedSlot {
+	id: number;
 	startMs: number;
 	count: number;
 	category: AutomationCategory;
@@ -174,7 +175,7 @@ function computeMacSlots(
 	}
 
 	return slots.map(
-		({ startMs, count, categoryCounts, appCounts, websiteCounts }) => {
+		({ startMs, count, categoryCounts, appCounts, websiteCounts }, index) => {
 			const dominantApp = dominantMapKey(appCounts);
 			const dominantWebsite = dominantMapKey(websiteCounts);
 
@@ -199,6 +200,7 @@ function computeMacSlots(
 			}
 
 			return {
+				id: index,
 				startMs,
 				count,
 				category: dominantCategory(categoryCounts),
@@ -288,6 +290,7 @@ export function computeCombinedWrappedSlots(
 				: null;
 
 		return {
+			id: idx,
 			startMs: macSlot.startMs,
 			count: Math.max(macSlot.count, iphoneSlot.count),
 			category,

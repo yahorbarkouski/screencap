@@ -27,6 +27,7 @@ import {
 	listCachedMobileActivityDays,
 	upsertCachedMobileActivityDays,
 } from "../../infra/db/repositories/MobileActivityDayRepository";
+import { getEvents } from "../../infra/db/repositories/EventRepository";
 import {
 	deleteMobilePairedDevice,
 	getMobilePairedDevice,
@@ -35,10 +36,11 @@ import {
 	touchMobilePairedDevice,
 	upsertMobilePairedDevice,
 } from "../../infra/db/repositories/MobilePairedDeviceRepository";
-import { createLogger } from "../../infra/log";
+import { createLogger, formatLogsForExport, getLogBuffer } from "../../infra/log";
 import { getSocialAccountPath } from "../../infra/paths";
 import { getIdentity } from "../social/IdentityService";
 import { buildCombinedDayWrappedSnapshot } from "./DayWrappedSnapshotService";
+import { endOfDay, startOfDay } from "date-fns";
 
 const logger = createLogger({ scope: "LocalMobileBridge" });
 
@@ -338,6 +340,13 @@ function canonicalPath(pathname: string, search: string): string {
 	return search ? `${pathname}${search}` : pathname;
 }
 
+function summarizeBridgeLogs(limit = 40): string {
+	const entries = getLogBuffer()
+		.filter((entry) => entry.scope === "LocalMobileBridge")
+		.slice(-limit);
+	return formatLogsForExport(entries);
+}
+
 function verifySignedRequest(params: {
 	method: string;
 	path: string;
@@ -397,6 +406,13 @@ function verifySignedRequest(params: {
 	if (!isValid) {
 		throw new Error("Signed request verification failed");
 	}
+
+	logger.debug("Verified signed request", {
+		method: params.method.toUpperCase(),
+		path: params.path,
+		deviceId,
+		userId,
+	});
 
 	return { identityUserId: userId, device };
 }
@@ -530,6 +546,12 @@ async function handleUploadRequest(
 			lastSuccessAt: now,
 			lastError: null,
 		};
+		logger.info("Accepted mobile activity upload", {
+			deviceId,
+			deviceName: device.deviceName,
+			dayStartMs,
+			bucketCount: day.buckets.length,
+		});
 		sendJson(res, 200, { ok: true });
 	} catch (error) {
 		const message = String(error);
@@ -564,10 +586,105 @@ async function handleSnapshotRequest(
 			return;
 		}
 
-		sendJson(res, 200, buildCombinedDayWrappedSnapshot(Math.trunc(dayStartMs)));
+		const normalizedDayStartMs = startOfDay(
+			new Date(Math.trunc(dayStartMs)),
+		).getTime();
+		const cachedDaysForRequestedDay = listCachedMobileActivityDays({
+			startDate: normalizedDayStartMs,
+			endDate: normalizedDayStartMs,
+		}).filter((day) => day.deviceId === device.deviceId);
+		const snapshot = buildCombinedDayWrappedSnapshot(normalizedDayStartMs);
+		logger.info("Built day wrapped snapshot for iPhone", {
+			deviceId: device.deviceId,
+			dayStartMs: normalizedDayStartMs,
+			cachedDaysForRequestedDay: cachedDaysForRequestedDay.length,
+			requestedDayBucketCount:
+				cachedDaysForRequestedDay[0]?.buckets.length ?? null,
+			sourceSummary: snapshot.sourceSummary,
+			activeSlotCount: snapshot.slots.filter((slot) => slot.count > 0).length,
+		});
+		sendJson(res, 200, snapshot);
 	} catch (error) {
 		const message = String(error);
 		logger.warn("Local mobile snapshot request rejected", { error: message });
+		sendJson(res, 403, { error: message });
+	}
+}
+
+async function handleBridgeDiagnosticsRequest(
+	req: IncomingMessage,
+	res: ServerResponse,
+	url: URL,
+	urlPath: string,
+): Promise<void> {
+	try {
+		const body = await readRequestBody(req);
+		const { device, identityUserId } = verifySignedRequest({
+			method: req.method ?? "GET",
+			path: urlPath,
+			body,
+			headers: req.headers,
+		});
+		const dayStartMs = Number(url.searchParams.get("dayStartMs"));
+		if (!Number.isFinite(dayStartMs)) {
+			sendJson(res, 400, { error: "dayStartMs query param is required" });
+			return;
+		}
+		touchMobilePairedDevice(device.deviceId, Date.now());
+		const normalizedDayStartMs = startOfDay(new Date(Math.trunc(dayStartMs))).getTime();
+		const probeToken = url.searchParams.get("probeToken");
+		const snapshot = buildCombinedDayWrappedSnapshot(normalizedDayStartMs);
+		const events = getEvents({
+			startDate: normalizedDayStartMs,
+			endDate: endOfDay(new Date(normalizedDayStartMs)).getTime(),
+			dismissed: false,
+		});
+		const cachedDaysForDevice = listCachedMobileActivityDays({})
+			.filter((day) => day.deviceId === device.deviceId);
+		const cachedDaysForRequestedDay = cachedDaysForDevice.filter(
+			(day) => day.dayStartMs === normalizedDayStartMs,
+		);
+		const latestCachedDay = cachedDaysForDevice[0] ?? null;
+		const cachedDayStartMsForDevice = cachedDaysForDevice
+			.slice(0, 7)
+			.map((day) => day.dayStartMs);
+		const requestedDayBucketCount = cachedDaysForRequestedDay[0]?.buckets.length ?? null;
+		const bridgeLogTail = summarizeBridgeLogs();
+		logger.info("Bridge diagnostics requested", {
+			deviceId: device.deviceId,
+			dayStartMs: normalizedDayStartMs,
+			probeToken,
+			cachedDayStartMsForDevice,
+			requestedDayBucketCount,
+			eventCount: events.length,
+			cachedDaysForRequestedDay: cachedDaysForRequestedDay.length,
+			activeSlotCount: snapshot.slots.filter((slot) => slot.count > 0).length,
+		});
+		sendJson(res, 200, {
+			ok: true,
+			requestedDayStartMs: normalizedDayStartMs,
+			probeToken,
+			echoedProbeToken: probeToken,
+			serverNowMs: Date.now(),
+			advertisedBaseURL: advertisedBaseUrl,
+			userId: identityUserId,
+			username: ensureIdentityRegistered().username,
+			pairedDeviceId: device.deviceId,
+			pairedDeviceName: device.deviceName,
+			cachedDaysForDevice: cachedDaysForDevice.length,
+			cachedDaysForRequestedDay: cachedDaysForRequestedDay.length,
+			cachedDayStartMsForDevice,
+			latestCachedDayStartMs: latestCachedDay?.dayStartMs ?? null,
+			latestCachedDaySyncedAt: latestCachedDay?.syncedAt ?? null,
+			requestedDayBucketCount,
+			eventCountForRequestedDay: events.length,
+			snapshotSourceSummary: snapshot.sourceSummary,
+			activeSlotCount: snapshot.slots.filter((slot) => slot.count > 0).length,
+			bridgeLogTail,
+		});
+	} catch (error) {
+		const message = String(error);
+		logger.warn("Bridge diagnostics request rejected", { error: message });
 		sendJson(res, 403, { error: message });
 	}
 }
@@ -581,6 +698,11 @@ async function handleRequest(
 		const url = new URL(req.url ?? "/", `http://${host}`);
 		const path = url.pathname;
 		const fullPath = canonicalPath(url.pathname, url.search);
+		logger.debug("Received bridge request", {
+			method: req.method,
+			path,
+			search: url.search,
+		});
 
 		if (req.method === "GET" && path === "/pair") {
 			sendText(
@@ -601,6 +723,11 @@ async function handleRequest(
 
 		if (req.method === "GET" && path === "/api/me/day-wrapped-snapshot") {
 			await handleSnapshotRequest(req, res, url, fullPath);
+			return;
+		}
+
+		if (req.method === "GET" && path === "/api/me/bridge-diagnostics") {
+			await handleBridgeDiagnosticsRequest(req, res, url, fullPath);
 			return;
 		}
 

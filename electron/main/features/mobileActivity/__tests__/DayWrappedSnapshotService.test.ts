@@ -146,4 +146,18 @@ describe("DayWrappedSnapshotService", () => {
 		expect(slots[0]?.appName).toBe("docs.swift.org");
 		expect(slots[0]?.source).toBe("mac");
 	});
+
+	it("includes stable slot ids in the combined slot payload", () => {
+		const dayStartMs = 1_700_000_000_000;
+		const slots = computeCombinedWrappedSlots([], [], dayStartMs, false);
+		expect(slots).toHaveLength(24 * 6);
+		expect(slots[0]).toMatchObject({
+			id: 0,
+			startMs: expect.any(Number),
+		});
+		expect(slots[143]).toMatchObject({
+			id: 143,
+			startMs: expect.any(Number),
+		});
+	});
 });

@@ -9,6 +9,12 @@ final class AppModel: ObservableObject {
 	static let backgroundRefreshTaskIdentifier = "app.screencap.mobile.refresh"
 	nonisolated private static let autoSyncInterval: TimeInterval = 10 * 60
 
+	private struct RepairExchangeSummary {
+		let localBucketCount: Int?
+		let uploadedLocalDay: Bool
+		let snapshotSourceSummary: String?
+	}
+
 	@Published var identity: DeviceIdentity?
 	@Published var snapshot: DayWrappedSnapshot?
 	@Published var authorizationStatus: AuthorizationStatus
@@ -17,6 +23,7 @@ final class AppModel: ObservableObject {
 	@Published var isRefreshing = false
 	@Published var isPairing = false
 	@Published var isSyncingFromMac = false
+	@Published var isRepairing = false
 	@Published var errorMessage: String?
 	@Published var uploadStatus: String?
 	@Published var infoMessage: String?
@@ -147,6 +154,93 @@ final class AppModel: ObservableObject {
 		}
 	}
 
+	func resync() async {
+		let dayStartMs = selectedDayStartMs()
+		errorMessage = nil
+		infoMessage = nil
+		isRepairing = true
+		AppGroupStore.noteRepairStarted()
+		AppGroupStore.appendLog(
+			scope: "repair",
+			message: "starting safe re-sync dayStartMs=\(dayStartMs)"
+		)
+		defer {
+			AppGroupStore.noteRepairCompleted(error: errorMessage)
+			isRepairing = false
+		}
+
+		clearLocalArtifacts(dayStartMs: dayStartMs)
+
+		let preflightToken = UUID().uuidString
+		let preflight = await performBridgeProbe(
+			dayStartMs: dayStartMs,
+			probeToken: preflightToken,
+			recordErrors: true
+		)
+		if preflight == nil {
+			AppGroupStore.appendLog(
+				scope: "repair",
+				message: "preflight bridge probe failed dayStartMs=\(dayStartMs)"
+			)
+		}
+
+		if authorizationStatus == .approved {
+			await refreshSelectedDay()
+		} else {
+			await performMacSync(
+				dayStartMs: dayStartMs,
+				kind: "manual",
+				recordErrors: true,
+				updateVisibleSnapshot: true
+			)
+		}
+		let exchangeSummary = await repairExchange(dayStartMs: dayStartMs)
+
+		let postflightToken = UUID().uuidString
+		let postflight = await performBridgeProbe(
+			dayStartMs: dayStartMs,
+			probeToken: postflightToken,
+			recordErrors: false
+		)
+
+		if
+			errorMessage == nil,
+			let localBucketCount = exchangeSummary.localBucketCount,
+			localBucketCount > 0,
+			let postflight,
+			postflight.requestedDayBucketCount == nil || postflight.requestedDayBucketCount == 0
+		{
+			errorMessage =
+				"Repair uploaded iPhone data locally, but the Mac bridge still shows no cached iPhone day for \(formattedDay(dayStartMs))."
+		}
+
+		if
+			errorMessage == nil,
+			let localBucketCount = exchangeSummary.localBucketCount,
+			localBucketCount > 0,
+			let postflight,
+			(postflight.requestedDayBucketCount ?? 0) > 0,
+			!postflight.snapshotSourceSummary.localizedCaseInsensitiveContains("iphone")
+		{
+			errorMessage =
+				"The Mac bridge cached the iPhone day for \(formattedDay(dayStartMs)), but the combined snapshot still excludes iPhone activity."
+		}
+
+		if errorMessage == nil {
+			if let postflight {
+				let localSummary =
+					exchangeSummary.localBucketCount.map { " localBuckets=\($0)," } ?? ""
+				infoMessage =
+					"Re-sync completed. Bridge echo ok,\(localSummary) cached days=\(postflight.cachedDaysForRequestedDay), bridge buckets=\(postflight.requestedDayBucketCount ?? 0), events=\(postflight.eventCountForRequestedDay), active slots=\(postflight.activeSlotCount), source=\(postflight.snapshotSourceSummary)."
+			} else {
+				infoMessage = "Re-sync completed."
+			}
+		} else if let postflight {
+			infoMessage =
+				"Bridge is reachable and reports cached days=\(postflight.cachedDaysForRequestedDay), bridge buckets=\(postflight.requestedDayBucketCount ?? 0), events=\(postflight.eventCountForRequestedDay), active slots=\(postflight.activeSlotCount), source=\(postflight.snapshotSourceSummary)."
+		}
+	}
+
 	func previousDay() {
 		selectedDay = Calendar.current.date(byAdding: .day, value: -1, to: selectedDay) ?? selectedDay
 		Task { await refreshSelectedDay() }
@@ -201,6 +295,22 @@ final class AppModel: ObservableObject {
 			"diagnostics.lastUploadAttemptAtMs=\(diagnostics.lastUploadAttemptAtMs.map(String.init) ?? "nil")",
 			"diagnostics.lastUploadSuccessAtMs=\(diagnostics.lastUploadSuccessAtMs.map(String.init) ?? "nil")",
 			"diagnostics.lastUploadError=\(diagnostics.lastUploadError ?? "nil")",
+			"diagnostics.lastBridgeProbeAtMs=\(diagnostics.lastBridgeProbeAtMs.map(String.init) ?? "nil")",
+			"diagnostics.lastBridgeProbeToken=\(diagnostics.lastBridgeProbeToken ?? "nil")",
+			"diagnostics.lastBridgeProbeEchoToken=\(diagnostics.lastBridgeProbeEchoToken ?? "nil")",
+			"diagnostics.lastBridgeProbeError=\(diagnostics.lastBridgeProbeError ?? "nil")",
+			"diagnostics.lastBridgeCachedDaysForRequestedDay=\(diagnostics.lastBridgeCachedDaysForRequestedDay.map(String.init) ?? "nil")",
+			"diagnostics.lastBridgeCachedDayStarts=\(diagnostics.lastBridgeCachedDayStarts?.map(String.init).joined(separator: ",") ?? "nil")",
+			"diagnostics.lastBridgeRequestedDayBucketCount=\(diagnostics.lastBridgeRequestedDayBucketCount.map(String.init) ?? "nil")",
+			"diagnostics.lastBridgeEventCountForRequestedDay=\(diagnostics.lastBridgeEventCountForRequestedDay.map(String.init) ?? "nil")",
+			"diagnostics.lastBridgeActiveSlotCount=\(diagnostics.lastBridgeActiveSlotCount.map(String.init) ?? "nil")",
+			"diagnostics.lastBridgeSourceSummary=\(diagnostics.lastBridgeSourceSummary ?? "nil")",
+			"diagnostics.lastRepairStartedAtMs=\(diagnostics.lastRepairStartedAtMs.map(String.init) ?? "nil")",
+			"diagnostics.lastRepairCompletedAtMs=\(diagnostics.lastRepairCompletedAtMs.map(String.init) ?? "nil")",
+			"diagnostics.lastRepairError=\(diagnostics.lastRepairError ?? "nil")",
+			"",
+			"Latest bridge log tail:",
+			diagnostics.lastBridgeLogTail ?? "",
 			"",
 			"Recent logs:",
 			AppGroupStore.loadRecentLogs(),
@@ -412,6 +522,13 @@ final class AppModel: ObservableObject {
 			}
 		}
 
+		let diagnostics = AppGroupStore.loadDiagnostics()
+		AppGroupStore.appendLog(
+			scope: "refresh",
+			message:
+				"local wait ended without fresh day dayStartMs=\(dayStartMs) hostPresented=\(diagnostics.reportHostPresentedAtMs.map(String.init) ?? "nil") reportStarted=\(diagnostics.reportStartedAtMs.map(String.init) ?? "nil") reportFinished=\(diagnostics.reportFinishedAtMs.map(String.init) ?? "nil") producedDayStartMs=\(diagnostics.producedDayStartMs.map(String.init) ?? "nil")"
+		)
+
 		if await performMacSync(
 			dayStartMs: dayStartMs,
 			kind: "manual",
@@ -424,6 +541,126 @@ final class AppModel: ObservableObject {
 
 		if errorMessage == nil {
 			errorMessage = buildRefreshFailureMessage(dayStartMs: dayStartMs)
+		}
+	}
+
+	private func clearLocalArtifacts(dayStartMs: Int64) {
+		AppGroupStore.clearSnapshot()
+		AppGroupStore.deleteMobileDay(dayStartMs: dayStartMs)
+		AppGroupStore.clearUploadStatus(dayStartMs: dayStartMs)
+		snapshot = nil
+		uploadStatus = nil
+		WidgetCenter.shared.reloadAllTimelines()
+		AppGroupStore.appendLog(
+			scope: "repair",
+			message: "cleared local artifacts dayStartMs=\(dayStartMs)"
+		)
+	}
+
+	private func repairExchange(dayStartMs: Int64) async -> RepairExchangeSummary {
+		var localBucketCount: Int?
+		var uploadedLocalDay = false
+		var snapshotSourceSummary: String?
+
+		if let day = AppGroupStore.loadMobileDay(dayStartMs: dayStartMs) {
+			localBucketCount = day.buckets.count
+			do {
+				try await BackendClient.upload(day: day)
+				uploadedLocalDay = true
+				AppGroupStore.appendLog(
+					scope: "repair",
+					message:
+						"re-uploaded local mobile day dayStartMs=\(day.dayStartMs) buckets=\(day.buckets.count)"
+				)
+			} catch {
+				AppGroupStore.appendLog(
+					scope: "repair",
+					message:
+						"repair upload failed dayStartMs=\(day.dayStartMs) error=\(error.localizedDescription)"
+				)
+				if errorMessage == nil {
+					errorMessage = "Repair upload failed: \(error.localizedDescription)"
+				}
+			}
+		} else {
+			AppGroupStore.appendLog(
+				scope: "repair",
+				message: "no local mobile day found after refresh dayStartMs=\(dayStartMs)"
+			)
+		}
+
+		if let snapshot = await performMacSync(
+			dayStartMs: dayStartMs,
+			kind: "manual",
+			recordErrors: errorMessage == nil,
+			updateVisibleSnapshot: true
+		) {
+			snapshotSourceSummary = snapshot.sourceSummary
+			AppGroupStore.appendLog(
+				scope: "repair",
+				message:
+					"fetched combined snapshot after repair dayStartMs=\(snapshot.dayStartMs) source=\(snapshot.sourceSummary)"
+			)
+		}
+
+		return RepairExchangeSummary(
+			localBucketCount: localBucketCount,
+			uploadedLocalDay: uploadedLocalDay,
+			snapshotSourceSummary: snapshotSourceSummary
+		)
+	}
+
+	@discardableResult
+	private func performBridgeProbe(
+		dayStartMs: Int64,
+		probeToken: String,
+		recordErrors: Bool
+	) async -> BridgeDiagnosticsResponse? {
+		guard identity != nil else { return nil }
+		do {
+			let response = try await BackendClient.fetchBridgeDiagnostics(
+				dayStartMs: dayStartMs,
+				probeToken: probeToken
+			)
+			if response.requestedDayStartMs != dayStartMs {
+				let message =
+					"Bridge probe day mismatch. Sent \(dayStartMs), got \(response.requestedDayStartMs)."
+				AppGroupStore.noteBridgeDiagnosticsFailure(probeToken: probeToken, error: message)
+				AppGroupStore.appendLog(scope: "bridge-probe", message: message)
+				if recordErrors {
+					errorMessage = message
+				}
+				return nil
+			}
+			if response.echoedProbeToken != probeToken {
+				let message =
+					"Bridge probe token mismatch. Sent \(probeToken), got \(response.echoedProbeToken ?? "nil")."
+				AppGroupStore.noteBridgeDiagnosticsFailure(probeToken: probeToken, error: message)
+				AppGroupStore.appendLog(scope: "bridge-probe", message: message)
+				if recordErrors {
+					errorMessage = message
+				}
+				return nil
+			}
+			AppGroupStore.noteBridgeDiagnosticsSuccess(
+				probeToken: probeToken,
+				response: response
+			)
+			AppGroupStore.appendLog(
+				scope: "bridge-probe",
+				message:
+					"verified bridge diagnostics dayStartMs=\(response.requestedDayStartMs) cachedDays=\(response.cachedDaysForRequestedDay) bridgeBuckets=\(response.requestedDayBucketCount ?? 0) events=\(response.eventCountForRequestedDay) activeSlots=\(response.activeSlotCount) source=\(response.snapshotSourceSummary)"
+			)
+			return response
+		} catch {
+			AppGroupStore.noteBridgeDiagnosticsFailure(
+				probeToken: probeToken,
+				error: error.localizedDescription
+			)
+			if recordErrors {
+				errorMessage = error.localizedDescription
+			}
+			return nil
 		}
 	}
 
@@ -444,6 +681,11 @@ final class AppModel: ObservableObject {
 		}
 
 		guard identity != nil else { return nil }
+		AppGroupStore.appendLog(
+			scope: "mac-sync",
+			message:
+				"starting \(kind) Mac sync dayStartMs=\(dayStartMs) updateVisibleSnapshot=\(updateVisibleSnapshot)"
+		)
 		do {
 			let nextSnapshot = try await BackendClient.fetchSnapshot(dayStartMs: dayStartMs)
 			try? AppGroupStore.saveSnapshot(nextSnapshot)
@@ -458,6 +700,11 @@ final class AppModel: ObservableObject {
 				errorMessage = nil
 			}
 			WidgetCenter.shared.reloadAllTimelines()
+			AppGroupStore.appendLog(
+				scope: "mac-sync",
+				message:
+					"finished \(kind) Mac sync dayStartMs=\(nextSnapshot.dayStartMs) source=\(nextSnapshot.sourceSummary)"
+			)
 			return nextSnapshot
 		} catch {
 			AppGroupStore.noteMacSync(
@@ -468,6 +715,11 @@ final class AppModel: ObservableObject {
 			if recordErrors {
 				errorMessage = error.localizedDescription
 			}
+			AppGroupStore.appendLog(
+				scope: "mac-sync",
+				message:
+					"failed \(kind) Mac sync dayStartMs=\(dayStartMs) error=\(error.localizedDescription)"
+			)
 			return nil
 		}
 	}

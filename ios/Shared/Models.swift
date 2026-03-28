@@ -133,6 +133,51 @@ struct WrappedSlot: Codable, Hashable, Identifiable, Sendable {
 	let source: WrappedSourceAccent
 	let macCount: Int
 	let iphoneCount: Int
+
+	private enum CodingKeys: String, CodingKey {
+		case id
+		case startMs
+		case count
+		case category
+		case appName
+		case source
+		case macCount
+		case iphoneCount
+	}
+
+	init(
+		id: Int,
+		startMs: Int64,
+		count: Int,
+		category: WrappedCategory,
+		appName: String?,
+		source: WrappedSourceAccent,
+		macCount: Int,
+		iphoneCount: Int
+	) {
+		self.id = id
+		self.startMs = startMs
+		self.count = count
+		self.category = category
+		self.appName = appName
+		self.source = source
+		self.macCount = macCount
+		self.iphoneCount = iphoneCount
+	}
+
+	init(from decoder: Decoder) throws {
+		let container = try decoder.container(keyedBy: CodingKeys.self)
+		startMs = try container.decode(Int64.self, forKey: .startMs)
+		count = try container.decode(Int.self, forKey: .count)
+		category = try container.decode(WrappedCategory.self, forKey: .category)
+		appName = try container.decodeIfPresent(String.self, forKey: .appName)
+		source = try container.decode(WrappedSourceAccent.self, forKey: .source)
+		macCount = try container.decode(Int.self, forKey: .macCount)
+		iphoneCount = try container.decode(Int.self, forKey: .iphoneCount)
+		id =
+			try container.decodeIfPresent(Int.self, forKey: .id)
+			?? Int(startMs / Int64(10 * 60 * 1000))
+	}
 }
 
 struct DayWrappedSnapshot: Codable, Hashable, Sendable {
@@ -144,6 +189,29 @@ struct DayWrappedSnapshot: Codable, Hashable, Sendable {
 	let pairedDeviceName: String?
 	let mode: WrappedMode
 	let slots: [WrappedSlot]
+}
+
+struct BridgeDiagnosticsResponse: Codable, Hashable, Sendable {
+	let ok: Bool
+	let requestedDayStartMs: Int64
+	let probeToken: String?
+	let echoedProbeToken: String?
+	let serverNowMs: Int64
+	let advertisedBaseURL: String?
+	let userId: String
+	let username: String
+	let pairedDeviceId: String
+	let pairedDeviceName: String
+	let cachedDaysForDevice: Int
+	let cachedDaysForRequestedDay: Int
+	let cachedDayStartMsForDevice: [Int64]
+	let latestCachedDayStartMs: Int64?
+	let latestCachedDaySyncedAt: Int64?
+	let requestedDayBucketCount: Int?
+	let eventCountForRequestedDay: Int
+	let snapshotSourceSummary: String
+	let activeSlotCount: Int
+	let bridgeLogTail: String
 }
 
 struct SyncDiagnostics: Codable, Hashable, Sendable {
@@ -164,6 +232,20 @@ struct SyncDiagnostics: Codable, Hashable, Sendable {
 	var lastUploadAttemptAtMs: Int64?
 	var lastUploadSuccessAtMs: Int64?
 	var lastUploadError: String?
+	var lastBridgeProbeAtMs: Int64?
+	var lastBridgeProbeToken: String?
+	var lastBridgeProbeEchoToken: String?
+	var lastBridgeProbeError: String?
+	var lastBridgeCachedDaysForRequestedDay: Int?
+	var lastBridgeCachedDayStarts: [Int64]?
+	var lastBridgeRequestedDayBucketCount: Int?
+	var lastBridgeEventCountForRequestedDay: Int?
+	var lastBridgeActiveSlotCount: Int?
+	var lastBridgeSourceSummary: String?
+	var lastBridgeLogTail: String?
+	var lastRepairStartedAtMs: Int64?
+	var lastRepairCompletedAtMs: Int64?
+	var lastRepairError: String?
 
 	init(
 		requestedToken: String = "",
@@ -182,7 +264,21 @@ struct SyncDiagnostics: Codable, Hashable, Sendable {
 		lastMacSyncError: String? = nil,
 		lastUploadAttemptAtMs: Int64? = nil,
 		lastUploadSuccessAtMs: Int64? = nil,
-		lastUploadError: String? = nil
+		lastUploadError: String? = nil,
+		lastBridgeProbeAtMs: Int64? = nil,
+		lastBridgeProbeToken: String? = nil,
+		lastBridgeProbeEchoToken: String? = nil,
+		lastBridgeProbeError: String? = nil,
+		lastBridgeCachedDaysForRequestedDay: Int? = nil,
+		lastBridgeCachedDayStarts: [Int64]? = nil,
+		lastBridgeRequestedDayBucketCount: Int? = nil,
+		lastBridgeEventCountForRequestedDay: Int? = nil,
+		lastBridgeActiveSlotCount: Int? = nil,
+		lastBridgeSourceSummary: String? = nil,
+		lastBridgeLogTail: String? = nil,
+		lastRepairStartedAtMs: Int64? = nil,
+		lastRepairCompletedAtMs: Int64? = nil,
+		lastRepairError: String? = nil
 	) {
 		self.requestedToken = requestedToken
 		self.requestedDayStartMs = requestedDayStartMs
@@ -201,5 +297,19 @@ struct SyncDiagnostics: Codable, Hashable, Sendable {
 		self.lastUploadAttemptAtMs = lastUploadAttemptAtMs
 		self.lastUploadSuccessAtMs = lastUploadSuccessAtMs
 		self.lastUploadError = lastUploadError
+		self.lastBridgeProbeAtMs = lastBridgeProbeAtMs
+		self.lastBridgeProbeToken = lastBridgeProbeToken
+		self.lastBridgeProbeEchoToken = lastBridgeProbeEchoToken
+		self.lastBridgeProbeError = lastBridgeProbeError
+		self.lastBridgeCachedDaysForRequestedDay = lastBridgeCachedDaysForRequestedDay
+		self.lastBridgeCachedDayStarts = lastBridgeCachedDayStarts
+		self.lastBridgeRequestedDayBucketCount = lastBridgeRequestedDayBucketCount
+		self.lastBridgeEventCountForRequestedDay = lastBridgeEventCountForRequestedDay
+		self.lastBridgeActiveSlotCount = lastBridgeActiveSlotCount
+		self.lastBridgeSourceSummary = lastBridgeSourceSummary
+		self.lastBridgeLogTail = lastBridgeLogTail
+		self.lastRepairStartedAtMs = lastRepairStartedAtMs
+		self.lastRepairCompletedAtMs = lastRepairCompletedAtMs
+		self.lastRepairError = lastRepairError
 	}
 }

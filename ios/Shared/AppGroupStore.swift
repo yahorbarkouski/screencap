@@ -63,6 +63,17 @@ enum AppGroupStore {
 		)
 	}
 
+	static func deleteMobileDay(dayStartMs: Int64) {
+		try? FileManager.default.removeItem(at: mobileDayURL(dayStartMs: dayStartMs))
+		updateDiagnostics { diagnostics in
+			if diagnostics.producedDayStartMs == dayStartMs {
+				diagnostics.reportFinishedAtMs = nil
+				diagnostics.producedDayStartMs = nil
+				diagnostics.producedBucketCount = nil
+			}
+		}
+	}
+
 	static func noteRefreshRequested(dayStartMs: Int64) -> String {
 		let token = UUID().uuidString
 		defaults.set(token, forKey: reportTokenKey)
@@ -105,6 +116,10 @@ enum AppGroupStore {
 
 	static func loadUploadStatus(dayStartMs: Int64) -> String? {
 		defaults.string(forKey: uploadStatusKeyPrefix + String(dayStartMs))
+	}
+
+	static func clearUploadStatus(dayStartMs: Int64) {
+		defaults.removeObject(forKey: uploadStatusKeyPrefix + String(dayStartMs))
 	}
 
 	static func saveWidgetMode(_ mode: WrappedMode) {
@@ -189,6 +204,59 @@ enum AppGroupStore {
 				diagnostics.lastManualMacSyncAtMs = now
 			}
 			diagnostics.lastMacSyncError = succeeded ? nil : error
+		}
+	}
+
+	static func noteBridgeDiagnosticsSuccess(
+		probeToken: String?,
+		response: BridgeDiagnosticsResponse
+	) {
+		updateDiagnostics { diagnostics in
+			diagnostics.lastBridgeProbeAtMs = Int64(Date().timeIntervalSince1970 * 1000)
+			diagnostics.lastBridgeProbeToken = probeToken
+			diagnostics.lastBridgeProbeEchoToken = response.echoedProbeToken
+			diagnostics.lastBridgeProbeError = nil
+			diagnostics.lastBridgeCachedDaysForRequestedDay = response.cachedDaysForRequestedDay
+			diagnostics.lastBridgeCachedDayStarts = response.cachedDayStartMsForDevice
+			diagnostics.lastBridgeRequestedDayBucketCount = response.requestedDayBucketCount
+			diagnostics.lastBridgeEventCountForRequestedDay = response.eventCountForRequestedDay
+			diagnostics.lastBridgeActiveSlotCount = response.activeSlotCount
+			diagnostics.lastBridgeSourceSummary = response.snapshotSourceSummary
+			diagnostics.lastBridgeLogTail = response.bridgeLogTail
+		}
+	}
+
+	static func noteBridgeDiagnosticsFailure(
+		probeToken: String?,
+		error: String
+	) {
+		updateDiagnostics { diagnostics in
+			diagnostics.lastBridgeProbeAtMs = Int64(Date().timeIntervalSince1970 * 1000)
+			diagnostics.lastBridgeProbeToken = probeToken
+			diagnostics.lastBridgeProbeEchoToken = nil
+			diagnostics.lastBridgeProbeError = error
+			diagnostics.lastBridgeCachedDaysForRequestedDay = nil
+			diagnostics.lastBridgeCachedDayStarts = nil
+			diagnostics.lastBridgeRequestedDayBucketCount = nil
+			diagnostics.lastBridgeEventCountForRequestedDay = nil
+			diagnostics.lastBridgeActiveSlotCount = nil
+			diagnostics.lastBridgeSourceSummary = nil
+			diagnostics.lastBridgeLogTail = nil
+		}
+	}
+
+	static func noteRepairStarted() {
+		updateDiagnostics { diagnostics in
+			diagnostics.lastRepairStartedAtMs = Int64(Date().timeIntervalSince1970 * 1000)
+			diagnostics.lastRepairCompletedAtMs = nil
+			diagnostics.lastRepairError = nil
+		}
+	}
+
+	static func noteRepairCompleted(error: String? = nil) {
+		updateDiagnostics { diagnostics in
+			diagnostics.lastRepairCompletedAtMs = Int64(Date().timeIntervalSince1970 * 1000)
+			diagnostics.lastRepairError = error
 		}
 	}
 

@@ -18,6 +18,13 @@ struct RootView: View {
 			)
 			.ignoresSafeArea()
 
+			if model.authorizationStatus == .approved {
+				ReportRefreshHostView(dayStart: model.selectedDay, refreshToken: model.reportRefreshToken)
+					.opacity(0.015)
+					.allowsHitTesting(false)
+					.accessibilityHidden(true)
+			}
+
 			ScrollView(showsIndicators: false) {
 				VStack(alignment: .leading, spacing: 22) {
 					if model.identity == nil {
@@ -29,13 +36,6 @@ struct RootView: View {
 					}
 				}
 				.padding(20)
-			}
-
-			if model.authorizationStatus == .approved {
-				ReportRefreshHostView(dayStart: model.selectedDay, refreshToken: model.reportRefreshToken)
-					.frame(width: 1, height: 1)
-					.opacity(0.01)
-					.allowsHitTesting(false)
 			}
 		}
 		.sheet(isPresented: $scannerPresented) {
@@ -147,6 +147,45 @@ struct RootView: View {
 			}
 			.buttonStyle(PrimaryCapsuleStyle())
 
+			HStack(spacing: 12) {
+				Button {
+					Task {
+						await model.syncFromMac()
+					}
+				} label: {
+					Text(model.isSyncingFromMac ? "Syncing..." : "Sync from Mac")
+						.frame(maxWidth: .infinity)
+				}
+				.buttonStyle(SecondaryCapsuleStyle())
+				.disabled(model.isSyncingFromMac || model.isRepairing)
+
+				Button {
+					Task {
+						await model.resync()
+					}
+				} label: {
+					Text(model.isRepairing ? "Re-syncing..." : "Re-sync")
+						.frame(maxWidth: .infinity)
+				}
+				.buttonStyle(SecondaryCapsuleStyle())
+				.disabled(model.isSyncingFromMac || model.isRepairing)
+			}
+
+			Button {
+				model.copyLogs()
+			} label: {
+				Text("Copy Logs")
+					.frame(maxWidth: .infinity)
+			}
+			.buttonStyle(SecondaryCapsuleStyle())
+			.disabled(model.isSyncingFromMac || model.isRepairing)
+
+			if let infoMessage = model.infoMessage {
+				Text(infoMessage)
+					.font(.system(size: 13, weight: .medium, design: .rounded))
+					.foregroundStyle(.white.opacity(0.72))
+			}
+
 			Button(role: .destructive) {
 				model.forgetDevice()
 			} label: {
@@ -232,7 +271,7 @@ struct RootView: View {
 						.frame(maxWidth: .infinity)
 				}
 				.buttonStyle(PrimaryCapsuleStyle())
-				.disabled(model.isRefreshing)
+				.disabled(model.isRefreshing || model.isSyncingFromMac || model.isRepairing)
 
 				Button {
 					Task {
@@ -243,16 +282,30 @@ struct RootView: View {
 						.frame(maxWidth: .infinity)
 				}
 				.buttonStyle(PrimaryCapsuleStyle())
-				.disabled(model.isRefreshing || model.isSyncingFromMac)
+				.disabled(model.isRefreshing || model.isSyncingFromMac || model.isRepairing)
 			}
 
-			Button {
-				model.copyLogs()
-			} label: {
-				Text("Copy Logs")
-					.frame(maxWidth: .infinity)
+			HStack(spacing: 12) {
+				Button {
+					Task {
+						await model.resync()
+					}
+				} label: {
+					Text(model.isRepairing ? "Re-syncing..." : "Re-sync")
+						.frame(maxWidth: .infinity)
+				}
+				.buttonStyle(SecondaryCapsuleStyle())
+				.disabled(model.isRefreshing || model.isSyncingFromMac || model.isRepairing)
+
+				Button {
+					model.copyLogs()
+				} label: {
+					Text("Copy Logs")
+						.frame(maxWidth: .infinity)
+				}
+				.buttonStyle(SecondaryCapsuleStyle())
+				.disabled(model.isRefreshing || model.isSyncingFromMac || model.isRepairing)
 			}
-			.buttonStyle(SecondaryCapsuleStyle())
 
 			if let infoMessage = model.infoMessage {
 				Text(infoMessage)
