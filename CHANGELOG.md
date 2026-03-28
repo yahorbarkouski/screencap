@@ -1,3 +1,11 @@
+## [1.28.1](https://github.com/yahorbarkouski/screencap/compare/v1.28.0...v1.28.1) (2026-03-28)
+
+
+### Bug Fixes
+
+* add iphone resync repair diagnostics ([1f99800](https://github.com/yahorbarkouski/screencap/commit/1f998009e109fab5c7f91538e4b1d8f121391a89))
+* restore iphone mac sync and screentime host ([3178809](https://github.com/yahorbarkouski/screencap/commit/31788090b51f704e6f620521b0dd4e46847cc0a1))
+
 # [1.28.0](https://github.com/yahorbarkouski/screencap/compare/v1.27.0...v1.28.0) (2026-03-28)
 
 
