@@ -415,7 +415,7 @@
 				PRODUCT_NAME = Screencap;
 				PROVISIONING_PROFILE_SPECIFIER = "$(IOS_APP_PROFILE_SPECIFIER)";
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -436,7 +436,7 @@
 				PROVISIONING_PROFILE_SPECIFIER = "$(IOS_REPORT_PROFILE_SPECIFIER)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -455,7 +455,7 @@
 				PRODUCT_NAME = ScreencapReport;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -607,7 +607,7 @@
 				PROVISIONING_PROFILE_SPECIFIER = "$(IOS_WIDGET_PROFILE_SPECIFIER)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -627,7 +627,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = app.screencap.mobile;
 				PRODUCT_NAME = Screencap;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -647,7 +647,7 @@
 				PRODUCT_NAME = ScreencapWidget;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
