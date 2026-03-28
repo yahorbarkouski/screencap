@@ -43,22 +43,66 @@ enum BackendClient {
 			backendBaseURL: link.baseURL.absoluteString
 		)
 		try AuthStore.save(identity: identity, keys: keys.keyMaterial)
+		AppGroupStore.appendLog(
+			scope: "pairing",
+			message: "claimed pairing session for @\(payload.username) baseURL=\(link.baseURL.absoluteString)"
+		)
 		return identity
 	}
 
 	static func upload(day: MobileActivityDay) async throws {
+		AppGroupStore.noteUploadAttempt()
+		AppGroupStore.appendLog(
+			scope: "upload",
+			message: "uploading mobile day dayStartMs=\(day.dayStartMs) buckets=\(day.buckets.count)"
+		)
 		let body = try JSONEncoder().encode(day)
 		let path = "/api/me/mobile-activity-days/\(day.deviceId)/\(day.dayStartMs)"
-		_ = try await signedDataRequest(path: path, method: "PUT", body: body)
-		AppGroupStore.saveUploadStatus(dayStartMs: day.dayStartMs, message: "Uploaded \(DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .short))")
+		do {
+			_ = try await signedDataRequest(path: path, method: "PUT", body: body)
+			AppGroupStore.noteUploadSuccess()
+			AppGroupStore.saveUploadStatus(
+				dayStartMs: day.dayStartMs,
+				message: "Uploaded \(DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .short))"
+			)
+			AppGroupStore.appendLog(
+				scope: "upload",
+				message: "upload succeeded dayStartMs=\(day.dayStartMs)"
+			)
+		} catch {
+			let message = error.localizedDescription
+			AppGroupStore.noteUploadFailure(message)
+			AppGroupStore.appendLog(
+				scope: "upload",
+				message: "upload failed dayStartMs=\(day.dayStartMs) error=\(message)"
+			)
+			throw error
+		}
 	}
 
 	static func fetchSnapshot(dayStartMs: Int64) async throws -> DayWrappedSnapshot {
-		let data = try await signedDataRequest(
-			path: "/api/me/day-wrapped-snapshot?dayStartMs=\(dayStartMs)",
-			method: "GET"
+		AppGroupStore.appendLog(
+			scope: "snapshot",
+			message: "fetching snapshot dayStartMs=\(dayStartMs)"
 		)
-		return try JSONDecoder().decode(DayWrappedSnapshot.self, from: data)
+		do {
+			let data = try await signedDataRequest(
+				path: "/api/me/day-wrapped-snapshot?dayStartMs=\(dayStartMs)",
+				method: "GET"
+			)
+			let snapshot = try JSONDecoder().decode(DayWrappedSnapshot.self, from: data)
+			AppGroupStore.appendLog(
+				scope: "snapshot",
+				message: "fetched snapshot dayStartMs=\(snapshot.dayStartMs) source=\(snapshot.sourceSummary)"
+			)
+			return snapshot
+		} catch {
+			AppGroupStore.appendLog(
+				scope: "snapshot",
+				message: "fetch failed dayStartMs=\(dayStartMs) error=\(error.localizedDescription)"
+			)
+			throw error
+		}
 	}
 
 	static func signedDataRequest(

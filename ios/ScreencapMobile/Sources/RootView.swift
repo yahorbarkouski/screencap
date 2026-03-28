@@ -56,6 +56,8 @@ struct RootView: View {
 				Task {
 					await model.sceneBecameActive()
 				}
+			} else if nextPhase == .background {
+				model.sceneMovedToBackground()
 			}
 		}
 	}
@@ -226,11 +228,36 @@ struct RootView: View {
 						await model.refreshSelectedDay()
 					}
 				} label: {
-					Text(model.isRefreshing ? "Refreshing..." : "Refresh Day Wrapped")
+					Text(model.isRefreshing ? "Refreshing..." : "Refresh iPhone Data")
 						.frame(maxWidth: .infinity)
 				}
 				.buttonStyle(PrimaryCapsuleStyle())
 				.disabled(model.isRefreshing)
+
+				Button {
+					Task {
+						await model.syncFromMac()
+					}
+				} label: {
+					Text(model.isSyncingFromMac ? "Syncing..." : "Sync from Mac")
+						.frame(maxWidth: .infinity)
+				}
+				.buttonStyle(PrimaryCapsuleStyle())
+				.disabled(model.isRefreshing || model.isSyncingFromMac)
+			}
+
+			Button {
+				model.copyLogs()
+			} label: {
+				Text("Copy Logs")
+					.frame(maxWidth: .infinity)
+			}
+			.buttonStyle(SecondaryCapsuleStyle())
+
+			if let infoMessage = model.infoMessage {
+				Text(infoMessage)
+					.font(.system(size: 13, weight: .medium, design: .rounded))
+					.foregroundStyle(.white.opacity(0.72))
 			}
 
 			if let uploadStatus = model.uploadStatus {

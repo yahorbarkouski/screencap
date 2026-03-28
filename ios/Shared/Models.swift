@@ -145,3 +145,61 @@ struct DayWrappedSnapshot: Codable, Hashable, Sendable {
 	let mode: WrappedMode
 	let slots: [WrappedSlot]
 }
+
+struct SyncDiagnostics: Codable, Hashable, Sendable {
+	var requestedToken: String
+	var requestedDayStartMs: Int64
+	var requestedAtMs: Int64?
+	var reportHostPresentedAtMs: Int64?
+	var reportStartedAtMs: Int64?
+	var reportFinishedAtMs: Int64?
+	var producedDayStartMs: Int64?
+	var producedBucketCount: Int?
+	var lastReportError: String?
+	var snapshotSavedAtMs: Int64?
+	var snapshotDayStartMs: Int64?
+	var lastManualMacSyncAtMs: Int64?
+	var lastAutoMacSyncAtMs: Int64?
+	var lastMacSyncError: String?
+	var lastUploadAttemptAtMs: Int64?
+	var lastUploadSuccessAtMs: Int64?
+	var lastUploadError: String?
+
+	init(
+		requestedToken: String = "",
+		requestedDayStartMs: Int64 = 0,
+		requestedAtMs: Int64? = nil,
+		reportHostPresentedAtMs: Int64? = nil,
+		reportStartedAtMs: Int64? = nil,
+		reportFinishedAtMs: Int64? = nil,
+		producedDayStartMs: Int64? = nil,
+		producedBucketCount: Int? = nil,
+		lastReportError: String? = nil,
+		snapshotSavedAtMs: Int64? = nil,
+		snapshotDayStartMs: Int64? = nil,
+		lastManualMacSyncAtMs: Int64? = nil,
+		lastAutoMacSyncAtMs: Int64? = nil,
+		lastMacSyncError: String? = nil,
+		lastUploadAttemptAtMs: Int64? = nil,
+		lastUploadSuccessAtMs: Int64? = nil,
+		lastUploadError: String? = nil
+	) {
+		self.requestedToken = requestedToken
+		self.requestedDayStartMs = requestedDayStartMs
+		self.requestedAtMs = requestedAtMs
+		self.reportHostPresentedAtMs = reportHostPresentedAtMs
+		self.reportStartedAtMs = reportStartedAtMs
+		self.reportFinishedAtMs = reportFinishedAtMs
+		self.producedDayStartMs = producedDayStartMs
+		self.producedBucketCount = producedBucketCount
+		self.lastReportError = lastReportError
+		self.snapshotSavedAtMs = snapshotSavedAtMs
+		self.snapshotDayStartMs = snapshotDayStartMs
+		self.lastManualMacSyncAtMs = lastManualMacSyncAtMs
+		self.lastAutoMacSyncAtMs = lastAutoMacSyncAtMs
+		self.lastMacSyncError = lastMacSyncError
+		self.lastUploadAttemptAtMs = lastUploadAttemptAtMs
+		self.lastUploadSuccessAtMs = lastUploadSuccessAtMs
+		self.lastUploadError = lastUploadError
+	}
+}

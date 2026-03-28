@@ -35,8 +35,13 @@ targets:
         CFBundleIconName: AppIcon
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        BGTaskSchedulerPermittedIdentifiers:
+          - app.screencap.mobile.refresh
         LSRequiresIPhoneOS: true
         NSCameraUsageDescription: Screencap uses the camera to scan the pairing QR code from your Mac when you connect your iPhone companion app.
+        NSLocalNetworkUsageDescription: Screencap connects to your paired Mac over the local network to refresh Day Wrapped data for the iPhone app and widget.
+        UIBackgroundModes:
+          - fetch
         UILaunchStoryboardName: LaunchScreen
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
@@ -57,6 +62,7 @@ targets:
           PROVISIONING_PROFILE_SPECIFIER: $(IOS_APP_PROFILE_SPECIFIER)
     dependencies:
       - sdk: AVFoundation.framework
+      - sdk: BackgroundTasks.framework
       - sdk: FamilyControls.framework
       - sdk: DeviceActivity.framework
       - sdk: ManagedSettings.framework
