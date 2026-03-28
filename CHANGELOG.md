@@ -1,3 +1,10 @@
+# [1.22.0](https://github.com/yahorbarkouski/screencap/compare/v1.21.0...v1.22.0) (2026-03-28)
+
+
+### Features
+
+* switch ios upload to altool ([1872373](https://github.com/yahorbarkouski/screencap/commit/1872373b0a14525d3020ae15aeaa746840caa8c2))
+
 # [1.21.0](https://github.com/yahorbarkouski/screencap/compare/v1.20.1...v1.21.0) (2026-03-28)
 
 
