@@ -1,3 +1,10 @@
+# [1.27.0](https://github.com/yahorbarkouski/screencap/compare/v1.26.0...v1.27.0) (2026-03-28)
+
+
+### Features
+
+* refresh ios provisioning profiles ([837b508](https://github.com/yahorbarkouski/screencap/commit/837b5080f773a07863a811477c00cb4ad7d5b603))
+
 # [1.26.0](https://github.com/yahorbarkouski/screencap/compare/v1.25.0...v1.26.0) (2026-03-28)
 
 
