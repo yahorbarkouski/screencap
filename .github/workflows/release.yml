@@ -148,12 +148,48 @@ jobs:
             ${{ steps.build_ios.outputs.ipa_path }}
             ${{ steps.build_ios.outputs.export_options_path }}
 
+      - name: Write App Store Connect API key for iOS upload
+        if: steps.build_ios.outputs.ipa_path != '' && env.HAS_TESTFLIGHT_CREDS == 'true'
+        id: appstore_api_key
+        run: |
+          key_dir="$HOME/.appstoreconnect/private_keys"
+          key_path="$key_dir/AuthKey_${{ secrets.APPSTORE_API_KEY_ID }}.p8"
+          mkdir -p "$key_dir"
+          printf '%s' "${{ secrets.APPSTORE_API_PRIVATE_KEY }}" > "$key_path"
+          chmod 600 "$key_path"
+          echo "dir=$key_dir" >> "$GITHUB_OUTPUT"
+
       - name: Upload iOS build to TestFlight
         if: steps.build_ios.outputs.ipa_path != '' && env.HAS_TESTFLIGHT_CREDS == 'true'
-        uses: Apple-Actions/upload-testflight-build@v4
-        with:
-          app-path: ${{ steps.build_ios.outputs.ipa_path }}
-          app-type: ios
-          issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
-          api-key-id: ${{ secrets.APPSTORE_API_KEY_ID }}
-          api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+        run: |
+          find_altool() {
+            local candidate
+            for candidate in \
+              "${DEVELOPER_DIR:-}" \
+              /Applications/Xcode_*.app/Contents/Developer \
+              /Applications/Xcode.app/Contents/Developer \
+              "$(xcode-select -p)"; do
+              if [[ -n "$candidate" && -x "$candidate/usr/bin/altool" ]]; then
+                echo "$candidate/usr/bin/altool"
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          altool_path="$(find_altool)"
+          if [[ -z "$altool_path" ]]; then
+            echo "Unable to locate Xcode altool on the runner." >&2
+            exit 1
+          fi
+
+          "$altool_path" \
+            --upload-app \
+            --file "${{ steps.build_ios.outputs.ipa_path }}" \
+            --type ios \
+            --apiKey "${{ secrets.APPSTORE_API_KEY_ID }}" \
+            --apiIssuer "${{ secrets.APPSTORE_ISSUER_ID }}" \
+            --output-format json \
+            --show-progress
+        env:
+          API_PRIVATE_KEYS_DIR: ${{ steps.appstore_api_key.outputs.dir }}

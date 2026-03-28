@@ -44,7 +44,7 @@ Cons:
 
 ## Chosen Approach
 
-Use native `xcodebuild` in GitHub Actions and upload with the official Apple TestFlight action. This keeps the existing release workflow intact, avoids introducing Fastlane, and is enough for internal TestFlight distribution.
+Use native `xcodebuild` in GitHub Actions and upload with Xcode's bundled `altool`. This keeps the existing release workflow intact, avoids introducing Fastlane, and avoids the runner-specific `iTMSTransporter` launcher issue that can appear on hosted macOS images.
 
 ## Release Flow
 
