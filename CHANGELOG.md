@@ -1,3 +1,10 @@
+# [1.26.0](https://github.com/yahorbarkouski/screencap/compare/v1.25.0...v1.26.0) (2026-03-28)
+
+
+### Features
+
+* add ios privacy and family controls entitlements ([9f35b22](https://github.com/yahorbarkouski/screencap/commit/9f35b22ab0c2f51080543a13a4ab5e5235bdb0fd))
+
 # [1.25.0](https://github.com/yahorbarkouski/screencap/compare/v1.24.0...v1.25.0) (2026-03-28)
 
 
