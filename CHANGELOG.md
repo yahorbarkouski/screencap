@@ -1,3 +1,10 @@
+# [1.21.0](https://github.com/yahorbarkouski/screencap/compare/v1.20.1...v1.21.0) (2026-03-28)
+
+
+### Features
+
+* fix ios testflight signing pipeline ([6972002](https://github.com/yahorbarkouski/screencap/commit/6972002d90cd1e5c11a2ee21d1c4c6436ebeae87))
+
 ## [1.20.1](https://github.com/yahorbarkouski/screencap/compare/v1.20.0...v1.20.1) (2026-03-12)
 
 
