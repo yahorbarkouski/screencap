@@ -90,7 +90,17 @@ enum BackendClient {
 				path: "/api/me/day-wrapped-snapshot?dayStartMs=\(dayStartMs)",
 				method: "GET"
 			)
-			let snapshot = try JSONDecoder().decode(DayWrappedSnapshot.self, from: data)
+			let snapshot: DayWrappedSnapshot
+			do {
+				snapshot = try JSONDecoder().decode(DayWrappedSnapshot.self, from: data)
+			} catch {
+				let rawBody = String(data: data, encoding: .utf8) ?? "<non-utf8>"
+				AppGroupStore.appendLog(
+					scope: "snapshot",
+					message: "decode failed dayStartMs=\(dayStartMs) error=\(error.localizedDescription) body=\(rawBody)"
+				)
+				throw error
+			}
 			AppGroupStore.appendLog(
 				scope: "snapshot",
 				message: "fetched snapshot dayStartMs=\(snapshot.dayStartMs) source=\(snapshot.sourceSummary)"

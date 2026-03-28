@@ -18,6 +18,13 @@ struct RootView: View {
 			)
 			.ignoresSafeArea()
 
+			if model.authorizationStatus == .approved {
+				ReportRefreshHostView(dayStart: model.selectedDay, refreshToken: model.reportRefreshToken)
+					.opacity(0.015)
+					.allowsHitTesting(false)
+					.accessibilityHidden(true)
+			}
+
 			ScrollView(showsIndicators: false) {
 				VStack(alignment: .leading, spacing: 22) {
 					if model.identity == nil {
@@ -29,13 +36,6 @@ struct RootView: View {
 					}
 				}
 				.padding(20)
-			}
-
-			if model.authorizationStatus == .approved {
-				ReportRefreshHostView(dayStart: model.selectedDay, refreshToken: model.reportRefreshToken)
-					.frame(width: 1, height: 1)
-					.opacity(0.01)
-					.allowsHitTesting(false)
 			}
 		}
 		.sheet(isPresented: $scannerPresented) {

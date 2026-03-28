@@ -133,6 +133,51 @@ struct WrappedSlot: Codable, Hashable, Identifiable, Sendable {
 	let source: WrappedSourceAccent
 	let macCount: Int
 	let iphoneCount: Int
+
+	private enum CodingKeys: String, CodingKey {
+		case id
+		case startMs
+		case count
+		case category
+		case appName
+		case source
+		case macCount
+		case iphoneCount
+	}
+
+	init(
+		id: Int,
+		startMs: Int64,
+		count: Int,
+		category: WrappedCategory,
+		appName: String?,
+		source: WrappedSourceAccent,
+		macCount: Int,
+		iphoneCount: Int
+	) {
+		self.id = id
+		self.startMs = startMs
+		self.count = count
+		self.category = category
+		self.appName = appName
+		self.source = source
+		self.macCount = macCount
+		self.iphoneCount = iphoneCount
+	}
+
+	init(from decoder: Decoder) throws {
+		let container = try decoder.container(keyedBy: CodingKeys.self)
+		startMs = try container.decode(Int64.self, forKey: .startMs)
+		count = try container.decode(Int.self, forKey: .count)
+		category = try container.decode(WrappedCategory.self, forKey: .category)
+		appName = try container.decodeIfPresent(String.self, forKey: .appName)
+		source = try container.decode(WrappedSourceAccent.self, forKey: .source)
+		macCount = try container.decode(Int.self, forKey: .macCount)
+		iphoneCount = try container.decode(Int.self, forKey: .iphoneCount)
+		id =
+			try container.decodeIfPresent(Int.self, forKey: .id)
+			?? Int(startMs / Int64(10 * 60 * 1000))
+	}
 }
 
 struct DayWrappedSnapshot: Codable, Hashable, Sendable {
