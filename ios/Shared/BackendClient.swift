@@ -115,6 +115,45 @@ enum BackendClient {
 		}
 	}
 
+	static func fetchBridgeDiagnostics(
+		dayStartMs: Int64,
+		probeToken: String?
+	) async throws -> BridgeDiagnosticsResponse {
+		var path = "/api/me/bridge-diagnostics?dayStartMs=\(dayStartMs)"
+		if let probeToken, !probeToken.isEmpty {
+			path += "&probeToken=\(probeToken.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? probeToken)"
+		}
+		AppGroupStore.appendLog(
+			scope: "bridge-probe",
+			message: "fetching bridge diagnostics dayStartMs=\(dayStartMs) probeToken=\(probeToken ?? "nil")"
+		)
+		do {
+			let data = try await signedDataRequest(path: path, method: "GET")
+			let response: BridgeDiagnosticsResponse
+			do {
+				response = try JSONDecoder().decode(BridgeDiagnosticsResponse.self, from: data)
+			} catch {
+				let rawBody = String(data: data, encoding: .utf8) ?? "<non-utf8>"
+				AppGroupStore.appendLog(
+					scope: "bridge-probe",
+					message: "decode failed dayStartMs=\(dayStartMs) error=\(error.localizedDescription) body=\(rawBody)"
+				)
+				throw error
+			}
+			AppGroupStore.appendLog(
+				scope: "bridge-probe",
+				message: "bridge diagnostics succeeded echoedProbeToken=\(response.echoedProbeToken ?? "nil") cachedDays=\(response.cachedDaysForRequestedDay) events=\(response.eventCountForRequestedDay) activeSlots=\(response.activeSlotCount)"
+			)
+			return response
+		} catch {
+			AppGroupStore.appendLog(
+				scope: "bridge-probe",
+				message: "bridge diagnostics failed dayStartMs=\(dayStartMs) error=\(error.localizedDescription)"
+			)
+			throw error
+		}
+	}
+
 	static func signedDataRequest(
 		path: String,
 		method: String,
