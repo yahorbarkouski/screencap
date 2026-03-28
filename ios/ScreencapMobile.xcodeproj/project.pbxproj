@@ -16,6 +16,7 @@
 		1FE88B2A5E6299D9A97DC7DF /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ED525661F805FBAEE72FD9B /* AppModel.swift */; };
 		2563115565621BBE2051EEB5 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 76D0B3277101A9FB5520B194 /* ManagedSettings.framework */; };
 		30A1AEB083029FD59D5F1CDA /* DayWrappedRendering.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCEEB4F6243006091B7520E7 /* DayWrappedRendering.swift */; };
+		357B2AE499DC4DBDFD8AE3AE /* BackgroundTasks.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 77AED217372AC50F8C674D48 /* BackgroundTasks.framework */; };
 		37F24F99A144AA7B3C9860AA /* CycleWidgetModeIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00301FC5F6AA19960E6C246E /* CycleWidgetModeIntent.swift */; };
 		39D22F5E8673CD2C6FBE279B /* PairingCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7B8D220D88BE60EA2ECDB1A /* PairingCrypto.swift */; };
 		40AED04027B8BA92CD3FD125 /* FamilyControls.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BFD20477C1ED4E808B382B1 /* FamilyControls.framework */; };
@@ -110,6 +111,7 @@
 		6E5CBE302D1F4817024B4655 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		76D0B3277101A9FB5520B194 /* ManagedSettings.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettings.framework; path = System/Library/Frameworks/ManagedSettings.framework; sourceTree = SDKROOT; };
 		770E7635254D25270FA60BBE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		77AED217372AC50F8C674D48 /* BackgroundTasks.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BackgroundTasks.framework; path = System/Library/Frameworks/BackgroundTasks.framework; sourceTree = SDKROOT; };
 		850A7FED666CEC80B61FD9F8 /* DeviceActivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DeviceActivity.framework; path = System/Library/Frameworks/DeviceActivity.framework; sourceTree = SDKROOT; };
 		95B5F3E993D46AC531DC13CC /* QRCodeScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeScannerView.swift; sourceTree = "<group>"; };
 		9BFFBDC35F80E2E3C3F02F8E /* ScreencapMobileWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreencapMobileWidgetBundle.swift; sourceTree = "<group>"; };
@@ -148,6 +150,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8E69F4D50988C9CB532456D9 /* AVFoundation.framework in Frameworks */,
+				357B2AE499DC4DBDFD8AE3AE /* BackgroundTasks.framework in Frameworks */,
 				40AED04027B8BA92CD3FD125 /* FamilyControls.framework in Frameworks */,
 				CAB136EB6A6B1A1AB53C70C5 /* DeviceActivity.framework in Frameworks */,
 				E5FDFC351EF0EF38623DCD47 /* ManagedSettings.framework in Frameworks */,
@@ -183,6 +186,7 @@
 			children = (
 				A996872BF91903E49EB6BF1C /* AppIntents.framework */,
 				9DBC78C0E5017F2A3CCBC210 /* AVFoundation.framework */,
+				77AED217372AC50F8C674D48 /* BackgroundTasks.framework */,
 				850A7FED666CEC80B61FD9F8 /* DeviceActivity.framework */,
 				4BFD20477C1ED4E808B382B1 /* FamilyControls.framework */,
 				76D0B3277101A9FB5520B194 /* ManagedSettings.framework */,

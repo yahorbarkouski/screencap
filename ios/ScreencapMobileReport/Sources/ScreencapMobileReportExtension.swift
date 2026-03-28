@@ -22,7 +22,9 @@ private struct DayWrappedReportScene: DeviceActivityReportScene {
 	func makeConfiguration(
 		representing data: DeviceActivityResults<DeviceActivityData>
 	) async -> DayWrappedReportPayload {
-		await DayWrappedReportBuilder.build(from: data)
+		AppGroupStore.markReportStarted()
+		AppGroupStore.appendLog(scope: "report", message: "makeConfiguration started")
+		return await DayWrappedReportBuilder.build(from: data)
 	}
 }
 
@@ -32,7 +34,23 @@ private struct DayWrappedReportContentView: View {
 	var body: some View {
 		Color.clear
 			.task(id: payload.day.syncedAt) {
-				try? AppGroupStore.saveMobileDay(payload.day)
+				do {
+					try AppGroupStore.saveMobileDay(payload.day)
+					AppGroupStore.markReportFinished(
+						dayStartMs: payload.day.dayStartMs,
+						bucketCount: payload.day.buckets.count
+					)
+					AppGroupStore.appendLog(
+						scope: "report",
+						message: "saved mobile day dayStartMs=\(payload.day.dayStartMs) buckets=\(payload.day.buckets.count)"
+					)
+				} catch {
+					AppGroupStore.markReportError(error.localizedDescription)
+					AppGroupStore.appendLog(
+						scope: "report",
+						message: "failed to save mobile day error=\(error.localizedDescription)"
+					)
+				}
 			}
 	}
 }
@@ -45,9 +63,16 @@ private enum DayWrappedReportBuilder {
 
 	static func build(from results: DeviceActivityResults<DeviceActivityData>) async -> DayWrappedReportPayload {
 		let calendar = Calendar.current
-		let defaultDayStart = calendar.startOfDay(for: Date())
+		let requestedDayStartMs = AppGroupStore.latestRequestedDayStartMs()
+		let defaultDayStart: Date = {
+			if requestedDayStartMs > 0 {
+				return Date(timeIntervalSince1970: TimeInterval(requestedDayStartMs) / 1000)
+			}
+			return calendar.startOfDay(for: Date())
+		}()
 		var dayStart = defaultDayStart
 		var hours: [Int: HourAccumulator] = [:]
+		var segmentCount = 0
 
 		for await data in results {
 			switch data.segmentInterval {
@@ -58,10 +83,11 @@ private enum DayWrappedReportBuilder {
 			case let .weekly(during: interval):
 				dayStart = calendar.startOfDay(for: interval.start)
 			@unknown default:
-				dayStart = calendar.startOfDay(for: Date())
+				dayStart = defaultDayStart
 			}
 
 			for await segment in data.activitySegments {
+				segmentCount += 1
 				let hour = calendar.component(.hour, from: segment.dateInterval.start)
 				var accumulator = hours[hour] ?? HourAccumulator()
 
@@ -111,6 +137,10 @@ private enum DayWrappedReportBuilder {
 			dayStartMs: dayStartMs,
 			buckets: buckets,
 			syncedAt: syncedAt
+		)
+		AppGroupStore.appendLog(
+			scope: "report",
+			message: "built report requestedDayStartMs=\(requestedDayStartMs) producedDayStartMs=\(dayStartMs) segments=\(segmentCount) buckets=\(buckets.count)"
 		)
 		return DayWrappedReportPayload(day: day)
 	}

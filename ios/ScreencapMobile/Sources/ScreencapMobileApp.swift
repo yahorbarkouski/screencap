@@ -4,6 +4,11 @@ import SwiftUI
 struct ScreencapMobileApp: App {
 	@StateObject private var model = AppModel()
 
+	init() {
+		AppModel.registerBackgroundRefreshTask()
+		AppModel.scheduleBackgroundRefresh()
+	}
+
 	var body: some Scene {
 		WindowGroup {
 			RootView()

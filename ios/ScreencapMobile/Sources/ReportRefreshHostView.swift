@@ -16,5 +16,12 @@ struct ReportRefreshHostView: View {
 			)
 		)
 		.id(refreshToken)
+		.task(id: refreshToken) {
+			AppGroupStore.markReportHostPresented()
+			AppGroupStore.appendLog(
+				scope: "report-host",
+				message: "presented token=\(refreshToken) dayStartMs=\(Int64(start.timeIntervalSince1970 * 1000))"
+			)
+		}
 	}
 }
