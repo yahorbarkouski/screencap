@@ -49,6 +49,13 @@ private enum WidgetDayNavigator {
 		)
 
 		if AppGroupStore.loadCachedSnapshot(dayStartMs: candidateDayStartMs) == nil {
+			if case .missingKeyMaterial = AuthStore.loadSignedRequestCredentials() {
+				AppGroupStore.appendLog(
+					scope: "widget-day",
+					message:
+						"widget fetch is missing shared signing keys; open the iPhone app once to refresh shared credentials"
+				)
+			}
 			do {
 				let snapshot = try await BackendClient.fetchSnapshot(dayStartMs: candidateDayStartMs)
 				try AppGroupStore.saveCachedSnapshot(snapshot)

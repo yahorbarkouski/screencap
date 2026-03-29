@@ -18,6 +18,7 @@ export type VirtualTimelineItem =
 	| {
 			type: "header";
 			date: string;
+			events: Event[];
 			key: string;
 			showPagination: boolean;
 			spacingAfter: number;
@@ -59,6 +60,7 @@ export function buildVirtualTimelineItems(
 		items.push({
 			type: "header",
 			date,
+			events,
 			key: `header:${date}`,
 			showPagination: groupIndex === 0,
 			spacingAfter:

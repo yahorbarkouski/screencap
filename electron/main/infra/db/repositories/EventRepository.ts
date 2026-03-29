@@ -161,6 +161,12 @@ export function getEvents(options: GetEventsOptions): Event[] {
 		);
 	}
 
+	if (options.needsAddictionReview) {
+		conditions.push(
+			"e.addiction_candidate IS NOT NULL AND e.tracked_addiction IS NULL",
+		);
+	}
+
 	if (options.appBundleId) {
 		conditions.push("e.app_bundle_id = ?");
 		params.push(options.appBundleId);
@@ -252,6 +258,12 @@ export function getEventsCount(options: GetEventsOptions): number {
 			options.hasTrackedAddiction
 				? "tracked_addiction IS NOT NULL"
 				: "tracked_addiction IS NULL",
+		);
+	}
+
+	if (options.needsAddictionReview) {
+		conditions.push(
+			"addiction_candidate IS NOT NULL AND tracked_addiction IS NULL",
 		);
 	}
 

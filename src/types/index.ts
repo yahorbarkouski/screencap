@@ -286,6 +286,7 @@ export interface EventFilters {
 	category?: string;
 	project?: string;
 	projectProgress?: boolean;
+	needsAddictionReview?: boolean;
 	trackedAddiction?: string;
 	appBundleId?: string;
 	urlHost?: string;
@@ -839,6 +840,7 @@ declare global {
 					projectProgress?: boolean;
 					trackedAddiction?: string;
 					hasTrackedAddiction?: boolean;
+					needsAddictionReview?: boolean;
 					appBundleId?: string;
 					urlHost?: string;
 					startDate?: number;
@@ -852,6 +854,7 @@ declare global {
 					projectProgress?: boolean;
 					trackedAddiction?: string;
 					hasTrackedAddiction?: boolean;
+					needsAddictionReview?: boolean;
 					appBundleId?: string;
 					urlHost?: string;
 					startDate?: number;
@@ -867,6 +870,7 @@ declare global {
 					projectProgress?: boolean;
 					trackedAddiction?: string;
 					hasTrackedAddiction?: boolean;
+					needsAddictionReview?: boolean;
 					appBundleId?: string;
 					urlHost?: string;
 					startDate?: number;

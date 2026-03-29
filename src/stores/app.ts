@@ -30,7 +30,8 @@ function areEventFiltersEqual(a: EventFilters, b: EventFilters): boolean {
 		a.startDate === b.startDate &&
 		a.endDate === b.endDate &&
 		a.search === b.search &&
-		a.dismissed === b.dismissed
+		a.dismissed === b.dismissed &&
+		a.needsAddictionReview === b.needsAddictionReview
 	);
 }
 

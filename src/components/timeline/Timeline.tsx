@@ -80,6 +80,7 @@ const TimelineList = memo(function TimelineList({
 									{item.type === "header" ? (
 										<TimelineGroupHeader
 											date={item.date}
+											events={item.events}
 											showPagination={item.showPagination}
 											hasNextPage={hasNextPage}
 											totalPages={totalPages}

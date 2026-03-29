@@ -26,6 +26,11 @@ describe("buildVirtualTimelineItems", () => {
 			showPagination: true,
 			spacingAfter: 16,
 		});
+		expect(
+			items[0]?.type === "header"
+				? items[0].events.map((event) => event.id)
+				: [],
+		).toEqual(["1", "2", "3"]);
 		expect(items[1]).toMatchObject({
 			type: "row",
 			date: "Today",
