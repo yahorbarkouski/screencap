@@ -16,12 +16,17 @@ export const VIEW_MODE_ORDER: DaylineViewMode[] = [
 	"apps",
 ];
 
+function slotDisplayCount(slot: DaylineSlot, mode: DaylineViewMode): number {
+	if (mode === "addiction") return slot.macCount ?? slot.count;
+	return slot.count;
+}
+
 function slotBg(
 	slot: DaylineSlot,
 	level: 0 | 1 | 2 | 3 | 4,
 	mode: DaylineViewMode,
 ) {
-	if (slot.count <= 0) return null;
+	if (slotDisplayCount(slot, mode) <= 0) return null;
 	const alpha = DOT_ALPHA_BY_LEVEL[level];
 	if (mode === "categories") return rgba(CATEGORY_RGB[slot.category], alpha);
 	if (mode === "apps") {
@@ -34,18 +39,25 @@ function slotBg(
 
 function slotTitle(slot: DaylineSlot, mode: DaylineViewMode): string {
 	const time = format(new Date(slot.startMs), "HH:mm");
-	if (slot.count <= 0) return `${time} · 0`;
+	const count = slotDisplayCount(slot, mode);
+	const sourceLabel =
+		slot.source === "iphone"
+			? " · iPhone"
+			: slot.source === "both"
+				? " · Mac + iPhone"
+				: "";
+	if (count <= 0) return `${time} · 0`;
 	if (mode === "categories")
-		return `${time} · ${slot.count} · ${slot.category}`;
+		return `${time} · ${count} · ${slot.category}${sourceLabel}`;
 	if (mode === "apps")
-		return `${time} · ${slot.count} · ${slot.appName ?? "Unknown"}`;
+		return `${time} · ${count} · ${slot.appName ?? "Unknown"}${sourceLabel}`;
 	if (slot.addiction)
-		return `${time} · ${slot.count} · Addiction: ${slot.addiction}`;
-	return `${time} · ${slot.count} · Non-addiction`;
+		return `${time} · ${count} · Addiction: ${slot.addiction}${sourceLabel}`;
+	return `${time} · ${count} · Non-addiction${sourceLabel}`;
 }
 
 function slotLabel(slot: DaylineSlot, mode: DaylineViewMode): string | null {
-	if (slot.count <= 0) return null;
+	if (slotDisplayCount(slot, mode) <= 0) return null;
 	if (mode === "categories") return slot.category;
 	if (mode === "apps") return slot.appName ?? "Unknown";
 	return slot.addiction ? "Addiction" : "Non-addiction";
@@ -65,13 +77,14 @@ function computeSmartTimeMarkers(
 
 	for (let i = 0; i < slots.length; i++) {
 		const slot = slots[i];
-		if (slot.count <= 0) continue;
+		const count = slotDisplayCount(slot, mode);
+		if (count <= 0) continue;
 
 		const label = slotLabel(slot, mode);
 		if (hasSelection && (!label || !selectedLabels.has(label))) continue;
 
 		const hour = Math.floor(i / SLOTS_PER_HOUR);
-		hourCounts.set(hour, (hourCounts.get(hour) ?? 0) + slot.count);
+		hourCounts.set(hour, (hourCounts.get(hour) ?? 0) + count);
 
 		if (firstHour === null) firstHour = hour;
 		lastHour = hour;
@@ -233,7 +246,7 @@ export function Dayline({
 					{hours.map((h) => {
 						const idx = h * SLOTS_PER_HOUR + s;
 						const slot = slots[idx];
-						const level = slotLevel(slot.count);
+						const level = slotLevel(slotDisplayCount(slot, mode));
 						const bg = slotBg(slot, level, mode);
 						const title = slotTitle(slot, mode);
 						const isCurrent = currentSlotIdx === idx;
@@ -243,6 +256,12 @@ export function Dayline({
 							selectedLabels &&
 							label &&
 							!selectedLabels.has(label);
+						const sourceAccent =
+							slot.source === "iphone"
+								? "outline outline-1 -outline-offset-1 outline-sky-300/60"
+								: slot.source === "both"
+									? "outline outline-1 -outline-offset-1 outline-amber-300/70"
+									: "";
 						const style = bg
 							? { backgroundColor: bg, opacity: isDimmed ? 0.15 : 1 }
 							: undefined;
@@ -252,7 +271,7 @@ export function Dayline({
 								key={idx}
 								style={style}
 								title={title}
-								className={`${cellSize} rounded bg-muted/50 transition-opacity ${isCurrent ? "ring-1 ring-foreground/30" : ""}`}
+								className={`${cellSize} rounded bg-muted/50 transition-opacity ${sourceAccent} ${isCurrent ? "ring-1 ring-foreground/30" : ""}`}
 							/>
 						);
 					})}
@@ -280,7 +299,7 @@ export function DayWrappedLegend({
 		if (mode === "categories") {
 			const present = new Set<string>();
 			for (const slot of slots) {
-				if (slot.count > 0) present.add(slot.category);
+				if (slotDisplayCount(slot, mode) > 0) present.add(slot.category);
 			}
 			const items = [
 				{ label: "Study", color: rgba(CATEGORY_RGB.Study, alpha) },
@@ -295,7 +314,7 @@ export function DayWrappedLegend({
 		if (mode === "addiction") {
 			const present = new Set<string>();
 			for (const slot of slots) {
-				if (slot.count > 0)
+				if (slotDisplayCount(slot, mode) > 0)
 					present.add(slot.addiction ? "Addiction" : "Non-addiction");
 			}
 			const items = [
@@ -306,9 +325,10 @@ export function DayWrappedLegend({
 		}
 		const appCounts = new Map<string, number>();
 		for (const slot of slots) {
-			if (slot.count <= 0) continue;
+			const count = slotDisplayCount(slot, mode);
+			if (count <= 0) continue;
 			const name = slot.appName ?? "Unknown";
-			appCounts.set(name, (appCounts.get(name) ?? 0) + slot.count);
+			appCounts.set(name, (appCounts.get(name) ?? 0) + count);
 		}
 		return Array.from(appCounts.entries())
 			.sort((a, b) => b[1] - a[1])
@@ -324,6 +344,9 @@ export function DayWrappedLegend({
 
 	const intensity = [1, 2, 3, 4] as const;
 	const showIntensity = mode !== "apps";
+	const hasIphoneSource = slots.some(
+		(slot) => slot.source === "iphone" || slot.source === "both",
+	);
 
 	return (
 		<div className="mt-4 flex flex-wrap gap-x-4 gap-y-3 min-h-7">
@@ -368,6 +391,21 @@ export function DayWrappedLegend({
 						</button>
 					);
 				})}
+				{hasIphoneSource && (
+					<div className="flex items-center gap-3 pl-1">
+						<div className="font-mono text-[10px] tracking-[0.18em]">
+							SOURCE
+						</div>
+						<div className="flex items-center gap-1.5">
+							<span className="h-2.5 w-2.5 rounded-[3px] bg-muted/20 outline outline-1 -outline-offset-1 outline-sky-300/60" />
+							<span>iPhone</span>
+						</div>
+						<div className="flex items-center gap-1.5">
+							<span className="h-2.5 w-2.5 rounded-[3px] bg-muted/20 outline outline-1 -outline-offset-1 outline-amber-300/70" />
+							<span>Both</span>
+						</div>
+					</div>
+				)}
 			</div>
 		</div>
 	);

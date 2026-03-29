@@ -287,6 +287,7 @@ export interface EventFilters {
 	project?: string;
 	projectProgress?: boolean;
 	needsAddictionReview?: boolean;
+	trackedAddiction?: string;
 	appBundleId?: string;
 	urlHost?: string;
 	startDate?: number;
@@ -487,6 +488,63 @@ export interface SocialIdentity {
 	userId: string;
 	deviceId: string;
 	username: string;
+}
+
+export type DevicePlatform = "macos" | "ios";
+
+export type DevicePairingSessionStatus =
+	| "pending"
+	| "claimed"
+	| "approved"
+	| "expired";
+
+export interface DevicePairingSession {
+	id: string;
+	code: string;
+	pairingUrl: string;
+	status: DevicePairingSessionStatus;
+	createdAt: number;
+	expiresAt: number;
+	claimedDeviceName: string | null;
+	claimedAt: number | null;
+	approvedAt: number | null;
+}
+
+export interface PairedDevice {
+	deviceId: string;
+	deviceName: string | null;
+	platform: DevicePlatform;
+	addedAt: number;
+	lastSeenAt: number | null;
+	isCurrent: boolean;
+}
+
+export interface MobileActivityHourBucket {
+	hour: number;
+	durationSeconds: number;
+	category: AutomationCategory;
+	appName: string | null;
+}
+
+export interface MobileActivityDay {
+	deviceId: string;
+	deviceName: string | null;
+	platform: "ios";
+	dayStartMs: number;
+	buckets: MobileActivityHourBucket[];
+	syncedAt: number;
+}
+
+export interface GetMobileActivityDaysOptions {
+	startDate?: number;
+	endDate?: number;
+}
+
+export interface MobileActivitySyncStatus {
+	inFlight: boolean;
+	lastAttemptAt: number | null;
+	lastSuccessAt: number | null;
+	lastError: string | null;
 }
 
 export interface Friend {
@@ -782,6 +840,7 @@ declare global {
 					projectProgress?: boolean;
 					trackedAddiction?: string;
 					hasTrackedAddiction?: boolean;
+					needsAddictionReview?: boolean;
 					appBundleId?: string;
 					urlHost?: string;
 					startDate?: number;
@@ -789,6 +848,20 @@ declare global {
 					search?: string;
 					dismissed?: boolean;
 				}) => Promise<Event[]>;
+				getEventsCount: (options: {
+					category?: string;
+					project?: string;
+					projectProgress?: boolean;
+					trackedAddiction?: string;
+					hasTrackedAddiction?: boolean;
+					needsAddictionReview?: boolean;
+					appBundleId?: string;
+					urlHost?: string;
+					startDate?: number;
+					endDate?: number;
+					search?: string;
+					dismissed?: boolean;
+				}) => Promise<number>;
 				getUnifiedEvents: (options: {
 					limit?: number;
 					offset?: number;
@@ -797,6 +870,7 @@ declare global {
 					projectProgress?: boolean;
 					trackedAddiction?: string;
 					hasTrackedAddiction?: boolean;
+					needsAddictionReview?: boolean;
 					appBundleId?: string;
 					urlHost?: string;
 					startDate?: number;
@@ -934,6 +1008,24 @@ declare global {
 				rejectFriendRequest: (requestId: string) => Promise<void>;
 				syncAvatarSettings: (avatarSettings: AvatarSettings) => Promise<void>;
 			};
+			mobileActivity: {
+				listDays: (
+					options: GetMobileActivityDaysOptions,
+				) => Promise<MobileActivityDay[]>;
+				sync: (
+					options?: GetMobileActivityDaysOptions,
+				) => Promise<{ count: number }>;
+				getSyncStatus: () => Promise<MobileActivitySyncStatus>;
+			};
+			devicePairing: {
+				createSession: () => Promise<DevicePairingSession>;
+				getSession: (sessionId: string) => Promise<DevicePairingSession | null>;
+				approveSession: (
+					sessionId: string,
+				) => Promise<DevicePairingSession | null>;
+				listDevices: () => Promise<PairedDevice[]>;
+				revokeDevice: (deviceId: string) => Promise<void>;
+			};
 			chat: {
 				listThreads: () => Promise<ChatThread[]>;
 				openDmThread: (friendUserId: string) => Promise<string>;
@@ -1022,6 +1114,7 @@ declare global {
 					| "projects:normalized"
 					| "update:state"
 					| "popup:reset-to-personal"
+					| "popup:shown"
 					| "shortcut:capture-now"
 					| "shortcut:capture-project-progress-preview"
 					| "shortcut:capture-project-progress"

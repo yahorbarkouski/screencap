@@ -28,6 +28,7 @@ import {
 	getDistinctProjectsInRange,
 	getEventById,
 	getEvents,
+	getEventsCount,
 	getProjectStatsBatch,
 	rejectAddiction,
 	relabelEvents,
@@ -118,6 +119,14 @@ export function registerStorageHandlers(): void {
 				void ensureAppIcon(bundleId);
 			});
 			return result;
+		},
+	);
+
+	secureHandle(
+		IpcChannels.Storage.GetEventsCount,
+		ipcGetEventsArgs,
+		(options: GetEventsOptions) => {
+			return getEventsCount(options);
 		},
 	);
 

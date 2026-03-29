@@ -17,6 +17,7 @@ import type {
 	CrashSessionLogSummary,
 	CreateShareResult,
 	DayWrappedSnapshot,
+	DevicePairingSession,
 	EodEntry,
 	EodEntryInput,
 	Event,
@@ -25,6 +26,7 @@ import type {
 	Friend,
 	FriendRequest,
 	GetEventsOptions,
+	GetMobileActivityDaysOptions,
 	GetRemindersOptions,
 	GetTimelineFacetsOptions,
 	GitCommit,
@@ -32,7 +34,10 @@ import type {
 	LLMTestResult,
 	LogsCollectResult,
 	Memory,
+	MobileActivityDay,
+	MobileActivitySyncStatus,
 	OcrResult,
+	PairedDevice,
 	PeriodType,
 	PermissionStatus,
 	ProjectRepo,
@@ -115,6 +120,7 @@ export const IpcChannels = {
 	},
 	Storage: {
 		GetEvents: "storage:get-events",
+		GetEventsCount: "storage:get-events-count",
 		GetUnifiedEvents: "storage:get-unified-events",
 		GetEvent: "storage:get-event",
 		GetEventScreenshots: "storage:get-event-screenshots",
@@ -193,6 +199,18 @@ export const IpcChannels = {
 		RejectFriendRequest: "social:reject-friend-request",
 		SyncAvatarSettings: "social:sync-avatar-settings",
 	},
+	MobileActivity: {
+		ListDays: "mobile-activity:list-days",
+		Sync: "mobile-activity:sync",
+		GetSyncStatus: "mobile-activity:get-sync-status",
+	},
+	DevicePairing: {
+		CreateSession: "device-pairing:create-session",
+		GetSession: "device-pairing:get-session",
+		ApproveSession: "device-pairing:approve-session",
+		ListDevices: "device-pairing:list-devices",
+		RevokeDevice: "device-pairing:revoke-device",
+	},
 	Chat: {
 		ListThreads: "chat:list-threads",
 		OpenDmThread: "chat:open-dm-thread",
@@ -252,6 +270,7 @@ export const IpcEvents = {
 	ProjectsNormalized: "projects:normalized",
 	UpdateState: "update:state",
 	PopupResetToPersonal: "popup:reset-to-personal",
+	PopupShown: "popup:shown",
 	ShortcutCaptureNow: "shortcut:capture-now",
 	ShortcutCaptureProjectProgressPreview:
 		"shortcut:capture-project-progress-preview",
@@ -315,6 +334,7 @@ export interface IpcInvokeHandlers {
 	[IpcChannels.Scheduler.IsRunning]: () => boolean;
 
 	[IpcChannels.Storage.GetEvents]: (options: GetEventsOptions) => Event[];
+	[IpcChannels.Storage.GetEventsCount]: (options: GetEventsOptions) => number;
 	[IpcChannels.Storage.GetUnifiedEvents]: (
 		options: GetEventsOptions,
 	) => Event[];
@@ -446,6 +466,25 @@ export interface IpcInvokeHandlers {
 		avatarSettings: AvatarSettings,
 	) => Promise<void>;
 
+	[IpcChannels.MobileActivity.ListDays]: (
+		options: GetMobileActivityDaysOptions,
+	) => MobileActivityDay[];
+	[IpcChannels.MobileActivity.Sync]: (
+		options?: GetMobileActivityDaysOptions,
+	) => Promise<{ count: number }>;
+	[IpcChannels.MobileActivity.GetSyncStatus]: () => MobileActivitySyncStatus;
+
+	[IpcChannels.DevicePairing
+		.CreateSession]: () => Promise<DevicePairingSession>;
+	[IpcChannels.DevicePairing.GetSession]: (
+		sessionId: string,
+	) => Promise<DevicePairingSession | null>;
+	[IpcChannels.DevicePairing.ApproveSession]: (
+		sessionId: string,
+	) => Promise<DevicePairingSession | null>;
+	[IpcChannels.DevicePairing.ListDevices]: () => Promise<PairedDevice[]>;
+	[IpcChannels.DevicePairing.RevokeDevice]: (deviceId: string) => Promise<void>;
+
 	[IpcChannels.Chat.ListThreads]: () => Promise<ChatThread[]>;
 	[IpcChannels.Chat.OpenDmThread]: (friendUserId: string) => Promise<string>;
 	[IpcChannels.Chat.OpenProjectThread]: (roomId: string) => Promise<string>;
@@ -557,6 +596,7 @@ export interface IpcEventPayloads {
 	[IpcEvents.ProjectsNormalized]: { updatedRows: number; groups: number };
 	[IpcEvents.UpdateState]: UpdateState;
 	[IpcEvents.PopupResetToPersonal]: undefined;
+	[IpcEvents.PopupShown]: undefined;
 	[IpcEvents.ShortcutCaptureNow]: undefined;
 	[IpcEvents.ShortcutCaptureProjectProgressPreview]: ProjectProgressPreview;
 	[IpcEvents.ShortcutCaptureProjectProgress]: string | null;

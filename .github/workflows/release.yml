@@ -13,7 +13,10 @@ jobs:
   build-and-release:
     runs-on: macos-latest
     env:
-      HAS_SIGNING_CERT: ${{ secrets.APPLE_CERT_P12_BASE64 != '' }}
+      HAS_MAC_SIGNING_CERT: ${{ secrets.APPLE_CERT_P12_BASE64 != '' }}
+      HAS_IOS_SIGNING_CERT: ${{ secrets.IOS_DIST_CERT_P12_BASE64 != '' }}
+      HAS_IOS_PROFILES: ${{ secrets.IOS_APP_PROFILE_BASE64 != '' && secrets.IOS_WIDGET_PROFILE_BASE64 != '' && secrets.IOS_REPORT_PROFILE_BASE64 != '' }}
+      HAS_TESTFLIGHT_CREDS: ${{ secrets.APPSTORE_API_KEY_ID != '' && secrets.APPSTORE_ISSUER_ID != '' && secrets.APPSTORE_API_PRIVATE_KEY != '' && secrets.APPLE_TEAM_ID != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,16 +40,18 @@ jobs:
         run: npm run build
 
       - name: Import Code Signing Certificates
-        if: env.HAS_SIGNING_CERT == 'true'
+        if: env.HAS_MAC_SIGNING_CERT == 'true'
         uses: apple-actions/import-codesign-certs@v3
         with:
           p12-file-base64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
           p12-password: ${{ secrets.APPLE_CERT_P12_PASSWORD }}
+          keychain: signing_mac_temp
+          keychain-password: ${{ github.run_id }}-mac-signing
 
       - name: Package Electron app (dry run)
         run: npx electron-builder --config electron-builder.yml --publish never
         env:
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ env.HAS_SIGNING_CERT }}
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ env.HAS_MAC_SIGNING_CERT }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
@@ -78,7 +83,113 @@ jobs:
         run: npx electron-builder --config electron-builder.yml --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ env.HAS_SIGNING_CERT }}
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ env.HAS_MAC_SIGNING_CERT }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Import iOS Distribution Certificate
+        if: steps.semantic.outputs.new_release_published == 'true' && env.HAS_IOS_SIGNING_CERT == 'true' && env.HAS_IOS_PROFILES == 'true'
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
+          p12-password: ${{ secrets.IOS_DIST_CERT_P12_PASSWORD }}
+          keychain: signing_ios_temp
+          keychain-password: ${{ github.run_id }}-ios-signing
+
+      - name: Install iOS Provisioning Profiles
+        if: steps.semantic.outputs.new_release_published == 'true' && env.HAS_IOS_SIGNING_CERT == 'true' && env.HAS_IOS_PROFILES == 'true'
+        id: provisioning_profiles
+        run: |
+          profiles_dir="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$profiles_dir"
+
+          install_profile() {
+            local base64_content="$1"
+            local label="$2"
+            local raw_path="$RUNNER_TEMP/$label.mobileprovision"
+            local plist_path="$RUNNER_TEMP/$label.plist"
+            local profile_name
+            local uuid
+
+            printf '%s' "$base64_content" | openssl base64 -d -A -out "$raw_path"
+            security cms -D -i "$raw_path" > "$plist_path"
+
+            profile_name="$(/usr/libexec/PlistBuddy -c 'Print :Name' "$plist_path")"
+            uuid="$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$plist_path")"
+
+            cp "$raw_path" "$profiles_dir/$uuid.mobileprovision"
+            echo "${label}_name=$profile_name" >> "$GITHUB_OUTPUT"
+          }
+
+          install_profile "${{ secrets.IOS_APP_PROFILE_BASE64 }}" "app_profile"
+          install_profile "${{ secrets.IOS_WIDGET_PROFILE_BASE64 }}" "widget_profile"
+          install_profile "${{ secrets.IOS_REPORT_PROFILE_BASE64 }}" "report_profile"
+
+      - name: Build iOS IPA for TestFlight
+        if: steps.semantic.outputs.new_release_published == 'true' && env.HAS_IOS_SIGNING_CERT == 'true' && env.HAS_IOS_PROFILES == 'true'
+        id: build_ios
+        run: ./scripts/build-ios-testflight.sh
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          IOS_APP_PROFILE_NAME: ${{ steps.provisioning_profiles.outputs.app_profile_name }}
+          IOS_WIDGET_PROFILE_NAME: ${{ steps.provisioning_profiles.outputs.widget_profile_name }}
+          IOS_REPORT_PROFILE_NAME: ${{ steps.provisioning_profiles.outputs.report_profile_name }}
+          IOS_MARKETING_VERSION: ${{ steps.semantic.outputs.new_release_version }}
+          IOS_BUILD_NUMBER: ${{ github.run_number }}
+          IOS_TESTFLIGHT_INTERNAL_ONLY: true
+
+      - name: Upload iOS IPA artifact
+        if: steps.build_ios.outputs.ipa_path != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: screencap-ios-ipa
+          path: |
+            ${{ steps.build_ios.outputs.ipa_path }}
+            ${{ steps.build_ios.outputs.export_options_path }}
+
+      - name: Write App Store Connect API key for iOS upload
+        if: steps.build_ios.outputs.ipa_path != '' && env.HAS_TESTFLIGHT_CREDS == 'true'
+        id: appstore_api_key
+        run: |
+          key_dir="$HOME/.appstoreconnect/private_keys"
+          key_path="$key_dir/AuthKey_${{ secrets.APPSTORE_API_KEY_ID }}.p8"
+          mkdir -p "$key_dir"
+          printf '%s' "${{ secrets.APPSTORE_API_PRIVATE_KEY }}" > "$key_path"
+          chmod 600 "$key_path"
+          echo "dir=$key_dir" >> "$GITHUB_OUTPUT"
+
+      - name: Upload iOS build to TestFlight
+        if: steps.build_ios.outputs.ipa_path != '' && env.HAS_TESTFLIGHT_CREDS == 'true'
+        run: |
+          find_altool() {
+            local candidate
+            for candidate in \
+              "${DEVELOPER_DIR:-}" \
+              /Applications/Xcode_*.app/Contents/Developer \
+              /Applications/Xcode.app/Contents/Developer \
+              "$(xcode-select -p)"; do
+              if [[ -n "$candidate" && -x "$candidate/usr/bin/altool" ]]; then
+                echo "$candidate/usr/bin/altool"
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          altool_path="$(find_altool)"
+          if [[ -z "$altool_path" ]]; then
+            echo "Unable to locate Xcode altool on the runner." >&2
+            exit 1
+          fi
+
+          "$altool_path" \
+            --upload-app \
+            --file "${{ steps.build_ios.outputs.ipa_path }}" \
+            --type ios \
+            --apiKey "${{ secrets.APPSTORE_API_KEY_ID }}" \
+            --apiIssuer "${{ secrets.APPSTORE_ISSUER_ID }}" \
+            --output-format json \
+            --show-progress
+        env:
+          API_PRIVATE_KEYS_DIR: ${{ steps.appstore_api_key.outputs.dir }}

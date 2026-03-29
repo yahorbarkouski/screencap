@@ -112,6 +112,7 @@ function scheduleResetViewToPersonal(): void {
 function showPopup(): void {
 	if (!popupWindow || popupWindow.isDestroyed()) return;
 	ignoreBlurUntil = Date.now() + 350;
+	popupWindow.webContents.send(IpcEvents.PopupShown);
 	applyPopupOverlay(popupWindow);
 	movePopupToActiveSpace(popupWindow);
 	popupWindow.showInactive();

@@ -173,7 +173,7 @@ function buildGroups(): Map<string, CanonicalGroup> {
 let cache: { at: number; canon: Map<string, string> } | null = null;
 
 function getCanonicalIndex(): Map<string, string> {
-	if (cache && Date.now() - cache.at < 15_000) return cache.canon;
+	if (cache && Date.now() - cache.at < 300_000) return cache.canon;
 
 	const groups = buildGroups();
 	const canon = new Map<string, string>();

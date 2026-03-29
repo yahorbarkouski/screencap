@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface ProjectStats {
 	eventCount: number;
@@ -6,26 +6,13 @@ export interface ProjectStats {
 	coverCandidates: string[];
 }
 
-function highResPathFromLowResPath(
-	path: string | null | undefined,
-): string | null {
-	if (!path) return null;
-	if (!path.endsWith(".webp")) return null;
-	return path.replace(/\.webp$/, ".hq.png");
-}
-
 function toCandidates(item: {
 	coverThumbnailPath: string | null;
 	coverOriginalPath: string | null;
-	coverProjectProgress: number;
 }): string[] {
-	const candidates = [
-		item.coverProjectProgress === 1
-			? highResPathFromLowResPath(item.coverOriginalPath)
-			: null,
-		item.coverOriginalPath,
-		item.coverThumbnailPath,
-	].filter((v): v is string => typeof v === "string" && v.length > 0);
+	const candidates = [item.coverOriginalPath, item.coverThumbnailPath].filter(
+		(v): v is string => typeof v === "string" && v.length > 0,
+	);
 	return [...new Set(candidates)];
 }
 
@@ -70,19 +57,36 @@ export function useProjectStats(projectNames: string[]) {
 		fetchStats();
 	}, [fetchStats]);
 
+	const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+	const debouncedFetchStats = useCallback(() => {
+		if (debounceRef.current) clearTimeout(debounceRef.current);
+		debounceRef.current = setTimeout(fetchStats, 5_000);
+	}, [fetchStats]);
+
 	useEffect(() => {
 		if (!window.api) return;
 
-		const unsubscribeCreated = window.api.on("event:created", fetchStats);
-		const unsubscribeUpdated = window.api.on("event:updated", fetchStats);
-		const unsubscribeChanged = window.api.on("events:changed", fetchStats);
+		const unsubscribeCreated = window.api.on(
+			"event:created",
+			debouncedFetchStats,
+		);
+		const unsubscribeUpdated = window.api.on(
+			"event:updated",
+			debouncedFetchStats,
+		);
+		const unsubscribeChanged = window.api.on(
+			"events:changed",
+			debouncedFetchStats,
+		);
 
 		return () => {
+			if (debounceRef.current) clearTimeout(debounceRef.current);
 			unsubscribeCreated();
 			unsubscribeUpdated();
 			unsubscribeChanged();
 		};
-	}, [fetchStats]);
+	}, [debouncedFetchStats]);
 
 	return { stats, isLoading, refetch: fetchStats };
 }

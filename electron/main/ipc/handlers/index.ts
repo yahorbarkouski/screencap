@@ -1,9 +1,11 @@
 export { registerAppHandlers } from "./app";
 export { registerCaptureHandlers } from "./capture";
 export { registerChatHandlers } from "./chat";
+export { registerDevicePairingHandlers } from "./devicePairing";
 export { registerEodHandlers } from "./eod";
 export { registerLLMHandlers } from "./llm";
 export { registerLogsHandlers } from "./logs";
+export { registerMobileActivityHandlers } from "./mobileActivity";
 export { registerOcrHandlers } from "./ocr";
 export { registerPermissionHandlers } from "./permissions";
 export { registerPopupHandlers } from "./popup";

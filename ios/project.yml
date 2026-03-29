@@ -1,0 +1,139 @@
+name: ScreencapMobile
+options:
+  minimumXcodeGenVersion: 2.45.2
+settings:
+  base:
+    SWIFT_VERSION: 5.10
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+    TARGETED_DEVICE_FAMILY: "1"
+    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "1.0"
+    CODE_SIGN_STYLE: Automatic
+    GENERATE_INFOPLIST_FILE: NO
+  configs:
+    Debug:
+      CODE_SIGN_STYLE: Automatic
+      CODE_SIGN_IDENTITY: Apple Development
+    Release:
+      CODE_SIGN_STYLE: Manual
+targets:
+  ScreencapMobile:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Shared
+      - path: ScreencapMobile/Sources
+      - path: ScreencapMobile/Resources/Assets.xcassets
+        buildPhase: resources
+      - path: ScreencapMobile/Resources/LaunchScreen.storyboard
+        buildPhase: resources
+    info:
+      path: ScreencapMobile/Info.plist
+      properties:
+        CFBundleDisplayName: Screencap
+        CFBundleIconName: AppIcon
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        BGTaskSchedulerPermittedIdentifiers:
+          - app.screencap.mobile.refresh
+        LSRequiresIPhoneOS: true
+        NSCameraUsageDescription: Screencap uses the camera to scan the pairing QR code from your Mac when you connect your iPhone companion app.
+        NSLocalNetworkUsageDescription: Screencap connects to your paired Mac over the local network to refresh Day Wrapped data for the iPhone app and widget.
+        UIBackgroundModes:
+          - fetch
+        UILaunchStoryboardName: LaunchScreen
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.screencap.mobile
+        PRODUCT_NAME: Screencap
+        CODE_SIGN_ENTITLEMENTS: ScreencapMobile/ScreencapMobile.entitlements
+        INFOPLIST_KEY_CFBundleDisplayName: Screencap
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1"
+      configs:
+        Debug:
+          CODE_SIGN_IDENTITY: Apple Development
+        Release:
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: Apple Distribution
+          PROVISIONING_PROFILE_SPECIFIER: $(IOS_APP_PROFILE_SPECIFIER)
+    dependencies:
+      - sdk: AVFoundation.framework
+      - sdk: BackgroundTasks.framework
+      - sdk: FamilyControls.framework
+      - sdk: DeviceActivity.framework
+      - sdk: ManagedSettings.framework
+      - sdk: WidgetKit.framework
+      - target: ScreencapMobileWidgetExtension
+        embed: true
+      - target: ScreencapMobileReportExtension
+        embed: true
+
+  ScreencapMobileWidgetExtension:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Shared
+      - path: ScreencapMobileWidget/Sources
+    info:
+      path: ScreencapMobileWidget/Info.plist
+      properties:
+        CFBundleDisplayName: Screencap
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.screencap.mobile.widget
+        PRODUCT_NAME: ScreencapWidget
+        CODE_SIGN_ENTITLEMENTS: ScreencapMobileWidget/ScreencapMobileWidget.entitlements
+        SKIP_INSTALL: YES
+        TARGETED_DEVICE_FAMILY: "1"
+      configs:
+        Debug:
+          CODE_SIGN_IDENTITY: Apple Development
+        Release:
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: Apple Distribution
+          PROVISIONING_PROFILE_SPECIFIER: $(IOS_WIDGET_PROFILE_SPECIFIER)
+    dependencies:
+      - sdk: AppIntents.framework
+      - sdk: WidgetKit.framework
+
+  ScreencapMobileReportExtension:
+    type: extensionkit-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Shared
+      - path: ScreencapMobileReport/Sources
+    info:
+      path: ScreencapMobileReport/Info.plist
+      properties:
+        CFBundleDisplayName: Screencap
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        EXAppExtensionAttributes:
+          EXExtensionPointIdentifier: com.apple.deviceactivityui.report-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.screencap.mobile.report
+        PRODUCT_NAME: ScreencapReport
+        CODE_SIGN_ENTITLEMENTS: ScreencapMobileReport/ScreencapMobileReport.entitlements
+        SKIP_INSTALL: YES
+        TARGETED_DEVICE_FAMILY: "1"
+      configs:
+        Debug:
+          CODE_SIGN_IDENTITY: Apple Development
+        Release:
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: Apple Distribution
+          PROVISIONING_PROFILE_SPECIFIER: $(IOS_REPORT_PROFILE_SPECIFIER)
+    dependencies:
+      - sdk: DeviceActivity.framework
+      - sdk: ManagedSettings.framework

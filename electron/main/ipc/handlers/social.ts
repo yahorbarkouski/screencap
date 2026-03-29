@@ -6,6 +6,7 @@ import type {
 	FriendRequest,
 	SocialIdentity,
 } from "../../../shared/types";
+import { startMobileActivitySync } from "../../features/mobileActivity";
 import {
 	acceptFriendRequest,
 	listFriendRequests,
@@ -58,6 +59,7 @@ export function registerSocialHandlers(): void {
 		usernameArg,
 		async (username: string): Promise<SocialIdentity> => {
 			const identity = await registerUsername(username);
+			startMobileActivitySync();
 			return {
 				userId: identity.userId,
 				deviceId: identity.deviceId,

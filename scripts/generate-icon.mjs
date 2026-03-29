@@ -3,9 +3,20 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createCanvas } from "canvas";
+import sharp from "sharp";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const buildDir = path.join(__dirname, "..", "build");
+const iosAppIconSetDir = path.join(
+	__dirname,
+	"..",
+	"ios",
+	"ScreencapMobile",
+	"Resources",
+	"Assets.xcassets",
+	"AppIcon.appiconset",
+);
+const IOS_ICON_BACKGROUND = "#0a0a0a";
 
 const S_PATTERN = [
 	"    ######    ",
@@ -237,6 +248,20 @@ function generateIcon(size) {
 	return generateLargeIcon(size);
 }
 
+async function writePng(filePath, canvas, { opaqueBackground = null } = {}) {
+	const buffer = canvas.toBuffer("image/png");
+
+	if (opaqueBackground) {
+		await sharp(buffer)
+			.flatten({ background: opaqueBackground })
+			.png()
+			.toFile(filePath);
+		return;
+	}
+
+	fs.writeFileSync(filePath, buffer);
+}
+
 async function createIcns() {
 	const iconsetDir = path.join(buildDir, "icon.iconset");
 	fs.mkdirSync(iconsetDir, { recursive: true });
@@ -271,6 +296,30 @@ async function createIco() {
 	const icoBuffer = await pngToIco.default([pngBuffer]);
 	fs.writeFileSync(path.join(buildDir, "icon.ico"), icoBuffer);
 	console.log("Generated icon.ico");
+}
+
+async function createIOSAppIconSet() {
+	fs.mkdirSync(iosAppIconSetDir, { recursive: true });
+
+	const mapping = [
+		["icon-20@2x.png", 40],
+		["icon-20@3x.png", 60],
+		["icon-29@2x.png", 58],
+		["icon-29@3x.png", 87],
+		["icon-40@2x.png", 80],
+		["icon-40@3x.png", 120],
+		["icon-60@2x.png", 120],
+		["icon-60@3x.png", 180],
+		["icon-1024.png", 1024],
+	];
+
+	for (const [filename, size] of mapping) {
+		await writePng(path.join(iosAppIconSetDir, filename), generateIcon(size), {
+			opaqueBackground: IOS_ICON_BACKGROUND,
+		});
+	}
+
+	console.log("Generated iOS AppIcon asset set");
 }
 
 function generateTrayIcon(size) {
@@ -329,15 +378,11 @@ async function main() {
 
 	for (const size of sizes) {
 		const canvas = generateIcon(size);
-		const buffer = canvas.toBuffer("image/png");
-		fs.writeFileSync(path.join(buildDir, `icon-${size}.png`), buffer);
+		await writePng(path.join(buildDir, `icon-${size}.png`), canvas);
 		console.log(`Generated icon-${size}.png`);
 	}
 
-	fs.writeFileSync(
-		path.join(buildDir, "icon.png"),
-		generateIcon(1024).toBuffer("image/png"),
-	);
+	await writePng(path.join(buildDir, "icon.png"), generateIcon(1024));
 	console.log("Generated icon.png");
 
 	const tray16 = generateTrayIcon(16).toBuffer("image/png");
@@ -355,6 +400,7 @@ async function main() {
 	}
 
 	await createIco();
+	await createIOSAppIconSet();
 
 	console.log("\n✓ All icons generated successfully");
 }

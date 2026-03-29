@@ -288,7 +288,9 @@ export function startScheduler(intervalMinutes?: number): void {
 	});
 
 	captureInterval = setInterval(() => {
-		tick();
+		void tick().catch((error) => {
+			logger.error("Scheduler tick failed", error);
+		});
 	}, intervalMs);
 }
 

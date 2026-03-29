@@ -4,9 +4,11 @@ import {
 	registerAppHandlers,
 	registerCaptureHandlers,
 	registerChatHandlers,
+	registerDevicePairingHandlers,
 	registerEodHandlers,
 	registerLLMHandlers,
 	registerLogsHandlers,
+	registerMobileActivityHandlers,
 	registerOcrHandlers,
 	registerPermissionHandlers,
 	registerPopupHandlers,
@@ -57,6 +59,8 @@ export function registerAllHandlers(
 	registerPublishingHandlers();
 	registerSocialHandlers();
 	registerSocialFeedHandlers();
+	registerMobileActivityHandlers();
+	registerDevicePairingHandlers();
 	registerChatHandlers();
 	registerRoomsHandlers();
 	registerSharedProjectsHandlers();

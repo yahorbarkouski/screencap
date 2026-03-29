@@ -1,3 +1,102 @@
+# [1.29.0](https://github.com/yahorbarkouski/screencap/compare/v1.28.1...v1.29.0) (2026-03-29)
+
+
+### Features
+
+* polish iphone day wrapped surfaces ([fea9547](https://github.com/yahorbarkouski/screencap/commit/fea954771a653118752d41bfd7d5f1d72acd885d))
+
+## [1.28.1](https://github.com/yahorbarkouski/screencap/compare/v1.28.0...v1.28.1) (2026-03-28)
+
+
+### Bug Fixes
+
+* add iphone resync repair diagnostics ([1f99800](https://github.com/yahorbarkouski/screencap/commit/1f998009e109fab5c7f91538e4b1d8f121391a89))
+* restore iphone mac sync and screentime host ([3178809](https://github.com/yahorbarkouski/screencap/commit/31788090b51f704e6f620521b0dd4e46847cc0a1))
+
+# [1.28.0](https://github.com/yahorbarkouski/screencap/compare/v1.27.0...v1.28.0) (2026-03-28)
+
+
+### Features
+
+* improve iphone widget sync and diagnostics ([f31e0a0](https://github.com/yahorbarkouski/screencap/commit/f31e0a07297d26384cc4cd6b046fc36f4bc7bbab))
+
+# [1.27.0](https://github.com/yahorbarkouski/screencap/compare/v1.26.0...v1.27.0) (2026-03-28)
+
+
+### Features
+
+* refresh ios provisioning profiles ([837b508](https://github.com/yahorbarkouski/screencap/commit/837b5080f773a07863a811477c00cb4ad7d5b603))
+
+# [1.26.0](https://github.com/yahorbarkouski/screencap/compare/v1.25.0...v1.26.0) (2026-03-28)
+
+
+### Features
+
+* add ios privacy and family controls entitlements ([9f35b22](https://github.com/yahorbarkouski/screencap/commit/9f35b22ab0c2f51080543a13a4ab5e5235bdb0fd))
+
+# [1.25.0](https://github.com/yahorbarkouski/screencap/compare/v1.24.0...v1.25.0) (2026-03-28)
+
+
+### Features
+
+* remove alpha from ios app icons ([1283e31](https://github.com/yahorbarkouski/screencap/commit/1283e311599521c6e050cdc5b2c4a5c39097a59c))
+
+# [1.24.0](https://github.com/yahorbarkouski/screencap/compare/v1.23.0...v1.24.0) (2026-03-28)
+
+
+### Features
+
+* fix ios app icon asset packaging ([4824e7a](https://github.com/yahorbarkouski/screencap/commit/4824e7aed2ce54c013579c100695b2d6c449de46))
+
+# [1.23.0](https://github.com/yahorbarkouski/screencap/compare/v1.22.0...v1.23.0) (2026-03-28)
+
+
+### Features
+
+* fix ios app store bundle metadata ([1fd4ad7](https://github.com/yahorbarkouski/screencap/commit/1fd4ad714a39684300d8e9d2c2fb60e025fe3a5a))
+
+# [1.22.0](https://github.com/yahorbarkouski/screencap/compare/v1.21.0...v1.22.0) (2026-03-28)
+
+
+### Features
+
+* switch ios upload to altool ([1872373](https://github.com/yahorbarkouski/screencap/commit/1872373b0a14525d3020ae15aeaa746840caa8c2))
+
+# [1.21.0](https://github.com/yahorbarkouski/screencap/compare/v1.20.1...v1.21.0) (2026-03-28)
+
+
+### Features
+
+* fix ios testflight signing pipeline ([6972002](https://github.com/yahorbarkouski/screencap/commit/6972002d90cd1e5c11a2ee21d1c4c6436ebeae87))
+
+## [1.20.1](https://github.com/yahorbarkouski/screencap/compare/v1.20.0...v1.20.1) (2026-03-12)
+
+
+### Bug Fixes
+
+* ci ([0567521](https://github.com/yahorbarkouski/screencap/commit/0567521666cd3b84af34aeed887d0afc9479518a))
+
+# [1.20.0](https://github.com/yahorbarkouski/screencap/compare/v1.19.0...v1.20.0) (2026-03-12)
+
+
+### Features
+
+* trigger ios build ([0091d56](https://github.com/yahorbarkouski/screencap/commit/0091d56558c99c343199ab57e4fa7c12b6e53973))
+
+# [1.19.0](https://github.com/yahorbarkouski/screencap/compare/v1.18.1...v1.19.0) (2026-03-10)
+
+
+### Features
+
+* add iOS TestFlight release pipeline ([6af4509](https://github.com/yahorbarkouski/screencap/commit/6af450975376cfe02db810e53538d9ad0f439bfb))
+
+## [1.18.1](https://github.com/yahorbarkouski/screencap/compare/v1.18.0...v1.18.1) (2026-02-06)
+
+
+### Bug Fixes
+
+* projects page freezing and popup day reset ([26596a2](https://github.com/yahorbarkouski/screencap/commit/26596a2ca2a32a1e5569b01094ce5f033394d047))
+
 # [1.18.0](https://github.com/yahorbarkouski/screencap/compare/v1.17.1...v1.18.0) (2026-01-24)
 
 

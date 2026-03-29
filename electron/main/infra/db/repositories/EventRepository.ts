@@ -226,6 +226,84 @@ export function getEvents(options: GetEventsOptions): Event[] {
 	return transformRows<Event>(rows);
 }
 
+export function getEventsCount(options: GetEventsOptions): number {
+	if (!isDbOpen()) return 0;
+
+	const db = getDatabase();
+	const conditions: string[] = ["1=1"];
+	const params: unknown[] = [];
+
+	if (options.category) {
+		conditions.push("category = ?");
+		params.push(options.category);
+	}
+
+	if (options.project) {
+		conditions.push("project = ?");
+		params.push(options.project);
+	}
+
+	if (options.projectProgress !== undefined) {
+		conditions.push("project_progress = ?");
+		params.push(options.projectProgress ? 1 : 0);
+	}
+
+	if (options.trackedAddiction) {
+		conditions.push("tracked_addiction = ?");
+		params.push(options.trackedAddiction);
+	}
+
+	if (options.hasTrackedAddiction !== undefined) {
+		conditions.push(
+			options.hasTrackedAddiction
+				? "tracked_addiction IS NOT NULL"
+				: "tracked_addiction IS NULL",
+		);
+	}
+
+	if (options.needsAddictionReview) {
+		conditions.push(
+			"addiction_candidate IS NOT NULL AND tracked_addiction IS NULL",
+		);
+	}
+
+	if (options.appBundleId) {
+		conditions.push("app_bundle_id = ?");
+		params.push(options.appBundleId);
+	}
+
+	if (options.urlHost) {
+		conditions.push("url_host = ?");
+		params.push(options.urlHost);
+	}
+
+	if (options.startDate) {
+		conditions.push("timestamp >= ?");
+		params.push(options.startDate);
+	}
+
+	if (options.endDate) {
+		conditions.push("timestamp <= ?");
+		params.push(options.endDate);
+	}
+
+	if (options.search) {
+		conditions.push("(caption LIKE ? OR tags LIKE ?)");
+		params.push(`%${options.search}%`, `%${options.search}%`);
+	}
+
+	if (options.dismissed === undefined) {
+		conditions.push("dismissed = 0");
+	} else {
+		conditions.push("dismissed = ?");
+		params.push(options.dismissed ? 1 : 0);
+	}
+
+	const query = `SELECT COUNT(*) as count FROM events WHERE ${conditions.join(" AND ")}`;
+	const row = db.prepare(query).get(...params) as { count: number };
+	return row.count;
+}
+
 export function listExpiredEventIds(
 	cutoffTimestamp: number,
 	limit: number,
@@ -860,24 +938,23 @@ export function getProjectStatsBatch(
 		last_event_at: number | null;
 	}>;
 
-	const progressCoverRows = db
+	const coverRows = db
 		.prepare(
 			`
-		SELECT
-			e.project AS name,
-			e.original_path,
-			e.thumbnail_path,
-			e.project_progress
-		FROM events e
-		WHERE e.id IN (
-			SELECT id FROM (
-				SELECT id, project,
-					ROW_NUMBER() OVER (PARTITION BY project ORDER BY timestamp DESC) AS rn
-				FROM events
-				WHERE project IN (${placeholders}) AND dismissed = 0 AND project_progress = 1
-			)
-			WHERE rn = 1
+		SELECT name, original_path, thumbnail_path, project_progress FROM (
+			SELECT
+				e.project AS name,
+				e.original_path,
+				e.thumbnail_path,
+				e.project_progress,
+				ROW_NUMBER() OVER (
+					PARTITION BY e.project
+					ORDER BY e.project_progress DESC, e.timestamp DESC
+				) AS rn
+			FROM events e
+			WHERE e.project IN (${placeholders}) AND e.dismissed = 0
 		)
+		WHERE rn = 1
 	`,
 		)
 		.all(...uniqueCanonical) as Array<{
@@ -887,41 +964,13 @@ export function getProjectStatsBatch(
 		project_progress: number;
 	}>;
 
-	const fallbackCoverRows = db
-		.prepare(
-			`
-		SELECT
-			e.project AS name,
-			e.original_path,
-			e.thumbnail_path,
-			e.project_progress
-		FROM events e
-		WHERE e.id IN (
-			SELECT id FROM (
-				SELECT id, project,
-					ROW_NUMBER() OVER (PARTITION BY project ORDER BY timestamp DESC) AS rn
-				FROM events
-				WHERE project IN (${placeholders}) AND dismissed = 0
-			)
-			WHERE rn = 1
-		)
-	`,
-		)
-		.all(...uniqueCanonical) as Array<{
-		name: string;
-		original_path: string | null;
-		thumbnail_path: string | null;
-		project_progress: number;
-	}>;
-
-	const progressMap = new Map(progressCoverRows.map((r) => [r.name, r]));
-	const fallbackMap = new Map(fallbackCoverRows.map((r) => [r.name, r]));
+	const coverMap = new Map(coverRows.map((r) => [r.name, r]));
 
 	const result: Record<string, ProjectStatsRow> = {};
 	for (const name of names) {
 		const canonical = canonicalizeProject(name) ?? name;
 		const stats = countRows.find((r) => r.name === canonical);
-		const cover = progressMap.get(canonical) ?? fallbackMap.get(canonical);
+		const cover = coverMap.get(canonical);
 		result[name] = {
 			name,
 			eventCount: stats?.event_count ?? 0,

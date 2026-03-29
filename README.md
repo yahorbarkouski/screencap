@@ -15,9 +15,24 @@ Screencap answers the questions like:
 The idea behind this opensource is to inspire as many forks as possible. The project (both app and [social backend](https://github.com/yahorbarkouski/screencap-website)) are fully free to use, enrouranging everyone to customise and build their own Screencaps.
 Project started as a background project tracker, as we all tend to have zero-to-little screenshots from projects we worked on for months. Then addiction tracker came it, the Spotify background played, End Of Day flow, activity popup, and social E2E network in tray (I couldn't help myself)
 
-[Download](https://github.com/yahorbarkouski/screencap/releases) · [Changelog](CHANGELOG.md) · [Security](docs/security.md) · [E2EE & Sharing](docs/security-sharing.md) · [Local LLM](docs/local-llm.md)
+[Download](https://github.com/yahorbarkouski/screencap/releases) · [Homebrew Tap](https://github.com/yahorbarkouski/homebrew-tap) · [Changelog](CHANGELOG.md) · [Security](docs/security.md) · [E2EE & Sharing](docs/security-sharing.md) · [Local LLM](docs/local-llm.md)
 
 ---
+
+## Install
+
+### Homebrew
+
+```bash
+brew install --cask yahorbarkouski/tap/screencap
+```
+
+Or, if you prefer to add the tap first:
+
+```bash
+brew tap yahorbarkouski/tap
+brew install --cask screencap
+```
 
 ## Features Summary
 

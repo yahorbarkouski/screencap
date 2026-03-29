@@ -1,6 +1,6 @@
 {
 	"name": "screencap",
-	"version": "1.18.0",
+	"version": "1.29.0",
 	"description": "Screen Activity Tracker with LLM Classification",
 	"license": "MIT",
 	"author": "",
@@ -54,6 +54,7 @@
 		"form-data": "^4.0.5",
 		"framer-motion": "^12.23.26",
 		"lucide-react": "^0.468.0",
+		"qrcode": "^1.5.4",
 		"react": "^18.3.1",
 		"react-day-picker": "^9.13.0",
 		"react-dom": "^18.3.1",
@@ -70,6 +71,7 @@
 		"@electron-toolkit/tsconfig": "^1.0.1",
 		"@types/better-sqlite3": "^7.6.12",
 		"@types/node": "^22.10.5",
+		"@types/qrcode": "^1.5.6",
 		"@types/react": "^18.3.14",
 		"@types/react-dom": "^18.3.5",
 		"@types/uuid": "^10.0.0",

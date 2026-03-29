@@ -195,6 +195,7 @@ export function runMigrations(db: Database.Database): void {
 
 	migrateQueue(db);
 	migrateRoomTables(db);
+	migrateMobileActivityTables(db);
 	migrateRemindersTable(db);
 
 	logger.info("Migrations complete");
@@ -320,5 +321,46 @@ function migrateRemindersTable(db: Database.Database): void {
 		db.exec("CREATE INDEX idx_reminders_status ON reminders(status)");
 		db.exec("CREATE INDEX idx_reminders_created_at ON reminders(created_at)");
 		logger.info("Created reminders table");
+	}
+}
+
+function migrateMobileActivityTables(db: Database.Database): void {
+	if (!tableExists(db, "mobile_activity_days_cache")) {
+		db.exec(`
+			CREATE TABLE mobile_activity_days_cache (
+				device_id TEXT NOT NULL,
+				device_name TEXT,
+				platform TEXT NOT NULL,
+				day_start_ms INTEGER NOT NULL,
+				buckets_json TEXT NOT NULL,
+				synced_at INTEGER NOT NULL,
+				PRIMARY KEY(device_id, day_start_ms)
+			)
+		`);
+		db.exec(
+			"CREATE INDEX idx_mobile_activity_days_day_start ON mobile_activity_days_cache(day_start_ms)",
+		);
+		db.exec(
+			"CREATE INDEX idx_mobile_activity_days_synced_at ON mobile_activity_days_cache(synced_at)",
+		);
+		logger.info("Created mobile_activity_days_cache table");
+	}
+
+	if (!tableExists(db, "mobile_paired_devices")) {
+		db.exec(`
+			CREATE TABLE mobile_paired_devices (
+				device_id TEXT PRIMARY KEY,
+				device_name TEXT,
+				platform TEXT NOT NULL,
+				sign_pub_key_spki_der_b64 TEXT NOT NULL,
+				dh_pub_key_spki_der_b64 TEXT NOT NULL,
+				added_at INTEGER NOT NULL,
+				last_seen_at INTEGER
+			)
+		`);
+		db.exec(
+			"CREATE INDEX idx_mobile_paired_devices_added_at ON mobile_paired_devices(added_at)",
+		);
+		logger.info("Created mobile_paired_devices table");
 	}
 }

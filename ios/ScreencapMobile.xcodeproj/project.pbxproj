@@ -1,0 +1,732 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		01E45FD3CB2281323F9EAF6C /* AppGroupStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC1E2088EE3B70E0204B026D /* AppGroupStore.swift */; };
+		13155B77058FE18D0CFFD6CB /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5CBE302D1F4817024B4655 /* RootView.swift */; };
+		1350F4A101A895A1CDEE24FB /* DayWrappedCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E0F683E8F04DB4ACEE943FD /* DayWrappedCardView.swift */; };
+		13DAB3C7BBAA31E61DFDEDE4 /* ReportRefreshHostView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D670EA27E2B21E653C9A57C7 /* ReportRefreshHostView.swift */; };
+		1642AD847744F318F57DF790 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04B5EBDF6564DB0F09F23455 /* Models.swift */; };
+		1C122B4672E9098B0E77B849 /* ScreencapMobileApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6918396295BC3921D78380C8 /* ScreencapMobileApp.swift */; };
+		1FE88B2A5E6299D9A97DC7DF /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ED525661F805FBAEE72FD9B /* AppModel.swift */; };
+		2563115565621BBE2051EEB5 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 76D0B3277101A9FB5520B194 /* ManagedSettings.framework */; };
+		30A1AEB083029FD59D5F1CDA /* DayWrappedRendering.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCEEB4F6243006091B7520E7 /* DayWrappedRendering.swift */; };
+		357B2AE499DC4DBDFD8AE3AE /* BackgroundTasks.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 77AED217372AC50F8C674D48 /* BackgroundTasks.framework */; };
+		37F24F99A144AA7B3C9860AA /* CycleWidgetModeIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00301FC5F6AA19960E6C246E /* CycleWidgetModeIntent.swift */; };
+		39D22F5E8673CD2C6FBE279B /* PairingCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7B8D220D88BE60EA2ECDB1A /* PairingCrypto.swift */; };
+		40AED04027B8BA92CD3FD125 /* FamilyControls.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BFD20477C1ED4E808B382B1 /* FamilyControls.framework */; };
+		455FC51B4CDA882BFF5B3CBE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 770E7635254D25270FA60BBE /* Assets.xcassets */; };
+		460687DB41EFFB0008637009 /* AppGroupStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC1E2088EE3B70E0204B026D /* AppGroupStore.swift */; };
+		4BA0FA2C0AAFD125CEF7E4BB /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC55B067D5C094F7DD4B0FC5 /* WidgetKit.framework */; };
+		4F440209A01435107B0021EC /* DayWrappedRendering.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCEEB4F6243006091B7520E7 /* DayWrappedRendering.swift */; };
+		501815BC151CED0DE8256B7A /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04B5EBDF6564DB0F09F23455 /* Models.swift */; };
+		55D78BD015339A1BB859B0F6 /* DayWrappedCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E0F683E8F04DB4ACEE943FD /* DayWrappedCardView.swift */; };
+		630D5889F6C0C468EAD0712C /* AuthStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC77E1F828235A361B771C64 /* AuthStore.swift */; };
+		702150CC967A33670FC6C08D /* PairingCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7B8D220D88BE60EA2ECDB1A /* PairingCrypto.swift */; };
+		708D06676A2AD16685592E58 /* DayWrappedCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E0F683E8F04DB4ACEE943FD /* DayWrappedCardView.swift */; };
+		799396FBD412365CE19A43AD /* BackendClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C4E94F368E973DEF6F51543 /* BackendClient.swift */; };
+		7D7F7512DAAA6F9614F377DA /* DayWrappedRendering.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCEEB4F6243006091B7520E7 /* DayWrappedRendering.swift */; };
+		7F1FC2F407572ADADDDF2BCC /* ScreencapMobileReportExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CB0864591BB50F0654E3DBD /* ScreencapMobileReportExtension.swift */; };
+		7FB27C05A8ECE68E5591DB1C /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A996872BF91903E49EB6BF1C /* AppIntents.framework */; };
+		83C236F1A2601C015393AE80 /* AuthStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC77E1F828235A361B771C64 /* AuthStore.swift */; };
+		88BA20A2995B82D025C3D530 /* AuthStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC77E1F828235A361B771C64 /* AuthStore.swift */; };
+		8E69F4D50988C9CB532456D9 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DBC78C0E5017F2A3CCBC210 /* AVFoundation.framework */; };
+		931A4DB54EF7D47685E167F8 /* ScreencapMobileReportExtension.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 346E3C8BC5FAFFC3D05D8F92 /* ScreencapMobileReportExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		96274E473AB9AEBC0C46A5A2 /* QRCodeScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95B5F3E993D46AC531DC13CC /* QRCodeScannerView.swift */; };
+		AFFE2418E4802B5E2AAF8874 /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 850A7FED666CEC80B61FD9F8 /* DeviceActivity.framework */; };
+		B73703B8C5EFE458BD9E8C82 /* ChangeWidgetDayIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5D4913F8B386E6689E86A1C /* ChangeWidgetDayIntent.swift */; };
+		C066EECC3CA460C3EA079B2E /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04B5EBDF6564DB0F09F23455 /* Models.swift */; };
+		CAB136EB6A6B1A1AB53C70C5 /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 850A7FED666CEC80B61FD9F8 /* DeviceActivity.framework */; };
+		CD0DD12E4C960AE648575C54 /* BackendClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C4E94F368E973DEF6F51543 /* BackendClient.swift */; };
+		D6F1E9E37EE1C4C9054BB933 /* AppGroupStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC1E2088EE3B70E0204B026D /* AppGroupStore.swift */; };
+		D7D9C15035336DB8780B08B2 /* PairingCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7B8D220D88BE60EA2ECDB1A /* PairingCrypto.swift */; };
+		DF17C77B37E8F52A385E5081 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0C305A98AC6FBC76965EDEA0 /* LaunchScreen.storyboard */; };
+		E0DACC7EB6BEAC2E528B821A /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC55B067D5C094F7DD4B0FC5 /* WidgetKit.framework */; };
+		E5FDFC351EF0EF38623DCD47 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 76D0B3277101A9FB5520B194 /* ManagedSettings.framework */; };
+		E63301BCC0404C0A7804123A /* BackendClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C4E94F368E973DEF6F51543 /* BackendClient.swift */; };
+		E96A94CA8EBA3D07FFA3AD05 /* ScreencapMobileWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BFFBDC35F80E2E3C3F02F8E /* ScreencapMobileWidgetBundle.swift */; };
+		F88ECF2EE058A4BB78F69353 /* DayWrappedWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E49CD77098A1C4184F278BD /* DayWrappedWidgetView.swift */; };
+		FB9AEA1353B7F80203CEE9A0 /* ScreencapMobileWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1C37A501D304C18E2A2006CA /* ScreencapMobileWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		4A2CE8CE09FEA253F06465D8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6E0E6E624E7F2CF231B24892 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B54212F61FD630F62727F399;
+			remoteInfo = ScreencapMobileWidgetExtension;
+		};
+		E8EC609524A474DDF44D4DF9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6E0E6E624E7F2CF231B24892 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 85CAA45397006121B7DD5FF4;
+			remoteInfo = ScreencapMobileReportExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		2D8EBAF2E76B52D7284C725E /* Embed ExtensionKit Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(EXTENSIONS_FOLDER_PATH)";
+			dstSubfolderSpec = 16;
+			files = (
+				931A4DB54EF7D47685E167F8 /* ScreencapMobileReportExtension.appex in Embed ExtensionKit Extensions */,
+			);
+			name = "Embed ExtensionKit Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DF6CADF24B849E9B425A6FAA /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				FB9AEA1353B7F80203CEE9A0 /* ScreencapMobileWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		00301FC5F6AA19960E6C246E /* CycleWidgetModeIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CycleWidgetModeIntent.swift; sourceTree = "<group>"; };
+		04B5EBDF6564DB0F09F23455 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		0C305A98AC6FBC76965EDEA0 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		1C37A501D304C18E2A2006CA /* ScreencapMobileWidgetExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = ScreencapMobileWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		2C4E94F368E973DEF6F51543 /* BackendClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendClient.swift; sourceTree = "<group>"; };
+		346E3C8BC5FAFFC3D05D8F92 /* ScreencapMobileReportExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = ScreencapMobileReportExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		3CB0864591BB50F0654E3DBD /* ScreencapMobileReportExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreencapMobileReportExtension.swift; sourceTree = "<group>"; };
+		3ED525661F805FBAEE72FD9B /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		4BFD20477C1ED4E808B382B1 /* FamilyControls.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FamilyControls.framework; path = System/Library/Frameworks/FamilyControls.framework; sourceTree = SDKROOT; };
+		4E0F683E8F04DB4ACEE943FD /* DayWrappedCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayWrappedCardView.swift; sourceTree = "<group>"; };
+		6918396295BC3921D78380C8 /* ScreencapMobileApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreencapMobileApp.swift; sourceTree = "<group>"; };
+		6E49CD77098A1C4184F278BD /* DayWrappedWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayWrappedWidgetView.swift; sourceTree = "<group>"; };
+		6E5CBE302D1F4817024B4655 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		76D0B3277101A9FB5520B194 /* ManagedSettings.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettings.framework; path = System/Library/Frameworks/ManagedSettings.framework; sourceTree = SDKROOT; };
+		770E7635254D25270FA60BBE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		77AED217372AC50F8C674D48 /* BackgroundTasks.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BackgroundTasks.framework; path = System/Library/Frameworks/BackgroundTasks.framework; sourceTree = SDKROOT; };
+		850A7FED666CEC80B61FD9F8 /* DeviceActivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DeviceActivity.framework; path = System/Library/Frameworks/DeviceActivity.framework; sourceTree = SDKROOT; };
+		95B5F3E993D46AC531DC13CC /* QRCodeScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeScannerView.swift; sourceTree = "<group>"; };
+		9BFFBDC35F80E2E3C3F02F8E /* ScreencapMobileWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreencapMobileWidgetBundle.swift; sourceTree = "<group>"; };
+		9DBC78C0E5017F2A3CCBC210 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
+		A996872BF91903E49EB6BF1C /* AppIntents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppIntents.framework; path = System/Library/Frameworks/AppIntents.framework; sourceTree = SDKROOT; };
+		AC1E2088EE3B70E0204B026D /* AppGroupStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroupStore.swift; sourceTree = "<group>"; };
+		B5D4913F8B386E6689E86A1C /* ChangeWidgetDayIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangeWidgetDayIntent.swift; sourceTree = "<group>"; };
+		B7B8D220D88BE60EA2ECDB1A /* PairingCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingCrypto.swift; sourceTree = "<group>"; };
+		D670EA27E2B21E653C9A57C7 /* ReportRefreshHostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportRefreshHostView.swift; sourceTree = "<group>"; };
+		DC55B067D5C094F7DD4B0FC5 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		DC77E1F828235A361B771C64 /* AuthStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStore.swift; sourceTree = "<group>"; };
+		DCEEB4F6243006091B7520E7 /* DayWrappedRendering.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayWrappedRendering.swift; sourceTree = "<group>"; };
+		EDC634D5026076A790621200 /* ScreencapMobile.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ScreencapMobile.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4B7AB65C81FB57A10215608E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AFFE2418E4802B5E2AAF8874 /* DeviceActivity.framework in Frameworks */,
+				2563115565621BBE2051EEB5 /* ManagedSettings.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5C663341736CA64C5891628B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7FB27C05A8ECE68E5591DB1C /* AppIntents.framework in Frameworks */,
+				E0DACC7EB6BEAC2E528B821A /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		634005771B41A9D07961A2AC /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8E69F4D50988C9CB532456D9 /* AVFoundation.framework in Frameworks */,
+				357B2AE499DC4DBDFD8AE3AE /* BackgroundTasks.framework in Frameworks */,
+				40AED04027B8BA92CD3FD125 /* FamilyControls.framework in Frameworks */,
+				CAB136EB6A6B1A1AB53C70C5 /* DeviceActivity.framework in Frameworks */,
+				E5FDFC351EF0EF38623DCD47 /* ManagedSettings.framework in Frameworks */,
+				4BA0FA2C0AAFD125CEF7E4BB /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1355492F13BE72172B4B7CE8 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				3CB0864591BB50F0654E3DBD /* ScreencapMobileReportExtension.swift */,
+			);
+			name = Sources;
+			path = ScreencapMobileReport/Sources;
+			sourceTree = "<group>";
+		};
+		2D65AE8D788D3A7B873A8E6C /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				B5D4913F8B386E6689E86A1C /* ChangeWidgetDayIntent.swift */,
+				00301FC5F6AA19960E6C246E /* CycleWidgetModeIntent.swift */,
+				6E49CD77098A1C4184F278BD /* DayWrappedWidgetView.swift */,
+				9BFFBDC35F80E2E3C3F02F8E /* ScreencapMobileWidgetBundle.swift */,
+			);
+			name = Sources;
+			path = ScreencapMobileWidget/Sources;
+			sourceTree = "<group>";
+		};
+		3247BABCC3FE2E842BF2FAE5 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				A996872BF91903E49EB6BF1C /* AppIntents.framework */,
+				9DBC78C0E5017F2A3CCBC210 /* AVFoundation.framework */,
+				77AED217372AC50F8C674D48 /* BackgroundTasks.framework */,
+				850A7FED666CEC80B61FD9F8 /* DeviceActivity.framework */,
+				4BFD20477C1ED4E808B382B1 /* FamilyControls.framework */,
+				76D0B3277101A9FB5520B194 /* ManagedSettings.framework */,
+				DC55B067D5C094F7DD4B0FC5 /* WidgetKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		8B44C1343AE7DA39D3EB5E30 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				EDC634D5026076A790621200 /* ScreencapMobile.app */,
+				346E3C8BC5FAFFC3D05D8F92 /* ScreencapMobileReportExtension.appex */,
+				1C37A501D304C18E2A2006CA /* ScreencapMobileWidgetExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		940D5FB9238EC6CB04E4987E /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				3ED525661F805FBAEE72FD9B /* AppModel.swift */,
+				95B5F3E993D46AC531DC13CC /* QRCodeScannerView.swift */,
+				D670EA27E2B21E653C9A57C7 /* ReportRefreshHostView.swift */,
+				6E5CBE302D1F4817024B4655 /* RootView.swift */,
+				6918396295BC3921D78380C8 /* ScreencapMobileApp.swift */,
+			);
+			name = Sources;
+			path = ScreencapMobile/Sources;
+			sourceTree = "<group>";
+		};
+		C1AF4D43AA8BB9B07EDF7DA4 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				770E7635254D25270FA60BBE /* Assets.xcassets */,
+				0C305A98AC6FBC76965EDEA0 /* LaunchScreen.storyboard */,
+			);
+			name = Resources;
+			path = ScreencapMobile/Resources;
+			sourceTree = "<group>";
+		};
+		E863C317725C9A11EC5ABDE1 = {
+			isa = PBXGroup;
+			children = (
+				C1AF4D43AA8BB9B07EDF7DA4 /* Resources */,
+				EE3B11800737902445421023 /* Shared */,
+				940D5FB9238EC6CB04E4987E /* Sources */,
+				1355492F13BE72172B4B7CE8 /* Sources */,
+				2D65AE8D788D3A7B873A8E6C /* Sources */,
+				3247BABCC3FE2E842BF2FAE5 /* Frameworks */,
+				8B44C1343AE7DA39D3EB5E30 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		EE3B11800737902445421023 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				AC1E2088EE3B70E0204B026D /* AppGroupStore.swift */,
+				DC77E1F828235A361B771C64 /* AuthStore.swift */,
+				2C4E94F368E973DEF6F51543 /* BackendClient.swift */,
+				4E0F683E8F04DB4ACEE943FD /* DayWrappedCardView.swift */,
+				DCEEB4F6243006091B7520E7 /* DayWrappedRendering.swift */,
+				04B5EBDF6564DB0F09F23455 /* Models.swift */,
+				B7B8D220D88BE60EA2ECDB1A /* PairingCrypto.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		85CAA45397006121B7DD5FF4 /* ScreencapMobileReportExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C8E8FD6ACB3C26152A568519 /* Build configuration list for PBXNativeTarget "ScreencapMobileReportExtension" */;
+			buildPhases = (
+				D3BC52F9C6076EE813D06271 /* Sources */,
+				4B7AB65C81FB57A10215608E /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ScreencapMobileReportExtension;
+			packageProductDependencies = (
+			);
+			productName = ScreencapMobileReportExtension;
+			productReference = 346E3C8BC5FAFFC3D05D8F92 /* ScreencapMobileReportExtension.appex */;
+			productType = "com.apple.product-type.extensionkit-extension";
+		};
+		B54212F61FD630F62727F399 /* ScreencapMobileWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E5DBD832902A4EB92411AB8A /* Build configuration list for PBXNativeTarget "ScreencapMobileWidgetExtension" */;
+			buildPhases = (
+				AEF6B67D7CC56627C10C6D9F /* Sources */,
+				5C663341736CA64C5891628B /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ScreencapMobileWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = ScreencapMobileWidgetExtension;
+			productReference = 1C37A501D304C18E2A2006CA /* ScreencapMobileWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		EBD607F777CFA80B640A2A19 /* ScreencapMobile */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DFBB44EB8DDDDFC5FE897DA7 /* Build configuration list for PBXNativeTarget "ScreencapMobile" */;
+			buildPhases = (
+				A7AFE41BC72ED2319237F862 /* Sources */,
+				0D3307EA462A989371C0D625 /* Resources */,
+				634005771B41A9D07961A2AC /* Frameworks */,
+				DF6CADF24B849E9B425A6FAA /* Embed Foundation Extensions */,
+				2D8EBAF2E76B52D7284C725E /* Embed ExtensionKit Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				73C1FB89B15142F48C5A5A9F /* PBXTargetDependency */,
+				7E14A9B38693928A75289532 /* PBXTargetDependency */,
+			);
+			name = ScreencapMobile;
+			packageProductDependencies = (
+			);
+			productName = ScreencapMobile;
+			productReference = EDC634D5026076A790621200 /* ScreencapMobile.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		6E0E6E624E7F2CF231B24892 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = B3CFDACDED6380933A01DA51 /* Build configuration list for PBXProject "ScreencapMobile" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = E863C317725C9A11EC5ABDE1;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 8B44C1343AE7DA39D3EB5E30 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				EBD607F777CFA80B640A2A19 /* ScreencapMobile */,
+				85CAA45397006121B7DD5FF4 /* ScreencapMobileReportExtension */,
+				B54212F61FD630F62727F399 /* ScreencapMobileWidgetExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		0D3307EA462A989371C0D625 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				455FC51B4CDA882BFF5B3CBE /* Assets.xcassets in Resources */,
+				DF17C77B37E8F52A385E5081 /* LaunchScreen.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A7AFE41BC72ED2319237F862 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D6F1E9E37EE1C4C9054BB933 /* AppGroupStore.swift in Sources */,
+				1FE88B2A5E6299D9A97DC7DF /* AppModel.swift in Sources */,
+				630D5889F6C0C468EAD0712C /* AuthStore.swift in Sources */,
+				799396FBD412365CE19A43AD /* BackendClient.swift in Sources */,
+				1350F4A101A895A1CDEE24FB /* DayWrappedCardView.swift in Sources */,
+				7D7F7512DAAA6F9614F377DA /* DayWrappedRendering.swift in Sources */,
+				C066EECC3CA460C3EA079B2E /* Models.swift in Sources */,
+				D7D9C15035336DB8780B08B2 /* PairingCrypto.swift in Sources */,
+				96274E473AB9AEBC0C46A5A2 /* QRCodeScannerView.swift in Sources */,
+				13DAB3C7BBAA31E61DFDEDE4 /* ReportRefreshHostView.swift in Sources */,
+				13155B77058FE18D0CFFD6CB /* RootView.swift in Sources */,
+				1C122B4672E9098B0E77B849 /* ScreencapMobileApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AEF6B67D7CC56627C10C6D9F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				01E45FD3CB2281323F9EAF6C /* AppGroupStore.swift in Sources */,
+				83C236F1A2601C015393AE80 /* AuthStore.swift in Sources */,
+				E63301BCC0404C0A7804123A /* BackendClient.swift in Sources */,
+				B73703B8C5EFE458BD9E8C82 /* ChangeWidgetDayIntent.swift in Sources */,
+				37F24F99A144AA7B3C9860AA /* CycleWidgetModeIntent.swift in Sources */,
+				708D06676A2AD16685592E58 /* DayWrappedCardView.swift in Sources */,
+				4F440209A01435107B0021EC /* DayWrappedRendering.swift in Sources */,
+				F88ECF2EE058A4BB78F69353 /* DayWrappedWidgetView.swift in Sources */,
+				501815BC151CED0DE8256B7A /* Models.swift in Sources */,
+				702150CC967A33670FC6C08D /* PairingCrypto.swift in Sources */,
+				E96A94CA8EBA3D07FFA3AD05 /* ScreencapMobileWidgetBundle.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D3BC52F9C6076EE813D06271 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				460687DB41EFFB0008637009 /* AppGroupStore.swift in Sources */,
+				88BA20A2995B82D025C3D530 /* AuthStore.swift in Sources */,
+				CD0DD12E4C960AE648575C54 /* BackendClient.swift in Sources */,
+				55D78BD015339A1BB859B0F6 /* DayWrappedCardView.swift in Sources */,
+				30A1AEB083029FD59D5F1CDA /* DayWrappedRendering.swift in Sources */,
+				1642AD847744F318F57DF790 /* Models.swift in Sources */,
+				39D22F5E8673CD2C6FBE279B /* PairingCrypto.swift in Sources */,
+				7F1FC2F407572ADADDDF2BCC /* ScreencapMobileReportExtension.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		73C1FB89B15142F48C5A5A9F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B54212F61FD630F62727F399 /* ScreencapMobileWidgetExtension */;
+			targetProxy = 4A2CE8CE09FEA253F06465D8 /* PBXContainerItemProxy */;
+		};
+		7E14A9B38693928A75289532 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 85CAA45397006121B7DD5FF4 /* ScreencapMobileReportExtension */;
+			targetProxy = E8EC609524A474DDF44D4DF9 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		3C2796DA2DD9D90C208F72FF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = ScreencapMobile/ScreencapMobile.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
+				INFOPLIST_FILE = ScreencapMobile/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Screencap;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.screencap.mobile;
+				PRODUCT_NAME = Screencap;
+				PROVISIONING_PROFILE_SPECIFIER = "$(IOS_APP_PROFILE_SPECIFIER)";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		7D95B85ED35160CD5E8CB812 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ScreencapMobileReport/ScreencapMobileReport.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
+				INFOPLIST_FILE = ScreencapMobileReport/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.screencap.mobile.report;
+				PRODUCT_NAME = ScreencapReport;
+				PROVISIONING_PROFILE_SPECIFIER = "$(IOS_REPORT_PROFILE_SPECIFIER)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		9C18BFA432B41741ED12AC43 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ScreencapMobileReport/ScreencapMobileReport.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				INFOPLIST_FILE = ScreencapMobileReport/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.screencap.mobile.report;
+				PRODUCT_NAME = ScreencapReport;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		A8358B6167E8E0FFBEAE2088 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.1;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		C0BBFBD7327A6E36725811C2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Manual;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.1;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		C71CAC50B8633AAD444F4428 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ScreencapMobileWidget/ScreencapMobileWidget.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
+				INFOPLIST_FILE = ScreencapMobileWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.screencap.mobile.widget;
+				PRODUCT_NAME = ScreencapWidget;
+				PROVISIONING_PROFILE_SPECIFIER = "$(IOS_WIDGET_PROFILE_SPECIFIER)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		ECEC5C9D5CCE0D2476F9C002 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = ScreencapMobile/ScreencapMobile.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				INFOPLIST_FILE = ScreencapMobile/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Screencap;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.screencap.mobile;
+				PRODUCT_NAME = Screencap;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		F0178E66B8E5C5CE8B2E47E0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ScreencapMobileWidget/ScreencapMobileWidget.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				INFOPLIST_FILE = ScreencapMobileWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.screencap.mobile.widget;
+				PRODUCT_NAME = ScreencapWidget;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		B3CFDACDED6380933A01DA51 /* Build configuration list for PBXProject "ScreencapMobile" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A8358B6167E8E0FFBEAE2088 /* Debug */,
+				C0BBFBD7327A6E36725811C2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		C8E8FD6ACB3C26152A568519 /* Build configuration list for PBXNativeTarget "ScreencapMobileReportExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9C18BFA432B41741ED12AC43 /* Debug */,
+				7D95B85ED35160CD5E8CB812 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		DFBB44EB8DDDDFC5FE897DA7 /* Build configuration list for PBXNativeTarget "ScreencapMobile" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ECEC5C9D5CCE0D2476F9C002 /* Debug */,
+				3C2796DA2DD9D90C208F72FF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		E5DBD832902A4EB92411AB8A /* Build configuration list for PBXNativeTarget "ScreencapMobileWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F0178E66B8E5C5CE8B2E47E0 /* Debug */,
+				C71CAC50B8633AAD444F4428 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 6E0E6E624E7F2CF231B24892 /* Project object */;
+}
