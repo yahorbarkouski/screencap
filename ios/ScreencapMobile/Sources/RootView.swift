@@ -6,6 +6,8 @@ struct RootView: View {
 	@Environment(\.scenePhase) private var scenePhase
 	@State private var pairingInput = ""
 	@State private var scannerPresented = false
+	@State private var didRunInitialActivation = false
+	@State private var shouldHandleNextActivePhase = false
 
 	private let actionColumns = [
 		GridItem(.flexible(minimum: 0, maximum: .infinity), spacing: 12),
@@ -50,15 +52,26 @@ struct RootView: View {
 			.ignoresSafeArea()
 		}
 		.task {
-			await model.sceneBecameActive()
+			guard !didRunInitialActivation else { return }
+			didRunInitialActivation = true
+			if scenePhase == .active {
+				await model.sceneBecameActive(trigger: "initial-task")
+			} else {
+				shouldHandleNextActivePhase = true
+			}
 		}
 		.onChange(of: scenePhase) { _, nextPhase in
 			if nextPhase == .active {
+				guard didRunInitialActivation, shouldHandleNextActivePhase else { return }
+				shouldHandleNextActivePhase = false
 				Task {
-					await model.sceneBecameActive()
+					await model.sceneBecameActive(trigger: "scene-phase-active")
 				}
-			} else if nextPhase == .background {
-				model.sceneMovedToBackground()
+			} else {
+				shouldHandleNextActivePhase = true
+				if nextPhase == .background {
+					model.sceneMovedToBackground()
+				}
 			}
 		}
 	}

@@ -159,12 +159,20 @@ enum BackendClient {
 		method: String,
 		body: Data? = nil
 	) async throws -> Data {
-		guard
-			let identity = AuthStore.loadIdentity(),
-			let keys = AuthStore.loadKeyMaterial()
-		else {
+		let identity: DeviceIdentity
+		let keys: StoredKeyMaterial
+		switch AuthStore.loadSignedRequestCredentials() {
+		case let .available(nextIdentity, nextKeys):
+			identity = nextIdentity
+			keys = nextKeys
+		case .missingIdentity:
 			throw NSError(domain: "BackendClient", code: 2, userInfo: [
 				NSLocalizedDescriptionKey: "Identity not available",
+			])
+		case .missingKeyMaterial:
+			throw NSError(domain: "BackendClient", code: 4, userInfo: [
+				NSLocalizedDescriptionKey:
+					"Signing keys not available. Open the iPhone app once to refresh shared credentials.",
 			])
 		}
 

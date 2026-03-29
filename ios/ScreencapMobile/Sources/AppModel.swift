@@ -29,6 +29,9 @@ final class AppModel: ObservableObject {
 	@Published var infoMessage: String?
 
 	private var autoSyncTimer: Timer?
+	private var isHandlingSceneActivation = false
+	private var activeRefreshSequence = 0
+	private var activeRefreshDayStartMs: Int64?
 
 	#if DEBUG
 	private var isDemoLayoutEnabled: Bool {
@@ -37,6 +40,7 @@ final class AppModel: ObservableObject {
 	#endif
 
 	init() {
+		AuthStore.migrateLegacyKeyMaterialIfNeeded()
 		identity = AuthStore.loadIdentity()
 		snapshot = AppGroupStore.loadSnapshot()
 		authorizationStatus = AuthorizationCenter.shared.authorizationStatus
@@ -50,13 +54,25 @@ final class AppModel: ObservableObject {
 #endif
 	}
 
-	func sceneBecameActive() async {
+	func sceneBecameActive(trigger: String = "scene-active") async {
 #if DEBUG
 		if isDemoLayoutEnabled {
 			applyDemoLayoutStateIfNeeded()
 			return
 		}
 #endif
+		if isHandlingSceneActivation {
+			AppGroupStore.appendLog(
+				scope: "app",
+				message:
+					"coalesced scene activation trigger=\(trigger) selectedDayStartMs=\(selectedDayStartMs())"
+			)
+			return
+		}
+		isHandlingSceneActivation = true
+		defer { isHandlingSceneActivation = false }
+
+		AuthStore.migrateLegacyKeyMaterialIfNeeded()
 		authorizationStatus = AuthorizationCenter.shared.authorizationStatus
 		snapshot = AppGroupStore.loadSnapshot()
 		if let snapshot {
@@ -66,12 +82,13 @@ final class AppModel: ObservableObject {
 		Self.scheduleBackgroundRefresh()
 		AppGroupStore.appendLog(
 			scope: "app",
-			message: "scene became active selectedDayStartMs=\(selectedDayStartMs()) auth=\(authorizationStatusLabel())"
+			message:
+				"scene became active trigger=\(trigger) selectedDayStartMs=\(selectedDayStartMs()) auth=\(authorizationStatusLabel()) credentials=\(AuthStore.signedRequestCredentialsDescription())"
 		)
 
 		if identity != nil {
 			if authorizationStatus == .approved {
-				await refreshSelectedDay()
+				await refreshSelectedDay(trigger: "scene-active")
 			} else {
 				await performMacSync(
 					dayStartMs: selectedDayStartMs(),
@@ -99,7 +116,7 @@ final class AppModel: ObservableObject {
 				message: "authorization status after request=\(authorizationStatusLabel())"
 			)
 			if authorizationStatus == .approved {
-				await refreshSelectedDay()
+				await refreshSelectedDay(trigger: "authorization")
 			}
 		} catch {
 			errorMessage = error.localizedDescription
@@ -131,13 +148,14 @@ final class AppModel: ObservableObject {
 		}
 	}
 
-	func refreshSelectedDay() async {
+	func refreshSelectedDay(trigger: String = "manual") async {
 		let dayStartMs = selectedDayStartMs()
 		errorMessage = nil
 		infoMessage = nil
 		AppGroupStore.appendLog(
 			scope: "refresh",
-			message: "refresh selected day requested dayStartMs=\(dayStartMs) auth=\(authorizationStatusLabel())"
+			message:
+				"refresh selected day requested dayStartMs=\(dayStartMs) trigger=\(trigger) auth=\(authorizationStatusLabel())"
 		)
 
 		guard authorizationStatus == .approved else {
@@ -150,10 +168,34 @@ final class AppModel: ObservableObject {
 			return
 		}
 
+		if isRefreshing, activeRefreshDayStartMs == dayStartMs {
+			AppGroupStore.appendLog(
+				scope: "refresh",
+				message:
+					"skipped duplicate in-flight refresh dayStartMs=\(dayStartMs) trigger=\(trigger) sequence=\(activeRefreshSequence)"
+			)
+			return
+		}
+		if isRefreshing, let activeRefreshDayStartMs {
+			AppGroupStore.appendLog(
+				scope: "refresh",
+				message:
+					"superseding in-flight refresh oldDayStartMs=\(activeRefreshDayStartMs) newDayStartMs=\(dayStartMs) trigger=\(trigger) previousSequence=\(activeRefreshSequence)"
+			)
+		}
+
 		let refreshStartedAtMs = Int64(Date().timeIntervalSince1970 * 1000)
+		activeRefreshSequence += 1
+		let refreshSequence = activeRefreshSequence
+		activeRefreshDayStartMs = dayStartMs
 		reportRefreshToken = AppGroupStore.noteRefreshRequested(dayStartMs: dayStartMs)
 		isRefreshing = true
-		await waitForSnapshot(dayStartMs: dayStartMs, refreshStartedAtMs: refreshStartedAtMs)
+		await waitForSnapshot(
+			dayStartMs: dayStartMs,
+			refreshStartedAtMs: refreshStartedAtMs,
+			refreshSequence: refreshSequence,
+			trigger: trigger
+		)
 	}
 
 	func syncFromMac() async {
@@ -200,7 +242,7 @@ final class AppModel: ObservableObject {
 		}
 
 		if authorizationStatus == .approved {
-			await refreshSelectedDay()
+			await refreshSelectedDay(trigger: "repair")
 		} else {
 			await performMacSync(
 				dayStartMs: dayStartMs,
@@ -258,14 +300,14 @@ final class AppModel: ObservableObject {
 
 	func previousDay() {
 		selectedDay = Calendar.current.date(byAdding: .day, value: -1, to: selectedDay) ?? selectedDay
-		Task { await refreshSelectedDay() }
+		Task { await refreshSelectedDay(trigger: "previous-day") }
 	}
 
 	func nextDay() {
 		let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: selectedDay) ?? selectedDay
 		let today = Calendar.current.startOfDay(for: Date())
 		selectedDay = min(tomorrow, today)
-		Task { await refreshSelectedDay() }
+		Task { await refreshSelectedDay(trigger: "next-day") }
 	}
 
 	func forgetDevice() {
@@ -291,6 +333,7 @@ final class AppModel: ObservableObject {
 			"identity.userId=\(identity?.userId ?? "none")",
 			"identity.username=\(identity?.username ?? "none")",
 			"identity.backendBaseURL=\(identity?.backendBaseURL ?? "none")",
+			"identity.credentialsStatus=\(AuthStore.signedRequestCredentialsDescription())",
 			"snapshotFile=\(AppGroupStore.fileSummary(url: AppGroupStore.snapshotURL()))",
 			"selectedMobileDayFile=\(AppGroupStore.fileSummary(url: AppGroupStore.mobileDayURL(dayStartMs: selectedDayStartMs)))",
 			"diagnostics.requestedToken=\(diagnostics.requestedToken)",
@@ -361,7 +404,7 @@ final class AppModel: ObservableObject {
 
 		selectedDay = Date(timeIntervalSince1970: TimeInterval(dayStartMs) / 1000)
 		Task {
-			await refreshSelectedDay()
+			await refreshSelectedDay(trigger: "deep-link")
 		}
 	}
 
@@ -408,15 +451,25 @@ final class AppModel: ObservableObject {
 	}
 
 	nonisolated private static func performBackgroundRefresh() async -> Bool {
-		guard AuthStore.loadIdentity() != nil else {
+		switch AuthStore.loadSignedRequestCredentials() {
+		case .missingIdentity:
 			AppGroupStore.appendLog(scope: "bg-refresh", message: "skipped background refresh because identity is missing")
 			return true
+		case .missingKeyMaterial:
+			let message =
+				"skipped background refresh because signing keys are unavailable; open the iPhone app once to refresh shared credentials"
+			AppGroupStore.noteMacSync(kind: "auto", succeeded: false, error: message)
+			AppGroupStore.appendLog(scope: "bg-refresh", message: message)
+			return false
+		case .available:
+			break
 		}
 
 		let todayStartMs = Int64(Calendar.current.startOfDay(for: Date()).timeIntervalSince1970 * 1000)
 		AppGroupStore.appendLog(
 			scope: "bg-refresh",
-			message: "running background refresh dayStartMs=\(todayStartMs)"
+			message:
+				"running background refresh dayStartMs=\(todayStartMs) credentials=\(AuthStore.signedRequestCredentialsDescription())"
 		)
 
 		if let day = AppGroupStore.loadMobileDay(dayStartMs: todayStartMs) {
@@ -487,18 +540,35 @@ final class AppModel: ObservableObject {
 		)
 	}
 
-	private func waitForSnapshot(dayStartMs: Int64, refreshStartedAtMs: Int64) async {
-		defer { isRefreshing = false }
+	private func waitForSnapshot(
+		dayStartMs: Int64,
+		refreshStartedAtMs: Int64,
+		refreshSequence: Int,
+		trigger: String
+	) async {
+		defer {
+			if activeRefreshSequence == refreshSequence {
+				isRefreshing = false
+				activeRefreshDayStartMs = nil
+			}
+		}
 
 		for _ in 0 ..< 60 {
+			guard ensureCurrentRefresh(sequence: refreshSequence, dayStartMs: dayStartMs, stage: "poll-start") else {
+				return
+			}
 			try? await Task.sleep(nanoseconds: 500_000_000)
+			guard ensureCurrentRefresh(sequence: refreshSequence, dayStartMs: dayStartMs, stage: "poll-resume") else {
+				return
+			}
 
 			if let day = AppGroupStore.loadMobileDay(dayStartMs: dayStartMs),
 				day.syncedAt >= refreshStartedAtMs - 2_000
 			{
 				AppGroupStore.appendLog(
 					scope: "refresh",
-					message: "found fresh mobile day dayStartMs=\(day.dayStartMs) syncedAt=\(day.syncedAt)"
+					message:
+						"found fresh mobile day dayStartMs=\(day.dayStartMs) syncedAt=\(day.syncedAt) sequence=\(refreshSequence) trigger=\(trigger)"
 				)
 				if identity != nil {
 					do {
@@ -508,12 +578,18 @@ final class AppModel: ObservableObject {
 						AppGroupStore.saveUploadStatus(dayStartMs: dayStartMs, message: "Upload failed")
 					}
 				}
+				guard ensureCurrentRefresh(sequence: refreshSequence, dayStartMs: dayStartMs, stage: "post-upload") else {
+					return
+				}
 				if await performMacSync(
 					dayStartMs: dayStartMs,
 					kind: "manual",
 					recordErrors: true,
 					updateVisibleSnapshot: true
 				) != nil {
+					guard ensureCurrentRefresh(sequence: refreshSequence, dayStartMs: dayStartMs, stage: "post-mac-sync") else {
+						return
+					}
 					uploadStatus = AppGroupStore.loadUploadStatus(dayStartMs: dayStartMs)
 					return
 				}
@@ -531,17 +607,20 @@ final class AppModel: ObservableObject {
 				break
 			}
 
-			if let reportError = diagnostics.lastReportError, !reportError.isEmpty {
-				errorMessage = "Screen Time export failed: \(reportError)"
-				break
+				if let reportError = diagnostics.lastReportError, !reportError.isEmpty {
+					errorMessage = "Screen Time export failed: \(reportError)"
+					break
+				}
 			}
-		}
 
+		guard ensureCurrentRefresh(sequence: refreshSequence, dayStartMs: dayStartMs, stage: "timeout") else {
+			return
+		}
 		let diagnostics = AppGroupStore.loadDiagnostics()
 		AppGroupStore.appendLog(
 			scope: "refresh",
 			message:
-				"local wait ended without fresh day dayStartMs=\(dayStartMs) hostPresented=\(diagnostics.reportHostPresentedAtMs.map(String.init) ?? "nil") reportStarted=\(diagnostics.reportStartedAtMs.map(String.init) ?? "nil") reportFinished=\(diagnostics.reportFinishedAtMs.map(String.init) ?? "nil") producedDayStartMs=\(diagnostics.producedDayStartMs.map(String.init) ?? "nil")"
+				"local wait ended without fresh day dayStartMs=\(dayStartMs) trigger=\(trigger) sequence=\(refreshSequence) hostPresented=\(diagnostics.reportHostPresentedAtMs.map(String.init) ?? "nil") reportStarted=\(diagnostics.reportStartedAtMs.map(String.init) ?? "nil") reportFinished=\(diagnostics.reportFinishedAtMs.map(String.init) ?? "nil") producedDayStartMs=\(diagnostics.producedDayStartMs.map(String.init) ?? "nil")"
 		)
 
 		if await performMacSync(
@@ -550,6 +629,9 @@ final class AppModel: ObservableObject {
 			recordErrors: false,
 			updateVisibleSnapshot: true
 		) != nil {
+			guard ensureCurrentRefresh(sequence: refreshSequence, dayStartMs: dayStartMs, stage: "fallback-mac-sync") else {
+				return
+			}
 			uploadStatus = AppGroupStore.loadUploadStatus(dayStartMs: dayStartMs)
 			infoMessage = "Using the latest snapshot from Mac while the iPhone export catches up."
 		}
@@ -557,6 +639,22 @@ final class AppModel: ObservableObject {
 		if errorMessage == nil {
 			errorMessage = buildRefreshFailureMessage(dayStartMs: dayStartMs)
 		}
+	}
+
+	private func ensureCurrentRefresh(
+		sequence: Int,
+		dayStartMs: Int64,
+		stage: String
+	) -> Bool {
+		guard activeRefreshSequence == sequence, activeRefreshDayStartMs == dayStartMs else {
+			AppGroupStore.appendLog(
+				scope: "refresh",
+				message:
+					"abandoning stale refresh dayStartMs=\(dayStartMs) sequence=\(sequence) stage=\(stage) activeSequence=\(activeRefreshSequence) activeDayStartMs=\(activeRefreshDayStartMs.map(String.init) ?? "nil")"
+			)
+			return false
+		}
+		return true
 	}
 
 	private func clearLocalArtifacts(dayStartMs: Int64) {
