@@ -14,5 +14,10 @@
 		"resolveJsonModule": true,
 		"isolatedModules": true
 	},
-	"include": ["electron.vite.config.ts", "electron/**/*.ts"]
+	"include": [
+		"electron.vite.config.ts",
+		"electron/**/*.ts",
+		"src/components/timeline/virtualTimeline.ts",
+		"src/types/**/*.ts"
+	]
 }

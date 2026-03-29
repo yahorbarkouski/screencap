@@ -6,18 +6,22 @@ type ScrollAreaProps = React.ComponentPropsWithoutRef<
 	typeof ScrollAreaPrimitive.Root
 > & {
 	stableGutter?: boolean;
+	viewportRef?: React.Ref<
+		React.ElementRef<typeof ScrollAreaPrimitive.Viewport>
+	>;
 };
 
 const ScrollArea = React.forwardRef<
 	React.ElementRef<typeof ScrollAreaPrimitive.Root>,
 	ScrollAreaProps
->(({ className, children, stableGutter, ...props }, ref) => (
+>(({ className, children, stableGutter, viewportRef, ...props }, ref) => (
 	<ScrollAreaPrimitive.Root
 		ref={ref}
 		className={cn("relative overflow-hidden", className)}
 		{...props}
 	>
 		<ScrollAreaPrimitive.Viewport
+			ref={viewportRef}
 			className={cn(
 				"h-full w-full rounded-[inherit]",
 				stableGutter && "scrollbar-gutter-stable",
