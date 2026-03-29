@@ -127,7 +127,7 @@ struct DayWrappedWidgetView: View {
 						Image(systemName: displayedSourceFilter.iconName)
 					}
 					.buttonStyle(.plain)
-					.widgetControlStyle(size: metrics.toggleHeight)
+					.widgetIconOnlyControlStyle(size: metrics.toggleHeight)
 				}
 
 				Button(intent: PreviousWidgetDayIntent()) {
@@ -401,6 +401,12 @@ private extension View {
 			)
 			.foregroundStyle(.white.opacity(0.88))
 	}
+
+	func widgetIconOnlyControlStyle(size: CGFloat) -> some View {
+		font(.system(size: 12, weight: .semibold))
+			.frame(width: size, height: size)
+			.foregroundStyle(.white.opacity(0.88))
+	}
 }
 
 private struct WidgetMetrics {
@@ -443,7 +449,7 @@ private struct WidgetMetrics {
 				gridTopPadding: 6,
 				gridSectionSpacing: 3,
 				gridGap: 1.5,
-				cellCornerRadius: 2.5,
+				cellCornerRadius: 4,
 				accentLineWidth: 0.8,
 				titleFontSize: 18,
 				timeFontSize: 7,
@@ -473,7 +479,7 @@ private struct WidgetMetrics {
 				gridTopPadding: 0,
 				gridSectionSpacing: 8,
 				gridGap: 3,
-				cellCornerRadius: 3.5,
+				cellCornerRadius: 4,
 				accentLineWidth: 0.9,
 				titleFontSize: 21,
 				timeFontSize: 7.5,
