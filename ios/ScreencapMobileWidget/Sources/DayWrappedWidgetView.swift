@@ -122,14 +122,6 @@ struct DayWrappedWidgetView: View {
 			Spacer(minLength: 8)
 
 			HStack(spacing: 6) {
-				if metrics.showsSourceFilterSwitcher {
-					Button(intent: CycleWidgetSourceFilterIntent()) {
-						Image(systemName: displayedSourceFilter.iconName)
-					}
-					.buttonStyle(.plain)
-					.widgetIconOnlyControlStyle(size: metrics.toggleHeight)
-				}
-
 				Button(intent: PreviousWidgetDayIntent()) {
 					Image(systemName: "chevron.left")
 				}
@@ -218,6 +210,16 @@ struct DayWrappedWidgetView: View {
 					Spacer(minLength: 0)
 				}
 				.padding(.horizontal, metrics.categoryLegendHorizontalPadding)
+				.overlay(alignment: .trailing) {
+					if metrics.showsSourceFilterSwitcher {
+						Button(intent: CycleWidgetSourceFilterIntent()) {
+							Image(systemName: displayedSourceFilter.iconName)
+						}
+						.buttonStyle(.plain)
+						.widgetIconOnlyControlStyle(size: metrics.toggleHeight, iconSize: metrics.toggleIconSize)
+						.padding(.trailing, 0)
+					}
+				}
 			} else {
 				ViewThatFits(in: .horizontal) {
 					HStack(spacing: 8) {
@@ -402,10 +404,10 @@ private extension View {
 			.foregroundStyle(.white.opacity(0.88))
 	}
 
-	func widgetIconOnlyControlStyle(size: CGFloat) -> some View {
-		font(.system(size: 12, weight: .semibold))
+	func widgetIconOnlyControlStyle(size: CGFloat, iconSize: CGFloat) -> some View {
+		font(.system(size: iconSize, weight: .semibold))
 			.frame(width: size, height: size)
-			.foregroundStyle(.white.opacity(0.88))
+			.foregroundStyle(.white.opacity(0.56))
 	}
 }
 

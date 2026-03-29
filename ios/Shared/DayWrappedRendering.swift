@@ -73,15 +73,98 @@ enum DayWrappedRendering {
 			}
 		}
 
-		let subtitle = day.deviceName ?? sourceSummary
 		return DayWrappedSnapshot(
 			dayStartMs: day.dayStartMs,
 			title: "DAY WRAPPED",
 			subtitle: formatter.string(from: dayStart),
 			updatedAtMs: day.syncedAt,
-			sourceSummary: subtitle,
+			sourceSummary: sourceSummary,
 			pairedDeviceName: day.deviceName,
 			mode: .categories,
+			slots: slots
+		)
+	}
+
+	static func composeMergedSnapshot(
+		macSnapshot: DayWrappedSnapshot?,
+		iphoneDay: MobileActivityDay
+	) -> DayWrappedSnapshot {
+		let iphoneSnapshot = composeSnapshot(from: iphoneDay, sourceSummary: "iPhone")
+		guard
+			let macSnapshot,
+			macSnapshot.dayStartMs == iphoneDay.dayStartMs,
+			macSnapshot.slots.count == slotsPerDay
+		else {
+			return iphoneSnapshot
+		}
+
+		let slots = (0 ..< slotsPerDay).map { index in
+			let macSlot = macSnapshot.slots[index]
+			let iphoneSlot = iphoneSnapshot.slots[index]
+			let macCount = normalizedMacCount(for: macSlot)
+			let iphoneCount = normalizedIphoneCount(for: iphoneSlot)
+			let hasMac = macCount > 0
+			let hasIphone = iphoneCount > 0
+
+			let source: WrappedSourceAccent
+			switch (hasMac, hasIphone) {
+			case (true, true):
+				source = .both
+			case (true, false):
+				source = .mac
+			case (false, true):
+				source = .iphone
+			case (false, false):
+				source = .none
+			}
+
+			return WrappedSlot(
+				id: index,
+				startMs: iphoneSlot.startMs,
+				count: max(macCount, iphoneCount),
+				category: mergedCategory(
+					macSlot: macSlot,
+					macCount: macCount,
+					iphoneSlot: iphoneSlot,
+					iphoneCount: iphoneCount
+				),
+				appName: mergedAppName(
+					macSlot: macSlot,
+					macCount: macCount,
+					iphoneSlot: iphoneSlot,
+					iphoneCount: iphoneCount
+				),
+				source: source,
+				macCount: macCount,
+				iphoneCount: iphoneCount
+			)
+		}
+
+		let hasMac = slots.contains { $0.macCount > 0 }
+		let hasIphone = slots.contains { $0.iphoneCount > 0 }
+		let sourceSummary: String
+		switch (hasMac, hasIphone) {
+		case (true, true):
+			sourceSummary = "Mac + iPhone"
+		case (true, false):
+			sourceSummary = "Mac"
+		case (false, true):
+			sourceSummary = "iPhone"
+		case (false, false):
+			sourceSummary = "No activity"
+		}
+
+		let pairedDeviceName =
+			iphoneDay.deviceName
+			?? macSnapshot.pairedDeviceName
+		return DayWrappedSnapshot(
+			dayStartMs: iphoneDay.dayStartMs,
+			title: macSnapshot.title,
+			subtitle: macSnapshot.subtitle,
+			updatedAtMs: max(macSnapshot.updatedAtMs, iphoneDay.syncedAt),
+			sourceSummary: sourceSummary,
+			pairedDeviceName: pairedDeviceName,
+			mode: macSnapshot.mode,
 			slots: slots
 		)
 	}
@@ -304,5 +387,55 @@ enum DayWrappedRendering {
 	static func isEmpty(snapshot: DayWrappedSnapshot?) -> Bool {
 		guard let snapshot else { return true }
 		return !snapshot.slots.contains(where: { $0.count > 0 })
+	}
+
+	private static func normalizedMacCount(for slot: WrappedSlot) -> Int {
+		max(
+			slot.macCount,
+			(slot.source == .mac || slot.source == .both) ? slot.count : 0
+		)
+	}
+
+	private static func normalizedIphoneCount(for slot: WrappedSlot) -> Int {
+		max(
+			slot.iphoneCount,
+			(slot.source == .iphone || slot.source == .both) ? slot.count : 0
+		)
+	}
+
+	private static func mergedCategory(
+		macSlot: WrappedSlot,
+		macCount: Int,
+		iphoneSlot: WrappedSlot,
+		iphoneCount: Int
+	) -> WrappedCategory {
+		if iphoneCount > macCount {
+			return iphoneSlot.category
+		}
+		if macCount > 0 {
+			return macSlot.category
+		}
+		if iphoneCount > 0 {
+			return iphoneSlot.category
+		}
+		return .unknown
+	}
+
+	private static func mergedAppName(
+		macSlot: WrappedSlot,
+		macCount: Int,
+		iphoneSlot: WrappedSlot,
+		iphoneCount: Int
+	) -> String? {
+		if iphoneCount > macCount {
+			return iphoneSlot.appName
+		}
+		if macCount > 0 {
+			return macSlot.appName
+		}
+		if iphoneCount > 0 {
+			return iphoneSlot.appName
+		}
+		return nil
 	}
 }

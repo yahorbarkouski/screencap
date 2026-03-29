@@ -9,12 +9,6 @@ final class AppModel: ObservableObject {
 	static let backgroundRefreshTaskIdentifier = "app.screencap.mobile.refresh"
 	nonisolated private static let autoSyncInterval: TimeInterval = 10 * 60
 
-	private struct RepairExchangeSummary {
-		let localBucketCount: Int?
-		let uploadedLocalDay: Bool
-		let snapshotSourceSummary: String?
-	}
-
 	@Published var identity: DeviceIdentity?
 	@Published var snapshot: DayWrappedSnapshot?
 	@Published var authorizationStatus: AuthorizationStatus
@@ -25,13 +19,10 @@ final class AppModel: ObservableObject {
 	@Published var isSyncingFromMac = false
 	@Published var isRepairing = false
 	@Published var errorMessage: String?
-	@Published var uploadStatus: String?
 	@Published var infoMessage: String?
 
 	private var autoSyncTimer: Timer?
 	private var isHandlingSceneActivation = false
-	private var activeRefreshSequence = 0
-	private var activeRefreshDayStartMs: Int64?
 
 	#if DEBUG
 	private var isDemoLayoutEnabled: Bool {
@@ -46,9 +37,6 @@ final class AppModel: ObservableObject {
 		authorizationStatus = AuthorizationCenter.shared.authorizationStatus
 		selectedDay = Calendar.current.startOfDay(for: Date())
 		reportRefreshToken = AppGroupStore.latestRequestedToken()
-		if let snapshot {
-			uploadStatus = AppGroupStore.loadUploadStatus(dayStartMs: snapshot.dayStartMs)
-		}
 #if DEBUG
 		applyDemoLayoutStateIfNeeded()
 #endif
@@ -75,9 +63,6 @@ final class AppModel: ObservableObject {
 		AuthStore.migrateLegacyKeyMaterialIfNeeded()
 		authorizationStatus = AuthorizationCenter.shared.authorizationStatus
 		snapshot = AppGroupStore.loadSnapshot()
-		if let snapshot {
-			uploadStatus = AppGroupStore.loadUploadStatus(dayStartMs: snapshot.dayStartMs)
-		}
 		startAutoSyncTimer()
 		Self.scheduleBackgroundRefresh()
 		AppGroupStore.appendLog(
@@ -88,7 +73,7 @@ final class AppModel: ObservableObject {
 
 		if identity != nil {
 			if authorizationStatus == .approved {
-				await refreshSelectedDay(trigger: "scene-active")
+				await refreshSelectedDay(trigger: "scene-active", syncMacFirst: true)
 			} else {
 				await performMacSync(
 					dayStartMs: selectedDayStartMs(),
@@ -116,7 +101,7 @@ final class AppModel: ObservableObject {
 				message: "authorization status after request=\(authorizationStatusLabel())"
 			)
 			if authorizationStatus == .approved {
-				await refreshSelectedDay(trigger: "authorization")
+				await refreshSelectedDay(trigger: "authorization", syncMacFirst: true)
 			}
 		} catch {
 			errorMessage = error.localizedDescription
@@ -143,12 +128,18 @@ final class AppModel: ObservableObject {
 				recordErrors: false,
 				updateVisibleSnapshot: true
 			)
+			if authorizationStatus == .approved {
+				issueReportRefresh(dayStartMs: selectedDayStartMs(), reason: "pairing")
+			}
 		} catch {
 			errorMessage = error.localizedDescription
 		}
 	}
 
-	func refreshSelectedDay(trigger: String = "manual") async {
+	func refreshSelectedDay(
+		trigger: String = "manual",
+		syncMacFirst: Bool = false
+	) async {
 		let dayStartMs = selectedDayStartMs()
 		errorMessage = nil
 		infoMessage = nil
@@ -168,45 +159,30 @@ final class AppModel: ObservableObject {
 			return
 		}
 
-		if isRefreshing, activeRefreshDayStartMs == dayStartMs {
-			AppGroupStore.appendLog(
-				scope: "refresh",
-				message:
-					"skipped duplicate in-flight refresh dayStartMs=\(dayStartMs) trigger=\(trigger) sequence=\(activeRefreshSequence)"
-			)
-			return
-		}
-		if isRefreshing, let activeRefreshDayStartMs {
-			AppGroupStore.appendLog(
-				scope: "refresh",
-				message:
-					"superseding in-flight refresh oldDayStartMs=\(activeRefreshDayStartMs) newDayStartMs=\(dayStartMs) trigger=\(trigger) previousSequence=\(activeRefreshSequence)"
+		if syncMacFirst {
+			_ = await performMacSync(
+				dayStartMs: dayStartMs,
+				kind: "manual",
+				recordErrors: false,
+				updateVisibleSnapshot: true
 			)
 		}
-
-		let refreshStartedAtMs = Int64(Date().timeIntervalSince1970 * 1000)
-		activeRefreshSequence += 1
-		let refreshSequence = activeRefreshSequence
-		activeRefreshDayStartMs = dayStartMs
-		reportRefreshToken = AppGroupStore.noteRefreshRequested(dayStartMs: dayStartMs)
-		isRefreshing = true
-		await waitForSnapshot(
-			dayStartMs: dayStartMs,
-			refreshStartedAtMs: refreshStartedAtMs,
-			refreshSequence: refreshSequence,
-			trigger: trigger
-		)
+		issueReportRefresh(dayStartMs: dayStartMs, reason: trigger)
 	}
 
 	func syncFromMac() async {
 		infoMessage = nil
-		await performMacSync(
+		let dayStartMs = selectedDayStartMs()
+		let syncedSnapshot = await performMacSync(
 			dayStartMs: selectedDayStartMs(),
 			kind: "manual",
 			recordErrors: true,
 			updateVisibleSnapshot: true
 		)
-		if errorMessage == nil {
+		if authorizationStatus == .approved, syncedSnapshot != nil {
+			issueReportRefresh(dayStartMs: dayStartMs, reason: "sync-from-mac")
+		}
+		if errorMessage == nil, syncedSnapshot != nil {
 			infoMessage = "Synced latest Day Wrapped from Mac."
 		}
 	}
@@ -227,31 +203,22 @@ final class AppModel: ObservableObject {
 		}
 
 		clearLocalArtifacts(dayStartMs: dayStartMs)
-
 		let preflightToken = UUID().uuidString
-		let preflight = await performBridgeProbe(
+		let _ = await performBridgeProbe(
 			dayStartMs: dayStartMs,
 			probeToken: preflightToken,
-			recordErrors: true
+			recordErrors: false
 		)
-		if preflight == nil {
-			AppGroupStore.appendLog(
-				scope: "repair",
-				message: "preflight bridge probe failed dayStartMs=\(dayStartMs)"
-			)
-		}
 
-		if authorizationStatus == .approved {
-			await refreshSelectedDay(trigger: "repair")
-		} else {
-			await performMacSync(
-				dayStartMs: dayStartMs,
-				kind: "manual",
-				recordErrors: true,
-				updateVisibleSnapshot: true
-			)
+		let nextSnapshot = await performMacSync(
+			dayStartMs: dayStartMs,
+			kind: "manual",
+			recordErrors: true,
+			updateVisibleSnapshot: true
+		)
+		if authorizationStatus == .approved, nextSnapshot != nil {
+			issueReportRefresh(dayStartMs: dayStartMs, reason: "repair")
 		}
-		let exchangeSummary = await repairExchange(dayStartMs: dayStartMs)
 
 		let postflightToken = UUID().uuidString
 		let postflight = await performBridgeProbe(
@@ -260,35 +227,10 @@ final class AppModel: ObservableObject {
 			recordErrors: false
 		)
 
-		if
-			errorMessage == nil,
-			let localBucketCount = exchangeSummary.localBucketCount,
-			localBucketCount > 0,
-			let postflight,
-			postflight.requestedDayBucketCount == nil || postflight.requestedDayBucketCount == 0
-		{
-			errorMessage =
-				"Repair uploaded iPhone data locally, but the Mac bridge still shows no cached iPhone day for \(formattedDay(dayStartMs))."
-		}
-
-		if
-			errorMessage == nil,
-			let localBucketCount = exchangeSummary.localBucketCount,
-			localBucketCount > 0,
-			let postflight,
-			(postflight.requestedDayBucketCount ?? 0) > 0,
-			!postflight.snapshotSourceSummary.localizedCaseInsensitiveContains("iphone")
-		{
-			errorMessage =
-				"The Mac bridge cached the iPhone day for \(formattedDay(dayStartMs)), but the combined snapshot still excludes iPhone activity."
-		}
-
 		if errorMessage == nil {
 			if let postflight {
-				let localSummary =
-					exchangeSummary.localBucketCount.map { " localBuckets=\($0)," } ?? ""
 				infoMessage =
-					"Re-sync completed. Bridge echo ok,\(localSummary) cached days=\(postflight.cachedDaysForRequestedDay), bridge buckets=\(postflight.requestedDayBucketCount ?? 0), events=\(postflight.eventCountForRequestedDay), active slots=\(postflight.activeSlotCount), source=\(postflight.snapshotSourceSummary)."
+					"Re-sync completed. Bridge ok, cached days=\(postflight.cachedDaysForRequestedDay), bridge buckets=\(postflight.requestedDayBucketCount ?? 0), events=\(postflight.eventCountForRequestedDay), active slots=\(postflight.activeSlotCount), source=\(postflight.snapshotSourceSummary)."
 			} else {
 				infoMessage = "Re-sync completed."
 			}
@@ -300,14 +242,14 @@ final class AppModel: ObservableObject {
 
 	func previousDay() {
 		selectedDay = Calendar.current.date(byAdding: .day, value: -1, to: selectedDay) ?? selectedDay
-		Task { await refreshSelectedDay(trigger: "previous-day") }
+		Task { await refreshSelectedDay(trigger: "previous-day", syncMacFirst: true) }
 	}
 
 	func nextDay() {
 		let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: selectedDay) ?? selectedDay
 		let today = Calendar.current.startOfDay(for: Date())
 		selectedDay = min(tomorrow, today)
-		Task { await refreshSelectedDay(trigger: "next-day") }
+		Task { await refreshSelectedDay(trigger: "next-day", syncMacFirst: true) }
 	}
 
 	func forgetDevice() {
@@ -316,11 +258,14 @@ final class AppModel: ObservableObject {
 		AppGroupStore.clearSnapshot()
 		identity = nil
 		snapshot = nil
-		uploadStatus = nil
 		infoMessage = nil
 		errorMessage = nil
 		WidgetCenter.shared.reloadAllTimelines()
 		AppGroupStore.appendLog(scope: "app", message: "forgot paired device")
+	}
+
+	func reportHostPresented() {
+		isRefreshing = false
 	}
 
 	func copyLogs() {
@@ -404,7 +349,7 @@ final class AppModel: ObservableObject {
 
 		selectedDay = Date(timeIntervalSince1970: TimeInterval(dayStartMs) / 1000)
 		Task {
-			await refreshSelectedDay(trigger: "deep-link")
+			await refreshSelectedDay(trigger: "deep-link", syncMacFirst: true)
 		}
 	}
 
@@ -472,15 +417,12 @@ final class AppModel: ObservableObject {
 				"running background refresh dayStartMs=\(todayStartMs) credentials=\(AuthStore.signedRequestCredentialsDescription())"
 		)
 
-		if let day = AppGroupStore.loadMobileDay(dayStartMs: todayStartMs) {
-			do {
-				try await BackendClient.upload(day: day)
-			} catch {
-				AppGroupStore.appendLog(
-					scope: "bg-refresh",
-					message: "background upload failed error=\(error.localizedDescription)"
-				)
-			}
+		if AppGroupStore.loadMobileDay(dayStartMs: todayStartMs) != nil {
+			AppGroupStore.deleteMobileDay(dayStartMs: todayStartMs)
+			AppGroupStore.appendLog(
+				scope: "bg-refresh",
+				message: "discarded deprecated local mobile day dayStartMs=\(todayStartMs)"
+			)
 		}
 
 		do {
@@ -532,129 +474,31 @@ final class AppModel: ObservableObject {
 
 	private func runForegroundAutoSync() async {
 		let todayStartMs = Int64(Calendar.current.startOfDay(for: Date()).timeIntervalSince1970 * 1000)
-		await performMacSync(
+		let nextSnapshot = await performMacSync(
 			dayStartMs: todayStartMs,
 			kind: "auto",
 			recordErrors: false,
 			updateVisibleSnapshot: selectedDayStartMs() == todayStartMs
 		)
+		if authorizationStatus == .approved, nextSnapshot != nil, selectedDayStartMs() == todayStartMs {
+			issueReportRefresh(dayStartMs: todayStartMs, reason: "auto-mac-sync")
+		}
 	}
 
-	private func waitForSnapshot(
-		dayStartMs: Int64,
-		refreshStartedAtMs: Int64,
-		refreshSequence: Int,
-		trigger: String
-	) async {
-		defer {
-			if activeRefreshSequence == refreshSequence {
-				isRefreshing = false
-				activeRefreshDayStartMs = nil
-			}
-		}
-
-		for _ in 0 ..< 60 {
-			guard ensureCurrentRefresh(sequence: refreshSequence, dayStartMs: dayStartMs, stage: "poll-start") else {
-				return
-			}
-			try? await Task.sleep(nanoseconds: 500_000_000)
-			guard ensureCurrentRefresh(sequence: refreshSequence, dayStartMs: dayStartMs, stage: "poll-resume") else {
-				return
-			}
-
-			if let day = AppGroupStore.loadMobileDay(dayStartMs: dayStartMs),
-				day.syncedAt >= refreshStartedAtMs - 2_000
-			{
-				AppGroupStore.appendLog(
-					scope: "refresh",
-					message:
-						"found fresh mobile day dayStartMs=\(day.dayStartMs) syncedAt=\(day.syncedAt) sequence=\(refreshSequence) trigger=\(trigger)"
-				)
-				if identity != nil {
-					do {
-						try await BackendClient.upload(day: day)
-					} catch {
-						errorMessage = error.localizedDescription
-						AppGroupStore.saveUploadStatus(dayStartMs: dayStartMs, message: "Upload failed")
-					}
-				}
-				guard ensureCurrentRefresh(sequence: refreshSequence, dayStartMs: dayStartMs, stage: "post-upload") else {
-					return
-				}
-				if await performMacSync(
-					dayStartMs: dayStartMs,
-					kind: "manual",
-					recordErrors: true,
-					updateVisibleSnapshot: true
-				) != nil {
-					guard ensureCurrentRefresh(sequence: refreshSequence, dayStartMs: dayStartMs, stage: "post-mac-sync") else {
-						return
-					}
-					uploadStatus = AppGroupStore.loadUploadStatus(dayStartMs: dayStartMs)
-					return
-				}
-			}
-
-			let diagnostics = AppGroupStore.loadDiagnostics()
-			if let producedDayStartMs = diagnostics.producedDayStartMs,
-				producedDayStartMs != dayStartMs
-			{
-				errorMessage = "Screen Time export produced \(formattedDay(producedDayStartMs)) instead of the requested day."
-				AppGroupStore.appendLog(
-					scope: "refresh",
-					message: "report day mismatch requested=\(dayStartMs) produced=\(producedDayStartMs)"
-				)
-				break
-			}
-
-				if let reportError = diagnostics.lastReportError, !reportError.isEmpty {
-					errorMessage = "Screen Time export failed: \(reportError)"
-					break
-				}
-			}
-
-		guard ensureCurrentRefresh(sequence: refreshSequence, dayStartMs: dayStartMs, stage: "timeout") else {
-			return
-		}
-		let diagnostics = AppGroupStore.loadDiagnostics()
+	private func issueReportRefresh(dayStartMs: Int64, reason: String) {
+		let token = AppGroupStore.noteRefreshRequested(dayStartMs: dayStartMs)
+		reportRefreshToken = token
+		isRefreshing = true
 		AppGroupStore.appendLog(
 			scope: "refresh",
-			message:
-				"local wait ended without fresh day dayStartMs=\(dayStartMs) trigger=\(trigger) sequence=\(refreshSequence) hostPresented=\(diagnostics.reportHostPresentedAtMs.map(String.init) ?? "nil") reportStarted=\(diagnostics.reportStartedAtMs.map(String.init) ?? "nil") reportFinished=\(diagnostics.reportFinishedAtMs.map(String.init) ?? "nil") producedDayStartMs=\(diagnostics.producedDayStartMs.map(String.init) ?? "nil")"
+			message: "issued in-app report refresh dayStartMs=\(dayStartMs) reason=\(reason) token=\(token)"
 		)
 
-		if await performMacSync(
-			dayStartMs: dayStartMs,
-			kind: "manual",
-			recordErrors: false,
-			updateVisibleSnapshot: true
-		) != nil {
-			guard ensureCurrentRefresh(sequence: refreshSequence, dayStartMs: dayStartMs, stage: "fallback-mac-sync") else {
-				return
-			}
-			uploadStatus = AppGroupStore.loadUploadStatus(dayStartMs: dayStartMs)
-			infoMessage = "Using the latest snapshot from Mac while the iPhone export catches up."
+		Task { @MainActor [weak self] in
+			try? await Task.sleep(nanoseconds: 1_500_000_000)
+			guard let self, self.reportRefreshToken == token else { return }
+			self.isRefreshing = false
 		}
-
-		if errorMessage == nil {
-			errorMessage = buildRefreshFailureMessage(dayStartMs: dayStartMs)
-		}
-	}
-
-	private func ensureCurrentRefresh(
-		sequence: Int,
-		dayStartMs: Int64,
-		stage: String
-	) -> Bool {
-		guard activeRefreshSequence == sequence, activeRefreshDayStartMs == dayStartMs else {
-			AppGroupStore.appendLog(
-				scope: "refresh",
-				message:
-					"abandoning stale refresh dayStartMs=\(dayStartMs) sequence=\(sequence) stage=\(stage) activeSequence=\(activeRefreshSequence) activeDayStartMs=\(activeRefreshDayStartMs.map(String.init) ?? "nil")"
-			)
-			return false
-		}
-		return true
 	}
 
 	private func clearLocalArtifacts(dayStartMs: Int64) {
@@ -662,64 +506,10 @@ final class AppModel: ObservableObject {
 		AppGroupStore.deleteMobileDay(dayStartMs: dayStartMs)
 		AppGroupStore.clearUploadStatus(dayStartMs: dayStartMs)
 		snapshot = nil
-		uploadStatus = nil
 		WidgetCenter.shared.reloadAllTimelines()
 		AppGroupStore.appendLog(
 			scope: "repair",
 			message: "cleared local artifacts dayStartMs=\(dayStartMs)"
-		)
-	}
-
-	private func repairExchange(dayStartMs: Int64) async -> RepairExchangeSummary {
-		var localBucketCount: Int?
-		var uploadedLocalDay = false
-		var snapshotSourceSummary: String?
-
-		if let day = AppGroupStore.loadMobileDay(dayStartMs: dayStartMs) {
-			localBucketCount = day.buckets.count
-			do {
-				try await BackendClient.upload(day: day)
-				uploadedLocalDay = true
-				AppGroupStore.appendLog(
-					scope: "repair",
-					message:
-						"re-uploaded local mobile day dayStartMs=\(day.dayStartMs) buckets=\(day.buckets.count)"
-				)
-			} catch {
-				AppGroupStore.appendLog(
-					scope: "repair",
-					message:
-						"repair upload failed dayStartMs=\(day.dayStartMs) error=\(error.localizedDescription)"
-				)
-				if errorMessage == nil {
-					errorMessage = "Repair upload failed: \(error.localizedDescription)"
-				}
-			}
-		} else {
-			AppGroupStore.appendLog(
-				scope: "repair",
-				message: "no local mobile day found after refresh dayStartMs=\(dayStartMs)"
-			)
-		}
-
-		if let snapshot = await performMacSync(
-			dayStartMs: dayStartMs,
-			kind: "manual",
-			recordErrors: errorMessage == nil,
-			updateVisibleSnapshot: true
-		) {
-			snapshotSourceSummary = snapshot.sourceSummary
-			AppGroupStore.appendLog(
-				scope: "repair",
-				message:
-					"fetched combined snapshot after repair dayStartMs=\(snapshot.dayStartMs) source=\(snapshot.sourceSummary)"
-			)
-		}
-
-		return RepairExchangeSummary(
-			localBucketCount: localBucketCount,
-			uploadedLocalDay: uploadedLocalDay,
-			snapshotSourceSummary: snapshotSourceSummary
 		)
 	}
 
@@ -806,9 +596,6 @@ final class AppModel: ObservableObject {
 			if updateVisibleSnapshot || snapshot == nil || snapshot?.dayStartMs == nextSnapshot.dayStartMs {
 				snapshot = nextSnapshot
 			}
-			if updateVisibleSnapshot {
-				uploadStatus = AppGroupStore.loadUploadStatus(dayStartMs: dayStartMs)
-			}
 			if recordErrors {
 				errorMessage = nil
 			}
@@ -835,31 +622,6 @@ final class AppModel: ObservableObject {
 			)
 			return nil
 		}
-	}
-
-	private func buildRefreshFailureMessage(dayStartMs: Int64) -> String {
-		let diagnostics = AppGroupStore.loadDiagnostics()
-		if let reportError = diagnostics.lastReportError, !reportError.isEmpty {
-			return "Screen Time export failed: \(reportError)"
-		}
-		if diagnostics.reportHostPresentedAtMs == nil {
-			return "Screen Time refresh UI never appeared. Reopen the app and try again."
-		}
-		if diagnostics.reportStartedAtMs == nil {
-			return "Screen Time report extension did not start. Use Copy Logs and check the report markers."
-		}
-		if diagnostics.reportFinishedAtMs == nil {
-			return "Screen Time report extension started but did not finish for \(formattedDay(dayStartMs))."
-		}
-		if diagnostics.producedDayStartMs == nil {
-			return "Screen Time report finished without writing a day file for \(formattedDay(dayStartMs))."
-		}
-		return "Screen Time data did not arrive for \(formattedDay(dayStartMs)). Use Copy Logs to inspect the refresh lifecycle."
-	}
-
-	private func formattedDay(_ dayStartMs: Int64) -> String {
-		Date(timeIntervalSince1970: TimeInterval(dayStartMs) / 1000)
-			.formatted(date: .abbreviated, time: .omitted)
 	}
 
 	private func authorizationStatusLabel() -> String {
@@ -890,14 +652,9 @@ final class AppModel: ObservableObject {
 		snapshot = demoSnapshot
 		authorizationStatus = .approved
 		selectedDay = Date(timeIntervalSince1970: TimeInterval(demoSnapshot.dayStartMs) / 1000)
-		uploadStatus = "Debug sample snapshot"
 		errorMessage = nil
 		infoMessage = nil
 		try? AppGroupStore.saveSnapshot(demoSnapshot)
-		AppGroupStore.saveUploadStatus(
-			dayStartMs: demoSnapshot.dayStartMs,
-			message: "Debug sample snapshot"
-		)
 		AppGroupStore.saveWidgetSelectedDayStartMs(demoSnapshot.dayStartMs)
 		AppGroupStore.saveWidgetMode(.categories)
 		AppGroupStore.saveWidgetSourceFilter(.both)

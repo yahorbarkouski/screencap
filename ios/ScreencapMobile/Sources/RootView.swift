@@ -18,13 +18,6 @@ struct RootView: View {
 		ZStack {
 			backgroundView
 
-			if model.authorizationStatus == .approved {
-				ReportRefreshHostView(dayStart: model.selectedDay, refreshToken: model.reportRefreshToken)
-					.opacity(0.015)
-					.allowsHitTesting(false)
-					.accessibilityHidden(true)
-			}
-
 			ScrollView(showsIndicators: false) {
 				VStack(alignment: .leading, spacing: 18) {
 					if model.identity == nil {
@@ -172,11 +165,11 @@ struct RootView: View {
 
 	private var authorizationView: some View {
 		VStack(alignment: .leading, spacing: 18) {
-			Text("Enable Screen Time export")
+			Text("Enable Screen Time")
 				.font(.system(size: 30, weight: .bold, design: .rounded))
 				.foregroundStyle(.white)
 
-			Text("Your iPhone is paired as @\(model.identity?.username ?? "user"). Authorize Screen Time access so Screencap can export hourly activity to your Mac account and keep the widget in sync.")
+			Text("Your iPhone is paired as @\(model.identity?.username ?? "user"). Authorize Screen Time access so Screencap can show your iPhone activity alongside your Mac Day Wrapped on this iPhone.")
 				.font(.system(size: 15, weight: .medium, design: .rounded))
 				.foregroundStyle(.white.opacity(0.72))
 
@@ -285,17 +278,7 @@ struct RootView: View {
 				.disabled(model.isRefreshing || model.isSyncingFromMac || model.isRepairing)
 			}
 
-			if let snapshot = selectedSnapshot {
-				DayWrappedCardView(
-					snapshot: snapshot,
-					style: .app,
-					onPreviousDay: { model.previousDay() },
-					onNextDay: { model.nextDay() },
-					canMoveToNextDay: !Calendar.current.isDateInToday(model.selectedDay)
-				)
-			} else {
-				emptyStateCard
-			}
+			combinedWrappedCard
 
 			HStack(spacing: 12) {
 				Button {
@@ -325,54 +308,66 @@ struct RootView: View {
 				messageCard(infoMessage, tone: .info)
 			}
 
-			if let uploadStatus = model.uploadStatus {
-				Text(uploadStatus)
-					.font(.system(size: 12, weight: .medium, design: .rounded))
-					.foregroundStyle(.white.opacity(0.46))
-					.padding(.horizontal, 4)
-			}
-
 			if let errorMessage = model.errorMessage {
 				messageCard(errorMessage, tone: .error)
 			}
 		}
 	}
 
+	private var combinedWrappedCard: some View {
+		ZStack(alignment: .topTrailing) {
+			if let snapshot = selectedSnapshot {
+				DayWrappedCardView(snapshot: snapshot, style: .app)
+			} else {
+				emptyStateCard
+			}
+
+			ReportRefreshHostView(
+				dayStart: model.selectedDay,
+				refreshToken: model.reportRefreshToken,
+				minimumHeight: 280,
+				onPresented: {
+					Task { @MainActor in
+						model.reportHostPresented()
+					}
+				}
+			)
+
+			HStack(spacing: 8) {
+				Button {
+					model.previousDay()
+				} label: {
+					Image(systemName: "chevron.left")
+				}
+				.buttonStyle(CardNavigationButtonStyle())
+
+				Button {
+					model.nextDay()
+				} label: {
+					Image(systemName: "chevron.right")
+				}
+				.buttonStyle(CardNavigationButtonStyle())
+				.disabled(Calendar.current.isDateInToday(model.selectedDay))
+			}
+			.padding(.top, 16)
+			.padding(.trailing, 16)
+		}
+	}
+
 	private var emptyStateCard: some View {
 		VStack(alignment: .leading, spacing: 16) {
-			HStack(alignment: .top, spacing: 12) {
-				VStack(alignment: .leading, spacing: 4) {
-					Text("DAY WRAPPED")
-						.font(.system(size: 10, weight: .medium, design: .monospaced))
-						.kerning(3)
-						.foregroundStyle(.white.opacity(0.6))
-						.lineLimit(1)
+			VStack(alignment: .leading, spacing: 4) {
+				Text("DAY WRAPPED")
+					.font(.system(size: 10, weight: .medium, design: .monospaced))
+					.kerning(3)
+					.foregroundStyle(.white.opacity(0.6))
+					.lineLimit(1)
 
-					Text(selectedDayTitle)
-						.font(.system(size: 23, weight: .semibold, design: .rounded))
-						.foregroundStyle(.white)
-						.lineLimit(1)
-						.minimumScaleFactor(0.76)
-				}
-
-				Spacer(minLength: 8)
-
-				HStack(spacing: 8) {
-					Button {
-						model.previousDay()
-					} label: {
-						Image(systemName: "chevron.left")
-					}
-					.buttonStyle(CardNavigationButtonStyle())
-
-					Button {
-						model.nextDay()
-					} label: {
-						Image(systemName: "chevron.right")
-					}
-					.buttonStyle(CardNavigationButtonStyle())
-					.disabled(Calendar.current.isDateInToday(model.selectedDay))
-				}
+				Text(selectedDayTitle)
+					.font(.system(size: 23, weight: .semibold, design: .rounded))
+					.foregroundStyle(.white)
+					.lineLimit(1)
+					.minimumScaleFactor(0.76)
 			}
 
 			VStack(spacing: 12) {
@@ -382,12 +377,12 @@ struct RootView: View {
 						.tint(.white)
 				}
 
-				Text(model.isRefreshing ? "Refreshing Screen Time export..." : "No Day Wrapped snapshot yet for this day")
+				Text(model.isRefreshing ? "Refreshing iPhone Screen Time..." : "No Day Wrapped data yet for this day")
 					.font(.system(size: 17, weight: .semibold, design: .rounded))
 					.foregroundStyle(.white)
 					.multilineTextAlignment(.center)
 
-				Text("Use Refresh iPhone or Sync from Mac to pull a fresh snapshot into the widget and app.")
+				Text("Use Refresh iPhone to load iPhone activity here, or Sync from Mac to refresh the cached Mac contribution.")
 					.font(.system(size: 14, weight: .medium, design: .rounded))
 					.foregroundStyle(.white.opacity(0.64))
 					.multilineTextAlignment(.center)

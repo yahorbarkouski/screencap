@@ -3,7 +3,7 @@ import ManagedSettings
 import SwiftUI
 
 private struct DayWrappedReportPayload {
-	let day: MobileActivityDay
+	let snapshot: DayWrappedSnapshot
 }
 
 @main
@@ -22,8 +22,6 @@ private struct DayWrappedReportScene: DeviceActivityReportScene {
 	func makeConfiguration(
 		representing data: DeviceActivityResults<DeviceActivityData>
 	) async -> DayWrappedReportPayload {
-		AppGroupStore.markReportStarted()
-		AppGroupStore.appendLog(scope: "report", message: "makeConfiguration started")
 		return await DayWrappedReportBuilder.build(from: data)
 	}
 }
@@ -32,26 +30,7 @@ private struct DayWrappedReportContentView: View {
 	let payload: DayWrappedReportPayload
 
 	var body: some View {
-		Color.clear
-			.task(id: payload.day.syncedAt) {
-				do {
-					try AppGroupStore.saveMobileDay(payload.day)
-					AppGroupStore.markReportFinished(
-						dayStartMs: payload.day.dayStartMs,
-						bucketCount: payload.day.buckets.count
-					)
-					AppGroupStore.appendLog(
-						scope: "report",
-						message: "saved mobile day dayStartMs=\(payload.day.dayStartMs) buckets=\(payload.day.buckets.count)"
-					)
-				} catch {
-					AppGroupStore.markReportError(error.localizedDescription)
-					AppGroupStore.appendLog(
-						scope: "report",
-						message: "failed to save mobile day error=\(error.localizedDescription)"
-					)
-				}
-			}
+		DayWrappedCardView(snapshot: payload.snapshot, style: .app)
 	}
 }
 
@@ -72,7 +51,6 @@ private enum DayWrappedReportBuilder {
 		}()
 		var dayStart = defaultDayStart
 		var hours: [Int: HourAccumulator] = [:]
-		var segmentCount = 0
 
 		for await data in results {
 			switch data.segmentInterval {
@@ -87,7 +65,6 @@ private enum DayWrappedReportBuilder {
 			}
 
 			for await segment in data.activitySegments {
-				segmentCount += 1
 				let hour = calendar.component(.hour, from: segment.dateInterval.start)
 				var accumulator = hours[hour] ?? HourAccumulator()
 
@@ -138,11 +115,14 @@ private enum DayWrappedReportBuilder {
 			buckets: buckets,
 			syncedAt: syncedAt
 		)
-		AppGroupStore.appendLog(
-			scope: "report",
-			message: "built report requestedDayStartMs=\(requestedDayStartMs) producedDayStartMs=\(dayStartMs) segments=\(segmentCount) buckets=\(buckets.count)"
+		let macSnapshot =
+			AppGroupStore.loadCachedSnapshot(dayStartMs: dayStartMs)
+			?? AppGroupStore.loadSnapshot()
+		let snapshot = DayWrappedRendering.composeMergedSnapshot(
+			macSnapshot: macSnapshot?.dayStartMs == dayStartMs ? macSnapshot : nil,
+			iphoneDay: day
 		)
-		return DayWrappedReportPayload(day: day)
+		return DayWrappedReportPayload(snapshot: snapshot)
 	}
 
 	private static func mapCategory(from category: ManagedSettings.ActivityCategory) -> WrappedCategory {
