@@ -5,26 +5,44 @@ struct ScreencapWidgetEntry: TimelineEntry {
 	let date: Date
 	let snapshot: DayWrappedSnapshot?
 	let mode: WrappedMode
+	let sourceFilter: WrappedSourceFilter
 	let isPlaceholder: Bool
 }
 
 struct ScreencapWidgetProvider: TimelineProvider {
+	private func resolvedSnapshot(preview: Bool) -> DayWrappedSnapshot? {
+		if preview {
+			return sampleSnapshot()
+		}
+
+		if let snapshot = AppGroupStore.loadWidgetSnapshot() {
+			return snapshot
+		}
+
+		#if DEBUG
+			return sampleSnapshot()
+		#else
+			return nil
+		#endif
+	}
+
 	func placeholder(in _: Context) -> ScreencapWidgetEntry {
 		ScreencapWidgetEntry(
 			date: Date(),
 			snapshot: sampleSnapshot(),
 			mode: .categories,
+			sourceFilter: .both,
 			isPlaceholder: true
 		)
 	}
 
 	func getSnapshot(in context: Context, completion: @escaping (ScreencapWidgetEntry) -> Void) {
-		let snapshot = context.isPreview ? sampleSnapshot() : AppGroupStore.loadWidgetSnapshot()
 		completion(
 			ScreencapWidgetEntry(
 				date: Date(),
-				snapshot: snapshot,
+				snapshot: resolvedSnapshot(preview: context.isPreview),
 				mode: AppGroupStore.loadWidgetMode(),
+				sourceFilter: AppGroupStore.loadWidgetSourceFilter(),
 				isPlaceholder: context.isPreview
 			)
 		)
@@ -33,8 +51,9 @@ struct ScreencapWidgetProvider: TimelineProvider {
 	func getTimeline(in _: Context, completion: @escaping (Timeline<ScreencapWidgetEntry>) -> Void) {
 		let entry = ScreencapWidgetEntry(
 			date: Date(),
-			snapshot: AppGroupStore.loadWidgetSnapshot(),
+			snapshot: resolvedSnapshot(preview: false),
 			mode: AppGroupStore.loadWidgetMode(),
+			sourceFilter: AppGroupStore.loadWidgetSourceFilter(),
 			isPlaceholder: false
 		)
 		completion(Timeline(entries: [entry], policy: .after(Date().addingTimeInterval(30 * 60))))
@@ -48,7 +67,11 @@ struct ScreencapWidgetProvider: TimelineProvider {
 struct ScreencapMobileWidget: Widget {
 	var body: some WidgetConfiguration {
 		StaticConfiguration(kind: "ScreencapMobileWidget", provider: ScreencapWidgetProvider()) { entry in
-			DayWrappedWidgetView(snapshot: entry.snapshot, mode: entry.mode)
+			DayWrappedWidgetView(
+				snapshot: entry.snapshot,
+				mode: entry.mode,
+				sourceFilter: entry.sourceFilter
+			)
 				.containerBackground(for: .widget) {
 					LinearGradient(
 						colors: [

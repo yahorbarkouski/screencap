@@ -15,6 +15,45 @@ enum WrappedMode: String, Codable, CaseIterable, Sendable {
 	}
 }
 
+enum WrappedSourceFilter: String, Codable, CaseIterable, Sendable {
+	case both
+	case mac
+	case iphone
+
+	var nextWidgetSourceFilter: WrappedSourceFilter {
+		switch self {
+		case .both:
+			return .mac
+		case .mac:
+			return .iphone
+		case .iphone:
+			return .both
+		}
+	}
+
+	var label: String {
+		switch self {
+		case .both:
+			return "Both"
+		case .mac:
+			return "Mac"
+		case .iphone:
+			return "iPhone"
+		}
+	}
+
+	var iconName: String {
+		switch self {
+		case .both:
+			return "rectangle.on.rectangle"
+		case .mac:
+			return "desktopcomputer"
+		case .iphone:
+			return "iphone.gen3"
+		}
+	}
+}
+
 enum WrappedSourceAccent: String, Codable, Hashable, Sendable {
 	case none
 	case mac

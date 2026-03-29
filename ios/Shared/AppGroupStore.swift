@@ -8,6 +8,7 @@ enum AppGroupStore {
 	private static let reportDayKey = "report.dayStartMs"
 	private static let uploadStatusKeyPrefix = "upload.status."
 	private static let widgetModeKey = "widget.dayWrappedMode"
+	private static let widgetSourceFilterKey = "widget.dayWrappedSourceFilter"
 	private static let widgetDayKey = "widget.dayWrappedDayStartMs"
 	private static let diagnosticsKey = "sync.diagnostics.v1"
 
@@ -180,6 +181,20 @@ enum AppGroupStore {
 			return mode
 		}
 		return .categories
+	}
+
+	static func saveWidgetSourceFilter(_ filter: WrappedSourceFilter) {
+		defaults.set(filter.rawValue, forKey: widgetSourceFilterKey)
+	}
+
+	static func loadWidgetSourceFilter() -> WrappedSourceFilter {
+		if
+			let rawValue = defaults.string(forKey: widgetSourceFilterKey),
+			let filter = WrappedSourceFilter(rawValue: rawValue)
+		{
+			return filter
+		}
+		return .both
 	}
 
 	static func loadDiagnostics() -> SyncDiagnostics {

@@ -893,6 +893,15 @@ final class AppModel: ObservableObject {
 		uploadStatus = "Debug sample snapshot"
 		errorMessage = nil
 		infoMessage = nil
+		try? AppGroupStore.saveSnapshot(demoSnapshot)
+		AppGroupStore.saveUploadStatus(
+			dayStartMs: demoSnapshot.dayStartMs,
+			message: "Debug sample snapshot"
+		)
+		AppGroupStore.saveWidgetSelectedDayStartMs(demoSnapshot.dayStartMs)
+		AppGroupStore.saveWidgetMode(.categories)
+		AppGroupStore.saveWidgetSourceFilter(.both)
+		WidgetCenter.shared.reloadAllTimelines()
 	}
 #endif
 }
