@@ -4,6 +4,10 @@ import type {
 	CaptureIntent,
 	CaptureTriggerResult,
 } from "../../../shared/types";
+import {
+	createTimedLease,
+	type TimedLease,
+} from "../../infra/async/timedLease";
 import { updateEvent } from "../../infra/db/repositories/EventRepository";
 import { createLogger } from "../../infra/log";
 import { getCaptureInterval, getSettings } from "../../infra/settings";
@@ -35,16 +39,104 @@ type ManualCaptureOptions = {
 
 const DEFAULT_INTERVAL_MINUTES = 5;
 const IDLE_SKIP_SECONDS = 5 * 60;
+const CAPTURE_LEASE_TIMEOUT_MS = 60_000;
 
 let state: SchedulerState = "stopped";
 let captureInterval: NodeJS.Timeout | null = null;
 let currentIntervalMinutes = DEFAULT_INTERVAL_MINUTES;
-let captureLock: Promise<void> | null = null;
+let captureLease: TimedLease | null = null;
 
 type CapturedWindow = Extract<WindowedCaptureResult, { kind: "capture" }>;
 
 function getIntervalMs(): number {
 	return currentIntervalMinutes * 60 * 1000;
+}
+
+function releaseCaptureLease(lease: TimedLease): void {
+	if (captureLease === lease) {
+		captureLease = null;
+	}
+	lease.release();
+}
+
+function forceReleaseStaleCaptureLease(now = Date.now()): boolean {
+	const lease = captureLease;
+	if (!lease || !lease.hasTimedOut(now)) return false;
+
+	logger.warn("Capture lease held too long, force releasing", {
+		leaseId: lease.id,
+		label: lease.label,
+		heldForMs: lease.heldForMs(now),
+		timeoutMs: CAPTURE_LEASE_TIMEOUT_MS,
+	});
+	releaseCaptureLease(lease);
+	return true;
+}
+
+function createCaptureLease(label: "manual" | "scheduled"): TimedLease {
+	const lease = createTimedLease({
+		label,
+		timeoutMs: CAPTURE_LEASE_TIMEOUT_MS,
+		onTimeout(expiredLease, heldForMs) {
+			if (captureLease !== expiredLease) return;
+			logger.warn("Capture lease held too long, force releasing", {
+				leaseId: expiredLease.id,
+				label: expiredLease.label,
+				heldForMs,
+				timeoutMs: CAPTURE_LEASE_TIMEOUT_MS,
+			});
+			captureLease = null;
+		},
+	});
+
+	captureLease = lease;
+	return lease;
+}
+
+async function acquireCaptureLease(
+	label: "manual" | "scheduled",
+	waitForActive: boolean,
+): Promise<TimedLease | null> {
+	for (;;) {
+		forceReleaseStaleCaptureLease();
+
+		const activeLease = captureLease;
+		if (!activeLease) {
+			return createCaptureLease(label);
+		}
+
+		if (!waitForActive) {
+			logger.debug("Capture already in progress, skipping");
+			return null;
+		}
+
+		logger.debug("Capture already in progress, waiting", {
+			activeLeaseId: activeLease.id,
+			label: activeLease.label,
+			heldForMs: activeLease.heldForMs(),
+			timeoutMs: CAPTURE_LEASE_TIMEOUT_MS,
+		});
+		await activeLease.done;
+	}
+}
+
+function hasActiveCaptureLease(lease: TimedLease): boolean {
+	return captureLease === lease && !lease.isReleased();
+}
+
+function bailOnExpiredCaptureLease(
+	lease: TimedLease,
+	reason: "manual" | "scheduled",
+): CaptureTriggerResult | null {
+	if (hasActiveCaptureLease(lease)) return null;
+
+	logger.warn("Capture lease expired before cycle completed, dropping result", {
+		leaseId: lease.id,
+		label: lease.label,
+		reason,
+		timeoutMs: CAPTURE_LEASE_TIMEOUT_MS,
+	});
+	return { merged: false, eventId: null };
 }
 
 async function processCapturedWindow(
@@ -73,15 +165,10 @@ async function processCapturedWindow(
 }
 
 async function runWindowedCaptureCycle(): Promise<CaptureTriggerResult> {
-	if (captureLock) {
-		logger.debug("Capture already in progress, skipping");
+	const lease = await acquireCaptureLease("scheduled", false);
+	if (!lease) {
 		return { merged: false, eventId: null };
 	}
-
-	let releaseLock!: () => void;
-	captureLock = new Promise<void>((resolve) => {
-		releaseLock = resolve;
-	});
 
 	try {
 		const hasPermission = checkScreenCapturePermission();
@@ -107,7 +194,11 @@ async function runWindowedCaptureCycle(): Promise<CaptureTriggerResult> {
 			});
 
 			const windowed = await finalizeActivityWindow(idleStartAt);
+			const expiredResult = bailOnExpiredCaptureLease(lease, "scheduled");
+			if (expiredResult) return expiredResult;
 			await discardActivityWindow(windowEnd);
+			const expiredAfterDiscard = bailOnExpiredCaptureLease(lease, "scheduled");
+			if (expiredAfterDiscard) return expiredAfterDiscard;
 			if (windowed.kind !== "capture") {
 				logger.info("Scheduled capture skipped (idle)", {
 					reason: windowed.reason,
@@ -118,6 +209,8 @@ async function runWindowedCaptureCycle(): Promise<CaptureTriggerResult> {
 		}
 
 		const windowed = await finalizeActivityWindow(windowEnd);
+		const expiredResult = bailOnExpiredCaptureLease(lease, "scheduled");
+		if (expiredResult) return expiredResult;
 		if (windowed.kind !== "capture") {
 			logger.info("Scheduled capture skipped", { reason: windowed.reason });
 			return { merged: false, eventId: null };
@@ -127,8 +220,7 @@ async function runWindowedCaptureCycle(): Promise<CaptureTriggerResult> {
 		});
 		return await processCapturedWindow(windowed);
 	} finally {
-		releaseLock();
-		captureLock = null;
+		releaseCaptureLease(lease);
 	}
 }
 
@@ -136,19 +228,10 @@ async function runCaptureCycle(
 	reason: "scheduled" | "manual",
 	options?: ManualCaptureOptions,
 ): Promise<CaptureTriggerResult> {
-	if (captureLock) {
-		if (reason === "scheduled") {
-			logger.debug("Capture already in progress, skipping");
-			return { merged: false, eventId: null };
-		}
-		logger.debug("Capture already in progress, waiting");
-		await captureLock;
+	const lease = await acquireCaptureLease(reason, reason === "manual");
+	if (!lease) {
+		return { merged: false, eventId: null };
 	}
-
-	let releaseLock!: () => void;
-	captureLock = new Promise<void>((resolve) => {
-		releaseLock = resolve;
-	});
 
 	try {
 		const hasPermission = checkScreenCapturePermission();
@@ -174,6 +257,8 @@ async function runCaptureCycle(
 			reason === "manual"
 				? (getLastKnownCandidate()?.context ?? null)
 				: await collectActivityContext();
+		const expiredAfterContext = bailOnExpiredCaptureLease(lease, reason);
+		if (expiredAfterContext) return expiredAfterContext;
 
 		const isSelfCapture = context?.app.bundleId === SELF_APP_BUNDLE_ID;
 		if (reason === "scheduled" && isSelfCapture) {
@@ -209,6 +294,8 @@ async function runCaptureCycle(
 		const captures = await captureAllDisplays({
 			highResDisplayId: primaryDisplayId,
 		});
+		const expiredAfterCapture = bailOnExpiredCaptureLease(lease, reason);
+		if (expiredAfterCapture) return expiredAfterCapture;
 		logger.info(`Captured ${captures.length} displays`);
 
 		const intervalMs = getIntervalMs();
@@ -249,8 +336,7 @@ async function runCaptureCycle(
 		logger.error(`Capture cycle (${reason}) failed:`, error);
 		throw error;
 	} finally {
-		releaseLock();
-		captureLock = null;
+		releaseCaptureLease(lease);
 	}
 }
 

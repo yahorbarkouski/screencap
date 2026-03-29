@@ -5,6 +5,10 @@ import { powerMonitor, screen } from "electron";
 import { v4 as uuid } from "uuid";
 import { SELF_APP_BUNDLE_ID } from "../../../shared/appIdentity";
 import type { CaptureResult } from "../../../shared/types";
+import {
+	createTimedLease,
+	type TimedLease,
+} from "../../infra/async/timedLease";
 import { createLogger } from "../../infra/log";
 import { createPerfTracker } from "../../infra/log/perf";
 import {
@@ -29,6 +33,7 @@ const MIN_STABLE_MS = 10_000;
 const MIN_DOMINANT_TOTAL_MS = 10_000;
 const IDLE_AWAY_SECONDS = 5 * 60;
 const IDLE_BUNDLE_ID = "__idle__";
+const CAPTURE_IN_FLIGHT_TIMEOUT_MS = 60_000;
 
 type Segment = ActivitySegment;
 
@@ -82,7 +87,7 @@ type ServiceState = {
 	} | null;
 	pollTimer: NodeJS.Timeout | null;
 	pollInFlight: Promise<void> | null;
-	captureInFlight: Promise<void> | null;
+	captureInFlight: TimedLease | null;
 };
 
 const state: ServiceState = {
@@ -116,6 +121,58 @@ async function withWindowLock<T>(fn: () => Promise<T>): Promise<T> {
 	} finally {
 		release();
 	}
+}
+
+function releaseCaptureInFlight(lease: TimedLease): void {
+	if (state.captureInFlight === lease) {
+		state.captureInFlight = null;
+	}
+	lease.release();
+}
+
+function forceReleaseStaleCaptureInFlight(now = Date.now()): boolean {
+	const lease = state.captureInFlight;
+	if (!lease || !lease.hasTimedOut(now)) return false;
+
+	logger.warn("Activity window capture held too long, force releasing", {
+		leaseId: lease.id,
+		label: lease.label,
+		heldForMs: lease.heldForMs(now),
+		timeoutMs: CAPTURE_IN_FLIGHT_TIMEOUT_MS,
+	});
+	releaseCaptureInFlight(lease);
+	return true;
+}
+
+function createCaptureInFlightLease(targetKey: string): TimedLease {
+	const lease = createTimedLease({
+		label: `activity-window:${targetKey}`,
+		timeoutMs: CAPTURE_IN_FLIGHT_TIMEOUT_MS,
+		onTimeout(expiredLease, heldForMs) {
+			if (state.captureInFlight !== expiredLease) return;
+			logger.warn("Activity window capture held too long, force releasing", {
+				leaseId: expiredLease.id,
+				label: expiredLease.label,
+				heldForMs,
+				timeoutMs: CAPTURE_IN_FLIGHT_TIMEOUT_MS,
+			});
+			state.captureInFlight = null;
+		},
+	});
+
+	state.captureInFlight = lease;
+	return lease;
+}
+
+function hasActiveCaptureInFlightLease(lease: TimedLease): boolean {
+	return state.captureInFlight === lease && !lease.isReleased();
+}
+
+async function waitForCaptureInFlight(): Promise<void> {
+	forceReleaseStaleCaptureInFlight();
+	const lease = state.captureInFlight;
+	if (!lease) return;
+	await lease.done;
 }
 
 function buildKey(
@@ -291,15 +348,24 @@ async function captureCandidate(target: {
 	if (state.status !== "running") return;
 	if (powerMonitor.getSystemIdleTime() > IDLE_AWAY_SECONDS) return;
 	if (state.candidates.has(target.key)) return;
+	forceReleaseStaleCaptureInFlight();
+	if (state.captureInFlight) return;
 	if (!state.windowThumbnailsDir || !state.windowOriginalsDir) return;
 
-	let release!: () => void;
-	state.captureInFlight = new Promise<void>((resolve) => {
-		release = resolve;
-	});
+	const thumbnailsDir = state.windowThumbnailsDir;
+	const originalsDir = state.windowOriginalsDir;
+	const lease = createCaptureInFlightLease(target.key);
 
 	try {
 		const context = await collectActivityContext();
+		if (!hasActiveCaptureInFlightLease(lease)) {
+			logger.warn("Ignoring stale activity window capture result", {
+				leaseId: lease.id,
+				targetKey: target.key,
+				stage: "context",
+			});
+			return;
+		}
 		if (state.status !== "running") return;
 		if (!context) return;
 		if (context.app.bundleId !== target.bundleId) return;
@@ -319,11 +385,19 @@ async function captureCandidate(target: {
 		const captures = await captureAllDisplays({
 			highResDisplayId: primaryDisplayId,
 			dirs: {
-				thumbnailsDir: state.windowThumbnailsDir,
-				originalsDir: state.windowOriginalsDir,
+				thumbnailsDir,
+				originalsDir,
 			},
 		});
 
+		if (!hasActiveCaptureInFlightLease(lease)) {
+			logger.warn("Ignoring stale activity window capture result", {
+				leaseId: lease.id,
+				targetKey: target.key,
+				stage: "capture",
+			});
+			return;
+		}
 		if (state.status !== "running") return;
 		if (captures.length === 0) return;
 
@@ -338,8 +412,7 @@ async function captureCandidate(target: {
 	} catch (error) {
 		logger.debug("Candidate capture failed", { error });
 	} finally {
-		release();
-		state.captureInFlight = null;
+		releaseCaptureInFlight(lease);
 		if (perf.enabled)
 			perf.track("activity.captureCandidate", performance.now() - startedAt);
 	}
@@ -432,6 +505,7 @@ async function pollOnce(): Promise<void> {
 
 		if (state.candidates.has(key)) return;
 		if (capturedAt - state.current.startAt < MIN_STABLE_MS) return;
+		forceReleaseStaleCaptureInFlight();
 		if (state.captureInFlight) return;
 
 		void captureCandidate({ key, bundleId, displayId, urlHost });
@@ -469,7 +543,7 @@ export function stopActivityWindowTracking(): void {
 	state.status = "stopped";
 	const windowDir = state.windowDir;
 	if (state.captureInFlight) {
-		void state.captureInFlight.finally(() => safeRm(windowDir));
+		void state.captureInFlight.done.finally(() => safeRm(windowDir));
 	} else {
 		void safeRm(windowDir);
 	}
@@ -524,7 +598,7 @@ export function getLastKnownCandidate(): {
 export async function discardActivityWindow(windowEnd: number): Promise<void> {
 	await withWindowLock(async () => {
 		const safeWindowEnd = Math.max(state.windowStart, windowEnd);
-		if (state.captureInFlight) await state.captureInFlight;
+		await waitForCaptureInFlight();
 		const continuation = state.lastSnapshot;
 		await safeRm(state.windowDir);
 		await initWindow(safeWindowEnd, continuation);
@@ -547,7 +621,7 @@ export async function finalizeActivityWindow(
 			};
 		}
 
-		if (state.captureInFlight) await state.captureInFlight;
+		await waitForCaptureInFlight();
 
 		const finalized: Segment[] = [...state.segments];
 		if (state.current)
