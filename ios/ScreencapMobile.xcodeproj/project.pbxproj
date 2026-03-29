@@ -39,6 +39,7 @@
 		931A4DB54EF7D47685E167F8 /* ScreencapMobileReportExtension.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 346E3C8BC5FAFFC3D05D8F92 /* ScreencapMobileReportExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		96274E473AB9AEBC0C46A5A2 /* QRCodeScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95B5F3E993D46AC531DC13CC /* QRCodeScannerView.swift */; };
 		AFFE2418E4802B5E2AAF8874 /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 850A7FED666CEC80B61FD9F8 /* DeviceActivity.framework */; };
+		B73703B8C5EFE458BD9E8C82 /* ChangeWidgetDayIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5D4913F8B386E6689E86A1C /* ChangeWidgetDayIntent.swift */; };
 		C066EECC3CA460C3EA079B2E /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04B5EBDF6564DB0F09F23455 /* Models.swift */; };
 		CAB136EB6A6B1A1AB53C70C5 /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 850A7FED666CEC80B61FD9F8 /* DeviceActivity.framework */; };
 		CD0DD12E4C960AE648575C54 /* BackendClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C4E94F368E973DEF6F51543 /* BackendClient.swift */; };
@@ -118,6 +119,7 @@
 		9DBC78C0E5017F2A3CCBC210 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		A996872BF91903E49EB6BF1C /* AppIntents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppIntents.framework; path = System/Library/Frameworks/AppIntents.framework; sourceTree = SDKROOT; };
 		AC1E2088EE3B70E0204B026D /* AppGroupStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroupStore.swift; sourceTree = "<group>"; };
+		B5D4913F8B386E6689E86A1C /* ChangeWidgetDayIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangeWidgetDayIntent.swift; sourceTree = "<group>"; };
 		B7B8D220D88BE60EA2ECDB1A /* PairingCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingCrypto.swift; sourceTree = "<group>"; };
 		D670EA27E2B21E653C9A57C7 /* ReportRefreshHostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportRefreshHostView.swift; sourceTree = "<group>"; };
 		DC55B067D5C094F7DD4B0FC5 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
@@ -173,6 +175,7 @@
 		2D65AE8D788D3A7B873A8E6C /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				B5D4913F8B386E6689E86A1C /* ChangeWidgetDayIntent.swift */,
 				00301FC5F6AA19960E6C246E /* CycleWidgetModeIntent.swift */,
 				6E49CD77098A1C4184F278BD /* DayWrappedWidgetView.swift */,
 				9BFFBDC35F80E2E3C3F02F8E /* ScreencapMobileWidgetBundle.swift */,
@@ -388,6 +391,7 @@
 				01E45FD3CB2281323F9EAF6C /* AppGroupStore.swift in Sources */,
 				83C236F1A2601C015393AE80 /* AuthStore.swift in Sources */,
 				E63301BCC0404C0A7804123A /* BackendClient.swift in Sources */,
+				B73703B8C5EFE458BD9E8C82 /* ChangeWidgetDayIntent.swift in Sources */,
 				37F24F99A144AA7B3C9860AA /* CycleWidgetModeIntent.swift in Sources */,
 				708D06676A2AD16685592E58 /* DayWrappedCardView.swift in Sources */,
 				4F440209A01435107B0021EC /* DayWrappedRendering.swift in Sources */,

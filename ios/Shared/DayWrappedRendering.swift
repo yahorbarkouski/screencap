@@ -86,6 +86,100 @@ enum DayWrappedRendering {
 		)
 	}
 
+	static func sampleSnapshot(dayStartMs: Int64? = nil) -> DayWrappedSnapshot {
+		let resolvedDayStartMs =
+			dayStartMs
+			?? Int64(Calendar.current.startOfDay(for: Date()).timeIntervalSince1970 * 1000)
+		let activeSlots: [Int: WrappedSlot] = [
+			8 * 6 + 1: WrappedSlot(
+				id: 49,
+				startMs: resolvedDayStartMs + Int64(49 * 10 * 60 * 1000),
+				count: 2,
+				category: .study,
+				appName: "Docs",
+				source: .mac,
+				macCount: 2,
+				iphoneCount: 0
+			),
+			8 * 6 + 2: WrappedSlot(
+				id: 50,
+				startMs: resolvedDayStartMs + Int64(50 * 10 * 60 * 1000),
+				count: 2,
+				category: .study,
+				appName: "Docs",
+				source: .mac,
+				macCount: 2,
+				iphoneCount: 0
+			),
+			13 * 6 + 0: WrappedSlot(
+				id: 78,
+				startMs: resolvedDayStartMs + Int64(78 * 10 * 60 * 1000),
+				count: 4,
+				category: .work,
+				appName: "VS Code",
+				source: .both,
+				macCount: 3,
+				iphoneCount: 4
+			),
+			13 * 6 + 1: WrappedSlot(
+				id: 79,
+				startMs: resolvedDayStartMs + Int64(79 * 10 * 60 * 1000),
+				count: 4,
+				category: .work,
+				appName: "VS Code",
+				source: .both,
+				macCount: 3,
+				iphoneCount: 4
+			),
+			19 * 6 + 0: WrappedSlot(
+				id: 114,
+				startMs: resolvedDayStartMs + Int64(114 * 10 * 60 * 1000),
+				count: 3,
+				category: .leisure,
+				appName: "YouTube",
+				source: .iphone,
+				macCount: 0,
+				iphoneCount: 3
+			),
+			19 * 6 + 1: WrappedSlot(
+				id: 115,
+				startMs: resolvedDayStartMs + Int64(115 * 10 * 60 * 1000),
+				count: 3,
+				category: .leisure,
+				appName: "YouTube",
+				source: .iphone,
+				macCount: 0,
+				iphoneCount: 3
+			),
+		]
+
+		let slots = (0 ..< slotsPerDay).map { index in
+			activeSlots[index]
+				?? WrappedSlot(
+					id: index,
+					startMs: resolvedDayStartMs + Int64(index * 10 * 60 * 1000),
+					count: 0,
+					category: .unknown,
+					appName: nil,
+					source: .none,
+					macCount: 0,
+					iphoneCount: 0
+				)
+		}
+
+		return DayWrappedSnapshot(
+			dayStartMs: resolvedDayStartMs,
+			title: "DAY WRAPPED",
+			subtitle: Date(timeIntervalSince1970: TimeInterval(resolvedDayStartMs) / 1000)
+				.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()),
+			updatedAtMs: resolvedDayStartMs,
+			sourceSummary: "Mac + iPhone",
+			pairedDeviceName: "iPhone",
+			mode: .categories,
+			slots: slots
+		)
+	}
+
 	static func legendCategories(for snapshot: DayWrappedSnapshot, limit: Int? = nil) -> [WrappedCategory] {
 		var counts: [WrappedCategory: Int] = [:]
 		for slot in snapshot.slots where slot.count > 0 {

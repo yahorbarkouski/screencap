@@ -30,6 +30,12 @@ final class AppModel: ObservableObject {
 
 	private var autoSyncTimer: Timer?
 
+	#if DEBUG
+	private var isDemoLayoutEnabled: Bool {
+		ProcessInfo.processInfo.arguments.contains("--demo-layout")
+	}
+	#endif
+
 	init() {
 		identity = AuthStore.loadIdentity()
 		snapshot = AppGroupStore.loadSnapshot()
@@ -39,9 +45,18 @@ final class AppModel: ObservableObject {
 		if let snapshot {
 			uploadStatus = AppGroupStore.loadUploadStatus(dayStartMs: snapshot.dayStartMs)
 		}
+#if DEBUG
+		applyDemoLayoutStateIfNeeded()
+#endif
 	}
 
 	func sceneBecameActive() async {
+#if DEBUG
+		if isDemoLayoutEnabled {
+			applyDemoLayoutStateIfNeeded()
+			return
+		}
+#endif
 		authorizationStatus = AuthorizationCenter.shared.authorizationStatus
 		snapshot = AppGroupStore.loadSnapshot()
 		if let snapshot {
@@ -761,4 +776,25 @@ final class AppModel: ObservableObject {
 			return "unknown"
 		}
 	}
+
+#if DEBUG
+	private func applyDemoLayoutStateIfNeeded() {
+		guard isDemoLayoutEnabled else { return }
+		let demoSnapshot = DayWrappedRendering.sampleSnapshot()
+		identity = DeviceIdentity(
+			userId: "debug-user",
+			deviceId: "debug-device",
+			username: "mantegna",
+			signPubKeySpkiDerB64: "",
+			dhPubKeySpkiDerB64: "",
+			backendBaseURL: "http://127.0.0.1"
+		)
+		snapshot = demoSnapshot
+		authorizationStatus = .approved
+		selectedDay = Date(timeIntervalSince1970: TimeInterval(demoSnapshot.dayStartMs) / 1000)
+		uploadStatus = "Debug sample snapshot"
+		errorMessage = nil
+		infoMessage = nil
+	}
+#endif
 }

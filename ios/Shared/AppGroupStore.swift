@@ -8,6 +8,7 @@ enum AppGroupStore {
 	private static let reportDayKey = "report.dayStartMs"
 	private static let uploadStatusKeyPrefix = "upload.status."
 	private static let widgetModeKey = "widget.dayWrappedMode"
+	private static let widgetDayKey = "widget.dayWrappedDayStartMs"
 	private static let diagnosticsKey = "sync.diagnostics.v1"
 
 	static var defaults: UserDefaults {
@@ -18,6 +19,10 @@ enum AppGroupStore {
 		containerURL().appendingPathComponent(snapshotFileName)
 	}
 
+	static func cachedSnapshotURL(dayStartMs: Int64) -> URL {
+		containerURL().appendingPathComponent("daywrapped-snapshot-\(dayStartMs).json")
+	}
+
 	static func mobileDayURL(dayStartMs: Int64) -> URL {
 		containerURL().appendingPathComponent("mobile-day-\(dayStartMs).json")
 	}
@@ -26,6 +31,7 @@ enum AppGroupStore {
 		try ensureContainerExists()
 		let data = try JSONEncoder().encode(snapshot)
 		try data.write(to: snapshotURL(), options: [.atomic])
+		try saveCachedSnapshot(snapshot)
 		updateDiagnostics { diagnostics in
 			diagnostics.snapshotSavedAtMs = Int64(Date().timeIntervalSince1970 * 1000)
 			diagnostics.snapshotDayStartMs = snapshot.dayStartMs
@@ -42,6 +48,46 @@ enum AppGroupStore {
 			diagnostics.snapshotSavedAtMs = nil
 			diagnostics.snapshotDayStartMs = nil
 		}
+	}
+
+	static func saveCachedSnapshot(_ snapshot: DayWrappedSnapshot) throws {
+		try ensureContainerExists()
+		let data = try JSONEncoder().encode(snapshot)
+		try data.write(to: cachedSnapshotURL(dayStartMs: snapshot.dayStartMs), options: [.atomic])
+	}
+
+	static func loadCachedSnapshot(dayStartMs: Int64) -> DayWrappedSnapshot? {
+		try? JSONDecoder().decode(
+			DayWrappedSnapshot.self,
+			from: Data(contentsOf: cachedSnapshotURL(dayStartMs: dayStartMs))
+		)
+	}
+
+	static func saveWidgetSelectedDayStartMs(_ dayStartMs: Int64) {
+		defaults.set(dayStartMs, forKey: widgetDayKey)
+	}
+
+	static func loadWidgetSelectedDayStartMs() -> Int64? {
+		if let value = defaults.object(forKey: widgetDayKey) as? Int64 {
+			return value
+		}
+		if let value = defaults.object(forKey: widgetDayKey) as? Int {
+			return Int64(value)
+		}
+		if let value = defaults.object(forKey: widgetDayKey) as? NSNumber {
+			return value.int64Value
+		}
+		return nil
+	}
+
+	static func loadWidgetSnapshot() -> DayWrappedSnapshot? {
+		if
+			let selectedDayStartMs = loadWidgetSelectedDayStartMs(),
+			let snapshot = loadCachedSnapshot(dayStartMs: selectedDayStartMs)
+		{
+			return snapshot
+		}
+		return loadSnapshot()
 	}
 
 	static func saveMobileDay(_ day: MobileActivityDay) throws {
