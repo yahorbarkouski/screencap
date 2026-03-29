@@ -1,3 +1,10 @@
+# [1.31.0](https://github.com/yahorbarkouski/screencap/compare/v1.30.0...v1.31.0) (2026-03-29)
+
+
+### Features
+
+* release trigger ([7133c8e](https://github.com/yahorbarkouski/screencap/commit/7133c8ebdf5020235befad8f6bbff734c4e96aa1))
+
 # [1.30.0](https://github.com/yahorbarkouski/screencap/compare/v1.29.0...v1.30.0) (2026-03-29)
 
 
