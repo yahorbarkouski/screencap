@@ -1,3 +1,10 @@
+# [1.32.0](https://github.com/yahorbarkouski/screencap/compare/v1.31.0...v1.32.0) (2026-03-29)
+
+
+### Features
+
+* new sync algo ([215e668](https://github.com/yahorbarkouski/screencap/commit/215e668eb6b6de859c7d01ff2d11f0a7aeccb517))
+
 # [1.31.0](https://github.com/yahorbarkouski/screencap/compare/v1.30.0...v1.31.0) (2026-03-29)
 
 
