@@ -13,21 +13,24 @@ import {
 	type ServerResponse,
 } from "node:http";
 import { hostname, networkInterfaces } from "node:os";
+import { endOfDay, startOfDay } from "date-fns";
 import type {
 	DevicePairingSession,
 	DevicePairingSessionStatus,
 	GetMobileActivityDaysOptions,
+	MobileActivityBucketApp,
+	MobileActivityBucketDomain,
 	MobileActivityDay,
 	MobileActivityHourBucket,
 	MobileActivitySyncStatus,
 	PairedDevice,
 } from "../../../shared/types";
+import { getEvents } from "../../infra/db/repositories/EventRepository";
 import {
 	deleteCachedMobileActivityDaysByDeviceId,
 	listCachedMobileActivityDays,
 	upsertCachedMobileActivityDays,
 } from "../../infra/db/repositories/MobileActivityDayRepository";
-import { getEvents } from "../../infra/db/repositories/EventRepository";
 import {
 	deleteMobilePairedDevice,
 	getMobilePairedDevice,
@@ -36,11 +39,15 @@ import {
 	touchMobilePairedDevice,
 	upsertMobilePairedDevice,
 } from "../../infra/db/repositories/MobilePairedDeviceRepository";
-import { createLogger, formatLogsForExport, getLogBuffer } from "../../infra/log";
+import {
+	createLogger,
+	formatLogsForExport,
+	getLogBuffer,
+} from "../../infra/log";
 import { getSocialAccountPath } from "../../infra/paths";
 import { getIdentity } from "../social/IdentityService";
 import { buildCombinedDayWrappedSnapshot } from "./DayWrappedSnapshotService";
-import { endOfDay, startOfDay } from "date-fns";
+import { classifyImportedMobileActivityDay } from "./MobileActivityClassificationService";
 
 const logger = createLogger({ scope: "LocalMobileBridge" });
 
@@ -272,6 +279,70 @@ function normalizeCategory(
 	return "Unknown";
 }
 
+function normalizeBucketApps(value: unknown): MobileActivityBucketApp[] | null {
+	if (!Array.isArray(value)) return null;
+	return value
+		.map<MobileActivityBucketApp | null>((item) => {
+			if (!item || typeof item !== "object") return null;
+			const obj = item as Record<string, unknown>;
+			if (
+				typeof obj.name !== "string" ||
+				!obj.name.trim() ||
+				typeof obj.durationSeconds !== "number" ||
+				!Number.isFinite(obj.durationSeconds) ||
+				obj.durationSeconds < 0
+			) {
+				return null;
+			}
+			const app: MobileActivityBucketApp = {
+				name: obj.name,
+				durationSeconds: Math.trunc(obj.durationSeconds),
+			};
+			if (typeof obj.bundleId === "string" && obj.bundleId.trim()) {
+				app.bundleId = obj.bundleId;
+			}
+			if (
+				typeof obj.numberOfPickups === "number" &&
+				Number.isFinite(obj.numberOfPickups)
+			) {
+				app.numberOfPickups = Math.trunc(obj.numberOfPickups);
+			}
+			if (
+				typeof obj.numberOfNotifications === "number" &&
+				Number.isFinite(obj.numberOfNotifications)
+			) {
+				app.numberOfNotifications = Math.trunc(obj.numberOfNotifications);
+			}
+			return app;
+		})
+		.filter((app): app is MobileActivityBucketApp => app !== null);
+}
+
+function normalizeBucketDomains(
+	value: unknown,
+): MobileActivityBucketDomain[] | null {
+	if (!Array.isArray(value)) return null;
+	return value
+		.map<MobileActivityBucketDomain | null>((item) => {
+			if (!item || typeof item !== "object") return null;
+			const obj = item as Record<string, unknown>;
+			if (
+				typeof obj.domain !== "string" ||
+				!obj.domain.trim() ||
+				typeof obj.durationSeconds !== "number" ||
+				!Number.isFinite(obj.durationSeconds) ||
+				obj.durationSeconds < 0
+			) {
+				return null;
+			}
+			return {
+				domain: obj.domain,
+				durationSeconds: Math.trunc(obj.durationSeconds),
+			} satisfies MobileActivityBucketDomain;
+		})
+		.filter((domain): domain is MobileActivityBucketDomain => domain !== null);
+}
+
 function normalizeBucket(value: unknown): MobileActivityHourBucket | null {
 	if (!value || typeof value !== "object") return null;
 	const obj = value as Record<string, unknown>;
@@ -287,7 +358,7 @@ function normalizeBucket(value: unknown): MobileActivityHourBucket | null {
 		return null;
 	}
 
-	return {
+	const bucket: MobileActivityHourBucket = {
 		hour: obj.hour,
 		durationSeconds: Math.trunc(obj.durationSeconds),
 		category: normalizeCategory(obj.category),
@@ -296,6 +367,36 @@ function normalizeBucket(value: unknown): MobileActivityHourBucket | null {
 				? obj.appName
 				: null,
 	};
+	if (typeof obj.appBundleId === "string" && obj.appBundleId.trim()) {
+		bucket.appBundleId = obj.appBundleId;
+	}
+	if (typeof obj.domain === "string" && obj.domain.trim()) {
+		bucket.domain = obj.domain;
+	}
+	if (typeof obj.rawCategory === "string" && obj.rawCategory.trim()) {
+		bucket.rawCategory = obj.rawCategory;
+	}
+	const apps = normalizeBucketApps(obj.apps);
+	if (apps && apps.length > 0) {
+		bucket.apps = apps;
+	}
+	const domains = normalizeBucketDomains(obj.domains);
+	if (domains && domains.length > 0) {
+		bucket.domains = domains;
+	}
+	if (typeof obj.caption === "string" && obj.caption.trim()) {
+		bucket.caption = obj.caption;
+	}
+	if (typeof obj.confidence === "number" && Number.isFinite(obj.confidence)) {
+		bucket.confidence = obj.confidence;
+	}
+	if (
+		typeof obj.classificationSource === "string" &&
+		obj.classificationSource.trim()
+	) {
+		bucket.classificationSource = obj.classificationSource;
+	}
+	return bucket;
 }
 
 function normalizeMobileActivityDay(
@@ -531,11 +632,12 @@ async function handleUploadRequest(
 		if (!day) {
 			throw new Error("Invalid mobile activity day payload");
 		}
+		const classifiedDay = await classifyImportedMobileActivityDay(day);
 
 		upsertCachedMobileActivityDays([
 			{
-				...day,
-				deviceName: day.deviceName ?? device.deviceName,
+				...classifiedDay,
+				deviceName: classifiedDay.deviceName ?? device.deviceName,
 				syncedAt: now,
 			},
 		]);
@@ -550,7 +652,12 @@ async function handleUploadRequest(
 			deviceId,
 			deviceName: device.deviceName,
 			dayStartMs,
-			bucketCount: day.buckets.length,
+			bucketCount: classifiedDay.buckets.length,
+			classifiedBucketCount: classifiedDay.buckets.filter(
+				(bucket) =>
+					typeof bucket.classificationSource === "string" &&
+					bucket.classificationSource.startsWith("desktop."),
+			).length,
 		});
 		sendJson(res, 200, { ok: true });
 	} catch (error) {
@@ -631,7 +738,9 @@ async function handleBridgeDiagnosticsRequest(
 			return;
 		}
 		touchMobilePairedDevice(device.deviceId, Date.now());
-		const normalizedDayStartMs = startOfDay(new Date(Math.trunc(dayStartMs))).getTime();
+		const normalizedDayStartMs = startOfDay(
+			new Date(Math.trunc(dayStartMs)),
+		).getTime();
 		const probeToken = url.searchParams.get("probeToken");
 		const snapshot = buildCombinedDayWrappedSnapshot(normalizedDayStartMs);
 		const events = getEvents({
@@ -639,8 +748,9 @@ async function handleBridgeDiagnosticsRequest(
 			endDate: endOfDay(new Date(normalizedDayStartMs)).getTime(),
 			dismissed: false,
 		});
-		const cachedDaysForDevice = listCachedMobileActivityDays({})
-			.filter((day) => day.deviceId === device.deviceId);
+		const cachedDaysForDevice = listCachedMobileActivityDays({}).filter(
+			(day) => day.deviceId === device.deviceId,
+		);
 		const cachedDaysForRequestedDay = cachedDaysForDevice.filter(
 			(day) => day.dayStartMs === normalizedDayStartMs,
 		);
@@ -648,7 +758,8 @@ async function handleBridgeDiagnosticsRequest(
 		const cachedDayStartMsForDevice = cachedDaysForDevice
 			.slice(0, 7)
 			.map((day) => day.dayStartMs);
-		const requestedDayBucketCount = cachedDaysForRequestedDay[0]?.buckets.length ?? null;
+		const requestedDayBucketCount =
+			cachedDaysForRequestedDay[0]?.buckets.length ?? null;
 		const bridgeLogTail = summarizeBridgeLogs();
 		logger.info("Bridge diagnostics requested", {
 			deviceId: device.deviceId,

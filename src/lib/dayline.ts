@@ -256,10 +256,18 @@ function buildIphoneAggregateSlots(
 					category,
 					(slot.categoryCounts.get(category) ?? 0) + level,
 				);
-				if (bucket.appName) {
+				const mobileLabel =
+					bucket.domain &&
+					((bucket.appName && isBrowserApp(bucket.appName)) ||
+						(!bucket.appName &&
+							bucket.appBundleId &&
+							isBrowserApp(bucket.appBundleId)))
+						? bucket.domain
+						: (bucket.appName ?? bucket.domain);
+				if (mobileLabel) {
 					slot.appCounts.set(
-						bucket.appName,
-						(slot.appCounts.get(bucket.appName) ?? 0) + level,
+						mobileLabel,
+						(slot.appCounts.get(mobileLabel) ?? 0) + level,
 					);
 				}
 			}

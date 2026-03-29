@@ -147,6 +147,33 @@ describe("DayWrappedSnapshotService", () => {
 		expect(slots[0]?.source).toBe("mac");
 	});
 
+	it("prefers imported iPhone domains for browser buckets", () => {
+		const dayStartMs = 1_700_000_000_000;
+		const slots = computeCombinedWrappedSlots(
+			[],
+			[
+				makeMobileDay({
+					dayStartMs,
+					buckets: [
+						{
+							hour: 14,
+							durationSeconds: 3600,
+							category: "Study",
+							appName: "Safari",
+							appBundleId: "com.apple.mobilesafari",
+							domain: "docs.swift.org",
+						},
+					],
+				}),
+			],
+			dayStartMs,
+			false,
+		);
+
+		expect(slots[14 * 6]?.appName).toBe("docs.swift.org");
+		expect(slots[14 * 6]?.source).toBe("iphone");
+	});
+
 	it("includes stable slot ids in the combined slot payload", () => {
 		const dayStartMs = 1_700_000_000_000;
 		const slots = computeCombinedWrappedSlots([], [], dayStartMs, false);

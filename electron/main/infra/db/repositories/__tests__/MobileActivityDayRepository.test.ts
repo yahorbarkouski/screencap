@@ -165,4 +165,47 @@ describe("MobileActivityDayRepository", () => {
 
 		expect(result).toEqual([updated]);
 	});
+
+	it("preserves enriched imported iPhone bucket metadata", () => {
+		const day: MobileActivityDay = {
+			deviceId: "ios-1",
+			deviceName: "Personal iPhone",
+			platform: "ios",
+			dayStartMs: 1_700_000_000_000,
+			buckets: [
+				{
+					hour: 14,
+					durationSeconds: 2700,
+					category: "Work",
+					appName: "docs.swift.org",
+					appBundleId: "com.apple.mobilesafari",
+					domain: "docs.swift.org",
+					rawCategory: "Productivity & Finance",
+					apps: [
+						{
+							name: "Safari",
+							bundleId: "com.apple.mobilesafari",
+							durationSeconds: 2700,
+							numberOfPickups: 1,
+							numberOfNotifications: 0,
+						},
+					],
+					domains: [{ domain: "docs.swift.org", durationSeconds: 2700 }],
+					caption: "Reading Swift docs",
+					confidence: 0.88,
+					classificationSource: "desktop.retrieval",
+				},
+			],
+			syncedAt: 1_700_000_100_000,
+		};
+
+		upsertCachedMobileActivityDays([day]);
+
+		const result = listCachedMobileActivityDays({
+			startDate: day.dayStartMs,
+			endDate: day.dayStartMs,
+		});
+
+		expect(result).toEqual([day]);
+	});
 });

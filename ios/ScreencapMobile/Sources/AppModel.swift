@@ -1,4 +1,5 @@
 import BackgroundTasks
+import Dispatch
 import FamilyControls
 import Foundation
 import UIKit
@@ -8,6 +9,8 @@ import WidgetKit
 final class AppModel: ObservableObject {
 	static let backgroundRefreshTaskIdentifier = "app.screencap.mobile.refresh"
 	nonisolated private static let autoSyncInterval: TimeInterval = 10 * 60
+	nonisolated private static let reportExportTimeoutNs: UInt64 = 45_000_000_000
+	nonisolated private static let reportExportPollIntervalNs: UInt64 = 750_000_000
 
 	@Published var identity: DeviceIdentity?
 	@Published var snapshot: DayWrappedSnapshot?
@@ -129,7 +132,17 @@ final class AppModel: ObservableObject {
 				updateVisibleSnapshot: true
 			)
 			if authorizationStatus == .approved {
-				issueReportRefresh(dayStartMs: selectedDayStartMs(), reason: "pairing")
+				let dayStartMs = selectedDayStartMs()
+				let token = issueReportRefresh(
+					dayStartMs: dayStartMs,
+					reason: "pairing",
+					showLoading: true
+				)
+				await waitForFreshImportedDay(
+					dayStartMs: dayStartMs,
+					token: token,
+					reason: "pairing"
+				)
 			}
 		} catch {
 			errorMessage = error.localizedDescription
@@ -167,7 +180,16 @@ final class AppModel: ObservableObject {
 				updateVisibleSnapshot: true
 			)
 		}
-		issueReportRefresh(dayStartMs: dayStartMs, reason: trigger)
+		let token = issueReportRefresh(
+			dayStartMs: dayStartMs,
+			reason: trigger,
+			showLoading: true
+		)
+		await waitForFreshImportedDay(
+			dayStartMs: dayStartMs,
+			token: token,
+			reason: trigger
+		)
 	}
 
 	func syncFromMac() async {
@@ -180,7 +202,16 @@ final class AppModel: ObservableObject {
 			updateVisibleSnapshot: true
 		)
 		if authorizationStatus == .approved, syncedSnapshot != nil {
-			issueReportRefresh(dayStartMs: dayStartMs, reason: "sync-from-mac")
+			let token = issueReportRefresh(
+				dayStartMs: dayStartMs,
+				reason: "sync-from-mac",
+				showLoading: true
+			)
+			await waitForFreshImportedDay(
+				dayStartMs: dayStartMs,
+				token: token,
+				reason: "sync-from-mac"
+			)
 		}
 		if errorMessage == nil, syncedSnapshot != nil {
 			infoMessage = "Synced latest Day Wrapped from Mac."
@@ -217,7 +248,16 @@ final class AppModel: ObservableObject {
 			updateVisibleSnapshot: true
 		)
 		if authorizationStatus == .approved, nextSnapshot != nil {
-			issueReportRefresh(dayStartMs: dayStartMs, reason: "repair")
+			let token = issueReportRefresh(
+				dayStartMs: dayStartMs,
+				reason: "repair",
+				showLoading: true
+			)
+			await waitForFreshImportedDay(
+				dayStartMs: dayStartMs,
+				token: token,
+				reason: "repair"
+			)
 		}
 
 		let postflightToken = UUID().uuidString
@@ -265,7 +305,11 @@ final class AppModel: ObservableObject {
 	}
 
 	func reportHostPresented() {
-		isRefreshing = false
+		AppGroupStore.appendLog(
+			scope: "refresh",
+			message:
+				"report host presented token=\(reportRefreshToken) dayStartMs=\(selectedDayStartMs())"
+		)
 	}
 
 	func copyLogs() {
@@ -417,12 +461,20 @@ final class AppModel: ObservableObject {
 				"running background refresh dayStartMs=\(todayStartMs) credentials=\(AuthStore.signedRequestCredentialsDescription())"
 		)
 
-		if AppGroupStore.loadMobileDay(dayStartMs: todayStartMs) != nil {
-			AppGroupStore.deleteMobileDay(dayStartMs: todayStartMs)
-			AppGroupStore.appendLog(
-				scope: "bg-refresh",
-				message: "discarded deprecated local mobile day dayStartMs=\(todayStartMs)"
-			)
+		if let mobileDay = AppGroupStore.loadMobileDay(dayStartMs: todayStartMs) {
+			do {
+				try await BackendClient.upload(day: mobileDay)
+				AppGroupStore.appendLog(
+					scope: "bg-refresh",
+					message: "uploaded pending mobile day dayStartMs=\(todayStartMs)"
+				)
+			} catch {
+				AppGroupStore.appendLog(
+					scope: "bg-refresh",
+					message:
+						"pending mobile day upload failed dayStartMs=\(todayStartMs) error=\(error.localizedDescription)"
+				)
+			}
 		}
 
 		do {
@@ -481,23 +533,139 @@ final class AppModel: ObservableObject {
 			updateVisibleSnapshot: selectedDayStartMs() == todayStartMs
 		)
 		if authorizationStatus == .approved, nextSnapshot != nil, selectedDayStartMs() == todayStartMs {
-			issueReportRefresh(dayStartMs: todayStartMs, reason: "auto-mac-sync")
+			_ = issueReportRefresh(
+				dayStartMs: todayStartMs,
+				reason: "auto-mac-sync",
+				showLoading: false
+			)
 		}
 	}
 
-	private func issueReportRefresh(dayStartMs: Int64, reason: String) {
+	private func issueReportRefresh(
+		dayStartMs: Int64,
+		reason: String,
+		showLoading: Bool
+	) -> String {
 		let token = AppGroupStore.noteRefreshRequested(dayStartMs: dayStartMs)
 		reportRefreshToken = token
-		isRefreshing = true
+		if showLoading {
+			isRefreshing = true
+		}
 		AppGroupStore.appendLog(
 			scope: "refresh",
 			message: "issued in-app report refresh dayStartMs=\(dayStartMs) reason=\(reason) token=\(token)"
 		)
+		return token
+	}
 
-		Task { @MainActor [weak self] in
-			try? await Task.sleep(nanoseconds: 1_500_000_000)
-			guard let self, self.reportRefreshToken == token else { return }
-			self.isRefreshing = false
+	private func waitForFreshImportedDay(
+		dayStartMs: Int64,
+		token: String,
+		reason: String
+	) async {
+		let requestedAtMs =
+			AppGroupStore.loadDiagnostics().requestedAtMs
+			?? Int64(Date().timeIntervalSince1970 * 1000)
+		let deadlineNs =
+			DispatchTime.now().uptimeNanoseconds + Self.reportExportTimeoutNs
+
+		while DispatchTime.now().uptimeNanoseconds < deadlineNs {
+			if reportRefreshToken != token {
+				isRefreshing = false
+				AppGroupStore.appendLog(
+					scope: "refresh",
+					message:
+						"refresh wait superseded dayStartMs=\(dayStartMs) reason=\(reason) token=\(token) currentToken=\(reportRefreshToken)"
+				)
+				return
+			}
+
+			let diagnostics = AppGroupStore.loadDiagnostics()
+			if
+				diagnostics.producedDayStartMs == dayStartMs,
+				let finishedAtMs = diagnostics.reportFinishedAtMs,
+				finishedAtMs >= requestedAtMs,
+				let day = AppGroupStore.loadMobileDay(dayStartMs: dayStartMs)
+			{
+				AppGroupStore.appendLog(
+					scope: "refresh",
+					message:
+						"detected fresh mobile day dayStartMs=\(dayStartMs) buckets=\(day.buckets.count) reason=\(reason)"
+				)
+				_ = await uploadLocalMobileDayIfAvailable(dayStartMs: dayStartMs)
+				_ = await performMacSync(
+					dayStartMs: dayStartMs,
+					kind: "manual",
+					recordErrors: true,
+					updateVisibleSnapshot: true
+				)
+				isRefreshing = false
+				return
+			}
+
+			try? await Task.sleep(nanoseconds: Self.reportExportPollIntervalNs)
+		}
+
+		let diagnostics = AppGroupStore.loadDiagnostics()
+		AppGroupStore.appendLog(
+			scope: "refresh",
+			message:
+				"local wait ended without fresh day dayStartMs=\(dayStartMs) trigger=\(reason) token=\(token) reportStarted=\(diagnostics.reportStartedAtMs.map(String.init) ?? "nil") reportFinished=\(diagnostics.reportFinishedAtMs.map(String.init) ?? "nil") producedDayStartMs=\(diagnostics.producedDayStartMs.map(String.init) ?? "nil")"
+		)
+
+		let probeToken = UUID().uuidString
+		let bridge = await performBridgeProbe(
+			dayStartMs: dayStartMs,
+			probeToken: probeToken,
+			recordErrors: false
+		)
+		if let bridge, bridge.cachedDaysForRequestedDay > 0 {
+			AppGroupStore.appendLog(
+				scope: "refresh",
+				message:
+					"bridge already has imported mobile day dayStartMs=\(dayStartMs) cachedDays=\(bridge.cachedDaysForRequestedDay)"
+			)
+			_ = await performMacSync(
+				dayStartMs: dayStartMs,
+				kind: "manual",
+				recordErrors: true,
+				updateVisibleSnapshot: true
+			)
+			isRefreshing = false
+			return
+		}
+
+		if errorMessage == nil {
+			errorMessage =
+				"iPhone activity export did not finish in time. The report host rendered, but no fresh imported day reached the Mac."
+		}
+		isRefreshing = false
+	}
+
+	@discardableResult
+	private func uploadLocalMobileDayIfAvailable(dayStartMs: Int64) async -> Bool {
+		guard let day = AppGroupStore.loadMobileDay(dayStartMs: dayStartMs) else {
+			return false
+		}
+		AppGroupStore.appendLog(
+			scope: "upload",
+			message:
+				"upload fallback starting dayStartMs=\(dayStartMs) buckets=\(day.buckets.count)"
+		)
+		do {
+			try await BackendClient.upload(day: day)
+			AppGroupStore.appendLog(
+				scope: "upload",
+				message: "upload fallback finished dayStartMs=\(dayStartMs)"
+			)
+			return true
+		} catch {
+			AppGroupStore.appendLog(
+				scope: "upload",
+				message:
+					"upload fallback failed dayStartMs=\(dayStartMs) error=\(error.localizedDescription)"
+			)
+			return false
 		}
 	}
 

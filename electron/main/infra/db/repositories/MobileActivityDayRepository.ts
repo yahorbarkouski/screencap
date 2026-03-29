@@ -1,4 +1,6 @@
 import type {
+	MobileActivityBucketApp,
+	MobileActivityBucketDomain,
 	MobileActivityDay,
 	MobileActivityHourBucket,
 } from "../../../../shared/types";
@@ -13,12 +15,76 @@ type MobileActivityDayRow = {
 	synced_at: number;
 };
 
+function parseBucketApps(value: unknown): MobileActivityBucketApp[] | null {
+	if (!Array.isArray(value)) return null;
+	return value
+		.map<MobileActivityBucketApp | null>((item) => {
+			if (!item || typeof item !== "object") return null;
+			const app = item as Partial<MobileActivityBucketApp>;
+			if (
+				typeof app.name !== "string" ||
+				!app.name.trim() ||
+				typeof app.durationSeconds !== "number" ||
+				!Number.isFinite(app.durationSeconds) ||
+				app.durationSeconds < 0
+			) {
+				return null;
+			}
+			const parsed: MobileActivityBucketApp = {
+				name: app.name,
+				durationSeconds: Math.trunc(app.durationSeconds),
+			};
+			if (typeof app.bundleId === "string" && app.bundleId.trim()) {
+				parsed.bundleId = app.bundleId;
+			}
+			if (
+				typeof app.numberOfPickups === "number" &&
+				Number.isFinite(app.numberOfPickups)
+			) {
+				parsed.numberOfPickups = Math.trunc(app.numberOfPickups);
+			}
+			if (
+				typeof app.numberOfNotifications === "number" &&
+				Number.isFinite(app.numberOfNotifications)
+			) {
+				parsed.numberOfNotifications = Math.trunc(app.numberOfNotifications);
+			}
+			return parsed;
+		})
+		.filter((app): app is MobileActivityBucketApp => app !== null);
+}
+
+function parseBucketDomains(
+	value: unknown,
+): MobileActivityBucketDomain[] | null {
+	if (!Array.isArray(value)) return null;
+	return value
+		.map<MobileActivityBucketDomain | null>((item) => {
+			if (!item || typeof item !== "object") return null;
+			const domain = item as Partial<MobileActivityBucketDomain>;
+			if (
+				typeof domain.domain !== "string" ||
+				!domain.domain.trim() ||
+				typeof domain.durationSeconds !== "number" ||
+				!Number.isFinite(domain.durationSeconds) ||
+				domain.durationSeconds < 0
+			) {
+				return null;
+			}
+			return {
+				domain: domain.domain,
+				durationSeconds: Math.trunc(domain.durationSeconds),
+			} satisfies MobileActivityBucketDomain;
+		})
+		.filter((domain): domain is MobileActivityBucketDomain => domain !== null);
+}
+
 function parseBuckets(value: string): MobileActivityHourBucket[] | null {
 	try {
 		const parsed = JSON.parse(value) as unknown;
 		if (!Array.isArray(parsed)) return null;
 		return parsed
-			.map((item) => {
+			.map<MobileActivityHourBucket | null>((item) => {
 				if (!item || typeof item !== "object") return null;
 				const bucket = item as Partial<MobileActivityHourBucket>;
 				if (
@@ -33,7 +99,7 @@ function parseBuckets(value: string): MobileActivityHourBucket[] | null {
 				) {
 					return null;
 				}
-				return {
+				const parsedBucket: MobileActivityHourBucket = {
 					hour: bucket.hour,
 					durationSeconds: Math.trunc(bucket.durationSeconds),
 					category: bucket.category,
@@ -42,6 +108,45 @@ function parseBuckets(value: string): MobileActivityHourBucket[] | null {
 							? bucket.appName
 							: null,
 				};
+				if (
+					typeof bucket.appBundleId === "string" &&
+					bucket.appBundleId.trim()
+				) {
+					parsedBucket.appBundleId = bucket.appBundleId;
+				}
+				if (typeof bucket.domain === "string" && bucket.domain.trim()) {
+					parsedBucket.domain = bucket.domain;
+				}
+				if (
+					typeof bucket.rawCategory === "string" &&
+					bucket.rawCategory.trim()
+				) {
+					parsedBucket.rawCategory = bucket.rawCategory;
+				}
+				const apps = parseBucketApps(bucket.apps);
+				if (apps && apps.length > 0) {
+					parsedBucket.apps = apps;
+				}
+				const domains = parseBucketDomains(bucket.domains);
+				if (domains && domains.length > 0) {
+					parsedBucket.domains = domains;
+				}
+				if (typeof bucket.caption === "string" && bucket.caption.trim()) {
+					parsedBucket.caption = bucket.caption;
+				}
+				if (
+					typeof bucket.confidence === "number" &&
+					Number.isFinite(bucket.confidence)
+				) {
+					parsedBucket.confidence = bucket.confidence;
+				}
+				if (
+					typeof bucket.classificationSource === "string" &&
+					bucket.classificationSource.trim()
+				) {
+					parsedBucket.classificationSource = bucket.classificationSource;
+				}
+				return parsedBucket;
 			})
 			.filter((bucket): bucket is MobileActivityHourBucket => bucket !== null);
 	} catch {

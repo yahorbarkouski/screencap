@@ -524,6 +524,14 @@ export interface MobileActivityHourBucket {
 	durationSeconds: number;
 	category: AutomationCategory;
 	appName: string | null;
+	appBundleId?: string | null;
+	domain?: string | null;
+	rawCategory?: string | null;
+	apps?: MobileActivityBucketApp[] | null;
+	domains?: MobileActivityBucketDomain[] | null;
+	caption?: string | null;
+	confidence?: number | null;
+	classificationSource?: string | null;
 }
 
 export interface MobileActivityDay {
@@ -533,6 +541,19 @@ export interface MobileActivityDay {
 	dayStartMs: number;
 	buckets: MobileActivityHourBucket[];
 	syncedAt: number;
+}
+
+export interface MobileActivityBucketApp {
+	name: string;
+	bundleId?: string | null;
+	durationSeconds: number;
+	numberOfPickups?: number | null;
+	numberOfNotifications?: number | null;
+}
+
+export interface MobileActivityBucketDomain {
+	domain: string;
+	durationSeconds: number;
 }
 
 export interface GetMobileActivityDaysOptions {

@@ -147,11 +147,60 @@ struct PairingClaimResponse: Codable, Sendable {
 	let username: String
 }
 
+struct MobileActivityBucketApp: Codable, Hashable, Sendable {
+	let name: String
+	let bundleId: String?
+	let durationSeconds: Int
+	let numberOfPickups: Int?
+	let numberOfNotifications: Int?
+}
+
+struct MobileActivityBucketDomain: Codable, Hashable, Sendable {
+	let domain: String
+	let durationSeconds: Int
+}
+
 struct MobileActivityHourBucket: Codable, Hashable, Sendable {
 	let hour: Int
 	let durationSeconds: Int
 	let category: WrappedCategory
 	let appName: String?
+	let appBundleId: String?
+	let domain: String?
+	let rawCategory: String?
+	let apps: [MobileActivityBucketApp]?
+	let domains: [MobileActivityBucketDomain]?
+	let caption: String?
+	let confidence: Double?
+	let classificationSource: String?
+
+	init(
+		hour: Int,
+		durationSeconds: Int,
+		category: WrappedCategory,
+		appName: String?,
+		appBundleId: String? = nil,
+		domain: String? = nil,
+		rawCategory: String? = nil,
+		apps: [MobileActivityBucketApp]? = nil,
+		domains: [MobileActivityBucketDomain]? = nil,
+		caption: String? = nil,
+		confidence: Double? = nil,
+		classificationSource: String? = nil
+	) {
+		self.hour = hour
+		self.durationSeconds = durationSeconds
+		self.category = category
+		self.appName = appName
+		self.appBundleId = appBundleId
+		self.domain = domain
+		self.rawCategory = rawCategory
+		self.apps = apps
+		self.domains = domains
+		self.caption = caption
+		self.confidence = confidence
+		self.classificationSource = classificationSource
+	}
 }
 
 struct MobileActivityDay: Codable, Hashable, Sendable {
