@@ -1,3 +1,10 @@
+# [1.33.0](https://github.com/yahorbarkouski/screencap/compare/v1.32.0...v1.33.0) (2026-03-29)
+
+
+### Features
+
+* import and classify iPhone activity on desktop ([1a0c2bc](https://github.com/yahorbarkouski/screencap/commit/1a0c2bcd7668805e1f25162aaf70b5c2347abdd3))
+
 # [1.32.0](https://github.com/yahorbarkouski/screencap/compare/v1.31.0...v1.32.0) (2026-03-29)
 
 
