@@ -1,3 +1,10 @@
+# [1.29.0](https://github.com/yahorbarkouski/screencap/compare/v1.28.1...v1.29.0) (2026-03-29)
+
+
+### Features
+
+* polish iphone day wrapped surfaces ([fea9547](https://github.com/yahorbarkouski/screencap/commit/fea954771a653118752d41bfd7d5f1d72acd885d))
+
 ## [1.28.1](https://github.com/yahorbarkouski/screencap/compare/v1.28.0...v1.28.1) (2026-03-28)
 
 
