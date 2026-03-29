@@ -1,3 +1,17 @@
+# [1.30.0](https://github.com/yahorbarkouski/screencap/compare/v1.29.0...v1.30.0) (2026-03-29)
+
+
+### Bug Fixes
+
+* handle scheduler tick rejections ([26dba01](https://github.com/yahorbarkouski/screencap/commit/26dba01f1ef4e0a44be806ba23f8028627ef149a))
+* recover from stale capture locks ([2a49bf1](https://github.com/yahorbarkouski/screencap/commit/2a49bf1bd43f236ae4eca0ed3380d2791748ac7f))
+
+
+### Features
+
+* add needs addiction review filter with bulk confirm ([24ee2d5](https://github.com/yahorbarkouski/screencap/commit/24ee2d5d55451b91edc417a3c4a8fa9ac594f7ea))
+* virtualize timeline rendering ([850548a](https://github.com/yahorbarkouski/screencap/commit/850548ac1e9c6e2e7eb2d21ad15ac2ada66387ae))
+
 # [1.29.0](https://github.com/yahorbarkouski/screencap/compare/v1.28.1...v1.29.0) (2026-03-29)
 
 
