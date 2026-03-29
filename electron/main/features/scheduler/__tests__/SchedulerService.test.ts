@@ -77,13 +77,14 @@ vi.mock("../../context", () => ({
 }));
 
 describe("SchedulerService (manual capture)", () => {
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
 	beforeEach(() => {
 		vi.resetModules();
 		vi.clearAllMocks();
+		vi.useRealTimers();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
 	});
 
 	it("broadcasts permission required and does not capture when permission is missing", async () => {
@@ -215,5 +216,74 @@ describe("SchedulerService (manual capture)", () => {
 		stopScheduler();
 
 		expect(logger.error).toHaveBeenCalledWith("Scheduler tick failed", error);
+	});
+
+	it("force releases a stale manual capture lease so the next manual capture can proceed", async () => {
+		vi.useFakeTimers();
+
+		checkScreenCapturePermission.mockReturnValue(true);
+		captureAllDisplays.mockImplementationOnce(
+			() => new Promise(() => undefined),
+		);
+		captureAllDisplays.mockResolvedValue([
+			{
+				id: "s2",
+				timestamp: 2,
+				displayId: "D1",
+				thumbnailPath: "/tmp/t2.webp",
+				originalPath: "/tmp/o2.webp",
+				stableHash: "1".repeat(16),
+				detailHash: "1".repeat(64),
+				width: 100,
+				height: 100,
+			},
+		]);
+		processCaptureGroup.mockResolvedValue({ merged: false, eventId: "e2" });
+
+		const { triggerManualCaptureWithPrimaryDisplay } = await import(
+			"../SchedulerService"
+		);
+
+		void triggerManualCaptureWithPrimaryDisplay({
+			primaryDisplayId: "D1",
+			intent: "default",
+		});
+
+		const secondCapturePromise = triggerManualCaptureWithPrimaryDisplay({
+			primaryDisplayId: "D1",
+			intent: "default",
+		});
+
+		await vi.advanceTimersByTimeAsync(60_000);
+
+		await expect(secondCapturePromise).resolves.toEqual({
+			merged: false,
+			eventId: "e2",
+		});
+		expect(captureAllDisplays).toHaveBeenCalledTimes(2);
+	});
+
+	it("recovers scheduled captures after a stale windowed capture lease expires", async () => {
+		vi.useFakeTimers();
+
+		finalizeActivityWindow
+			.mockImplementationOnce(() => new Promise(() => undefined))
+			.mockResolvedValue({
+				kind: "skip",
+				windowStart: 0,
+				windowEnd: 0,
+				reason: "no-data",
+			});
+		discardActivityWindow.mockResolvedValue(undefined);
+
+		const { startScheduler, stopScheduler } = await import(
+			"../SchedulerService"
+		);
+
+		startScheduler(1);
+		await vi.advanceTimersByTimeAsync(181_000);
+		stopScheduler();
+
+		expect(finalizeActivityWindow.mock.calls.length).toBeGreaterThanOrEqual(2);
 	});
 });
