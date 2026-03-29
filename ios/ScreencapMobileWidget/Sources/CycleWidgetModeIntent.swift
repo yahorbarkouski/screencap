@@ -11,3 +11,14 @@ struct CycleWidgetModeIntent: AppIntent {
 		return .result()
 	}
 }
+
+struct CycleWidgetSourceFilterIntent: AppIntent {
+	static var title: LocalizedStringResource = "Cycle Day Wrapped Source Filter"
+
+	func perform() async throws -> some IntentResult {
+		let nextFilter = AppGroupStore.loadWidgetSourceFilter().nextWidgetSourceFilter
+		AppGroupStore.saveWidgetSourceFilter(nextFilter)
+		WidgetCenter.shared.reloadTimelines(ofKind: "ScreencapMobileWidget")
+		return .result()
+	}
+}

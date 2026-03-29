@@ -32,6 +32,8 @@
 	<string>Screencap uses the camera to scan the pairing QR code from your Mac when you connect your iPhone companion app.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Screencap connects to your paired Mac over the local network to refresh Day Wrapped data for the iPhone app and widget.</string>
+	<key>ScreencapSharedKeychainAccessGroup</key>
+	<string>$(AppIdentifierPrefix)app.screencap.mobile.shared</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>

@@ -7,7 +7,7 @@ enum AuthStore {
 	private static let signKeyAccount = "sign-private-raw"
 	private static let dhKeyAccount = "dh-private-raw"
 	private static let sharedAccessGroupSuffix = ".app.screencap.mobile.shared"
-	private static let keychainAccessGroupsEntitlement = "keychain-access-groups"
+	private static let sharedAccessGroupInfoKey = "ScreencapSharedKeychainAccessGroup"
 	private static var cachedSharedAccessGroup: String?
 
 	enum SignedRequestCredentials {
@@ -143,21 +143,14 @@ enum AuthStore {
 		if let cachedSharedAccessGroup {
 			return cachedSharedAccessGroup
 		}
-		guard let task = SecTaskCreateFromSelf(nil) else {
-			return nil
-		}
+
 		guard
-			let value = SecTaskCopyValueForEntitlement(
-				task,
-				keychainAccessGroupsEntitlement as CFString,
-				nil
-			) as? [String]
+			let accessGroup = Bundle.main.object(forInfoDictionaryKey: sharedAccessGroupInfoKey)
+				as? String,
+			accessGroup.hasSuffix(sharedAccessGroupSuffix)
 		else {
 			return nil
 		}
-		let accessGroup =
-			value.first(where: { $0.hasSuffix(sharedAccessGroupSuffix) })
-			?? value.first
 		cachedSharedAccessGroup = accessGroup
 		return accessGroup
 	}
