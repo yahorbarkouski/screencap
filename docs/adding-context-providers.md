@@ -11,7 +11,7 @@ The context system captures two types of activities:
 
 ```
 ContextService
-    ├── collectForegroundSnapshot()        # Gets active app/window via System Events
+    ├── collectForegroundSnapshot()        # Gets active app/window via native macOS APIs
     ├── ForegroundProviders                # Enrich based on foreground app
     │   ├── SafariProvider
     │   ├── ChromiumProvider

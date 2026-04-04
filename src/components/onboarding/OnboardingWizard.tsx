@@ -694,9 +694,9 @@ function AutomationStep({
 
 			<FadeIn delay={0.02} className="space-y-3 max-w-lg mx-auto">
 				<AutomationItemEnhanced
-					label="System Events"
+					label="Window Detection"
 					status={automationStatus.systemEvents}
-					description="Identifies which window is focused when you have multiple apps open"
+					description="Uses native macOS APIs to identify the foreground app and window without extra Automation permission"
 					example={{
 						without: "Finder | Safari | Cursor",
 						with: "Cursor - Screencap workspace",

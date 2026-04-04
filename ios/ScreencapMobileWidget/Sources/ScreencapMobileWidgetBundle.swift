@@ -10,12 +10,14 @@ struct ScreencapWidgetEntry: TimelineEntry {
 }
 
 struct ScreencapWidgetProvider: TimelineProvider {
-	private func resolvedSnapshot(preview: Bool) -> DayWrappedSnapshot? {
+	private static let refreshInterval: TimeInterval = 5 * 60
+
+	private func resolvedSnapshot(referenceDate: Date, preview: Bool) -> DayWrappedSnapshot? {
 		if preview {
 			return sampleSnapshot()
 		}
 
-		if let snapshot = AppGroupStore.loadWidgetSnapshot() {
+		if let snapshot = AppGroupStore.loadWidgetSnapshot(referenceDate: referenceDate) {
 			return snapshot
 		}
 
@@ -37,10 +39,11 @@ struct ScreencapWidgetProvider: TimelineProvider {
 	}
 
 	func getSnapshot(in context: Context, completion: @escaping (ScreencapWidgetEntry) -> Void) {
+		let now = Date()
 		completion(
 			ScreencapWidgetEntry(
-				date: Date(),
-				snapshot: resolvedSnapshot(preview: context.isPreview),
+				date: now,
+				snapshot: resolvedSnapshot(referenceDate: now, preview: context.isPreview),
 				mode: AppGroupStore.loadWidgetMode(),
 				sourceFilter: AppGroupStore.loadWidgetSourceFilter(),
 				isPlaceholder: context.isPreview
@@ -49,18 +52,31 @@ struct ScreencapWidgetProvider: TimelineProvider {
 	}
 
 	func getTimeline(in _: Context, completion: @escaping (Timeline<ScreencapWidgetEntry>) -> Void) {
+		let now = Date()
 		let entry = ScreencapWidgetEntry(
-			date: Date(),
-			snapshot: resolvedSnapshot(preview: false),
+			date: now,
+			snapshot: resolvedSnapshot(referenceDate: now, preview: false),
 			mode: AppGroupStore.loadWidgetMode(),
 			sourceFilter: AppGroupStore.loadWidgetSourceFilter(),
 			isPlaceholder: false
 		)
-		completion(Timeline(entries: [entry], policy: .after(Date().addingTimeInterval(30 * 60))))
+		completion(
+			Timeline(
+				entries: [entry],
+				policy: .after(nextRefreshDate(after: now))
+			)
+		)
 	}
 
 	private func sampleSnapshot() -> DayWrappedSnapshot {
 		DayWrappedRendering.sampleSnapshot()
+	}
+
+	private func nextRefreshDate(after date: Date) -> Date {
+		let currentInterval = date.timeIntervalSince1970
+		let nextInterval =
+			(floor(currentInterval / Self.refreshInterval) + 1) * Self.refreshInterval
+		return Date(timeIntervalSince1970: nextInterval)
 	}
 }
 

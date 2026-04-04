@@ -1,4 +1,9 @@
-import { type ChildProcess, exec, spawn } from "node:child_process";
+import {
+	type ChildProcess,
+	type ChildProcessWithoutNullStreams,
+	exec,
+	spawn,
+} from "node:child_process";
 import { performance } from "node:perf_hooks";
 import { createPerfTracker } from "../../infra/log/perf";
 
@@ -18,6 +23,251 @@ const globalState = {
 };
 
 const perf = createPerfTracker("Perf.AppleScript");
+
+interface PersistentSessionQueuedRequest {
+	resolve: (result: AppleScriptResult) => void;
+	script: string;
+	timeoutMs: number;
+}
+
+interface PersistentJxaActiveRequest extends PersistentSessionQueuedRequest {
+	id: number;
+	markerEnd: string;
+	markerStart: string;
+	startedAt: number;
+	timer: NodeJS.Timeout;
+}
+
+class PersistentJxaSession {
+	private active: PersistentJxaActiveRequest | null = null;
+	private child: ChildProcessWithoutNullStreams | null = null;
+	private nextRequestId = 1;
+	private readonly queue: PersistentSessionQueuedRequest[] = [];
+	private stderrBuffer = "";
+
+	constructor(private readonly sessionKey: string) {}
+
+	async run(script: string, timeoutMs: number): Promise<AppleScriptResult> {
+		return await new Promise((resolve) => {
+			this.queue.push({ resolve, script, timeoutMs });
+			this.pump();
+		});
+	}
+
+	close(): void {
+		const child = this.child;
+		this.child = null;
+		this.stderrBuffer = "";
+
+		if (child && !child.killed) {
+			child.kill("SIGKILL");
+		}
+	}
+
+	private ensureChild(): ChildProcessWithoutNullStreams {
+		if (this.child && this.child.exitCode === null && !this.child.killed) {
+			return this.child;
+		}
+
+		const child = spawn("osascript", ["-il", "JavaScript"], {
+			stdio: ["pipe", "pipe", "pipe"],
+		});
+
+		this.child = child;
+		this.stderrBuffer = "";
+
+		child.stderr.on("data", (data) => {
+			this.stderrBuffer += data.toString();
+			this.maybeResolveActiveFromStderr();
+		});
+
+		child.stdout.on("data", (data) => {
+			const output = data.toString().trim();
+			if (!this.active || !output.startsWith("!! Error:")) return;
+			this.finishActive({
+				success: false,
+				output: "",
+				error: output.replace(/^!! Error:\s*/, ""),
+				timedOut: false,
+			});
+		});
+
+		child.on("error", (error) => {
+			this.handleChildTermination(error.message, false, child);
+		});
+
+		child.on("close", (code, signal) => {
+			const message =
+				this.stderrBuffer.trim() ||
+				(signal ? `signal ${signal}` : `exit code ${code ?? 0}`);
+			this.handleChildTermination(message, false, child);
+		});
+
+		return child;
+	}
+
+	private finishActive(result: AppleScriptResult): void {
+		const active = this.active;
+		if (!active) return;
+
+		clearTimeout(active.timer);
+		this.active = null;
+
+		if (perf.enabled) {
+			perf.track("persistentJxa.exec", performance.now() - active.startedAt);
+			perf.count(
+				result.timedOut
+					? "persistentJxa.timeout"
+					: result.success
+						? "persistentJxa.success"
+						: "persistentJxa.error",
+			);
+		}
+
+		active.resolve(result);
+		this.pump();
+	}
+
+	private handleChildTermination(
+		error: string,
+		timedOut: boolean,
+		child: ChildProcessWithoutNullStreams,
+	): void {
+		if (this.child !== child) return;
+
+		this.child = null;
+		this.stderrBuffer = "";
+
+		if (this.active) {
+			this.finishActive({
+				success: false,
+				output: "",
+				error,
+				timedOut,
+			});
+			return;
+		}
+
+		this.pump();
+	}
+
+	private maybeResolveActiveFromStderr(): void {
+		const active = this.active;
+		if (!active) return;
+
+		const start = this.stderrBuffer.indexOf(active.markerStart);
+		if (start === -1) return;
+
+		const end = this.stderrBuffer.indexOf(
+			active.markerEnd,
+			start + active.markerStart.length,
+		);
+		if (end === -1) return;
+
+		const payload = this.stderrBuffer.slice(
+			start + active.markerStart.length,
+			end,
+		);
+		this.stderrBuffer = this.stderrBuffer.slice(end + active.markerEnd.length);
+
+		try {
+			const parsed = JSON.parse(payload) as {
+				error?: unknown;
+				ok?: unknown;
+				result?: unknown;
+			};
+
+			if (parsed.ok !== true) {
+				this.finishActive({
+					success: false,
+					output: "",
+					error:
+						typeof parsed.error === "string"
+							? parsed.error
+							: "persistent JXA request failed",
+					timedOut: false,
+				});
+				return;
+			}
+
+			const output =
+				typeof parsed.result === "string"
+					? parsed.result
+					: parsed.result == null
+						? ""
+						: JSON.stringify(parsed.result);
+
+			this.finishActive({
+				success: true,
+				output,
+				error: null,
+				timedOut: false,
+			});
+		} catch (error) {
+			this.finishActive({
+				success: false,
+				output: "",
+				error:
+					error instanceof Error
+						? error.message
+						: "failed to parse persistent JXA response",
+				timedOut: false,
+			});
+		}
+	}
+
+	private pump(): void {
+		if (this.active) return;
+
+		const next = this.queue.shift();
+		if (!next) return;
+
+		const child = this.ensureChild();
+		const id = this.nextRequestId++;
+		const markerStart = `__SCREENCAP_JXA_START_${this.sessionKey}_${id}__`;
+		const markerEnd = `__SCREENCAP_JXA_END_${this.sessionKey}_${id}__`;
+		const startedAt = perf.enabled ? performance.now() : 0;
+
+		if (perf.enabled) {
+			perf.count("persistentJxa.acquire");
+			if (this.queue.length > 0) perf.count("persistentJxa.queue");
+		}
+
+		this.active = {
+			...next,
+			id,
+			markerEnd,
+			markerStart,
+			startedAt,
+			timer: setTimeout(() => {
+				this.handleChildTermination("timeout", true, child);
+				if (!child.killed) {
+					child.kill("SIGKILL");
+				}
+			}, next.timeoutMs),
+		};
+
+		const wrappedScript = [
+			"(() => {",
+			"  try {",
+			"    const __result = (() => {",
+			next.script,
+			"    })();",
+			`    console.log(${JSON.stringify(markerStart)} + JSON.stringify({ ok: true, result: __result }) + ${JSON.stringify(markerEnd)});`,
+			"  } catch (error) {",
+			`    console.log(${JSON.stringify(markerStart)} + JSON.stringify({ ok: false, error: String(error) }) + ${JSON.stringify(markerEnd)});`,
+			"  }",
+			"})()",
+		].join("\n");
+
+		child.stdin.write(`${wrappedScript}\n`, (error) => {
+			if (!error) return;
+			this.handleChildTermination(error.message, false, child);
+		});
+	}
+}
+
+const persistentJxaSessions = new Map<string, PersistentJxaSession>();
 
 function acquireSlot(): Promise<void> {
 	return new Promise((resolve) => {
@@ -242,6 +492,27 @@ export async function runJxa(
 	}
 }
 
+export async function runPersistentJxa(
+	sessionKey: string,
+	script: string,
+	timeoutMs: number = DEFAULT_TIMEOUT_MS,
+): Promise<AppleScriptResult> {
+	let session = persistentJxaSessions.get(sessionKey);
+	if (!session) {
+		session = new PersistentJxaSession(sessionKey);
+		persistentJxaSessions.set(sessionKey, session);
+	}
+
+	return await session.run(script, timeoutMs);
+}
+
+export function closePersistentJxaSessions(): void {
+	for (const session of persistentJxaSessions.values()) {
+		session.close();
+	}
+	persistentJxaSessions.clear();
+}
+
 export function isAutomationDenied(error: string | null): boolean {
 	if (!error) return false;
 	const denialPatterns = [
@@ -264,3 +535,7 @@ export function getAppleScriptHealth(): {
 		queueLength: globalState.queue.length,
 	};
 }
+
+process.once("exit", () => {
+	closePersistentJxaSessions();
+});

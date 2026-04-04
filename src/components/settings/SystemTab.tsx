@@ -609,8 +609,8 @@ export function SystemTab({
 								status={contextStatus.accessibility}
 							/>
 							<PermissionItem
-								label="Automation (System Events)"
-								description="Access system-level window information"
+								label="Window Detection"
+								description="Use native macOS APIs to detect the foreground app and window"
 								status={contextStatus.automation.systemEvents}
 							/>
 							<PermissionItem

@@ -1,6 +1,6 @@
 import { screen } from "electron";
 import { createLogger } from "../../../infra/log";
-import { isAutomationDenied, runAppleScript } from "../applescript";
+import { runPersistentJxa } from "../applescript";
 import type {
 	ForegroundApp,
 	ForegroundSnapshot,
@@ -10,29 +10,72 @@ import type {
 
 const logger = createLogger({ scope: "SystemEventsProvider" });
 
+const FOREGROUND_SNAPSHOT_SESSION_KEY = "foreground-snapshot";
+
 const COMBINED_SCRIPT = `
-tell application "System Events"
-  set frontApp to first application process whose frontmost is true
-  set appName to name of frontApp
-  set bundleId to bundle identifier of frontApp
-  set appPid to unix id of frontApp
-  set winTitle to ""
-  set winX to 0
-  set winY to 0
-  set winW to 0
-  set winH to 0
-  try
-    set frontWin to first window of frontApp
-    set winTitle to name of frontWin
-    set winPos to position of frontWin
-    set winSize to size of frontWin
-    set winX to item 1 of winPos
-    set winY to item 2 of winPos
-    set winW to item 1 of winSize
-    set winH to item 2 of winSize
-  end try
-  return appName & "|||" & bundleId & "|||" & appPid & "|||" & winTitle & "|||" & winX & "|||" & winY & "|||" & winW & "|||" & winH
-end tell
+ObjC.import('AppKit');
+ObjC.import('CoreGraphics');
+
+function unwrapString(value) {
+  if (!value || value.isNil()) return '';
+  return ObjC.unwrap(value);
+}
+
+var app = $.NSWorkspace.sharedWorkspace.frontmostApplication;
+if (!app || app.isNil()) {
+  return null;
+}
+
+var pid = app.processIdentifier;
+var appName = unwrapString(app.localizedName);
+var bundleId = unwrapString(app.bundleIdentifier);
+var windowTitle = '';
+var x = 0;
+var y = 0;
+var width = 0;
+var height = 0;
+
+var options = (1 << 0) | (1 << 4);
+var windowsRef = $.CGWindowListCopyWindowInfo(options, 0);
+var windows = ObjC.castRefToObject(windowsRef);
+var count = windows ? windows.count : 0;
+
+for (var i = 0; i < count; i++) {
+  var win = windows.objectAtIndex(i);
+  var ownerPid = win.objectForKey('kCGWindowOwnerPID');
+  if (!ownerPid || ownerPid.intValue !== pid) continue;
+
+  var layer = win.objectForKey('kCGWindowLayer');
+  if (layer && layer.intValue > 0) continue;
+
+  var alpha = win.objectForKey('kCGWindowAlpha');
+  if (alpha && alpha.doubleValue < 0.1) continue;
+
+  var boundsDict = win.objectForKey('kCGWindowBounds');
+  if (!boundsDict) continue;
+
+  var candidateWidth = boundsDict.objectForKey('Width').doubleValue;
+  var candidateHeight = boundsDict.objectForKey('Height').doubleValue;
+  if (candidateWidth < 10 || candidateHeight < 10) continue;
+
+  windowTitle = unwrapString(win.objectForKey('kCGWindowName'));
+  x = Math.round(boundsDict.objectForKey('X').doubleValue);
+  y = Math.round(boundsDict.objectForKey('Y').doubleValue);
+  width = Math.round(candidateWidth);
+  height = Math.round(candidateHeight);
+  break;
+}
+
+return {
+  appName: appName,
+  bundleId: bundleId,
+  pid: pid,
+  windowTitle: windowTitle,
+  x: x,
+  y: y,
+  width: width,
+  height: height,
+};
 `;
 
 interface ParsedOutput {
@@ -40,26 +83,59 @@ interface ParsedOutput {
 	window: Omit<ForegroundWindow, "displayId" | "isFullscreen">;
 }
 
-function parseOutput(output: string): ParsedOutput | null {
-	const parts = output.split("|||");
-	if (parts.length < 8) return null;
+interface ParsedForegroundPayload {
+	appName?: unknown;
+	bundleId?: unknown;
+	height?: unknown;
+	pid?: unknown;
+	width?: unknown;
+	windowTitle?: unknown;
+	x?: unknown;
+	y?: unknown;
+}
 
-	const pid = parseInt(parts[2], 10);
+function parseInteger(value: unknown, fallback = 0): number {
+	if (typeof value === "number" && Number.isFinite(value)) {
+		return Math.round(value);
+	}
+	if (typeof value === "string" && value.trim().length > 0) {
+		const parsed = parseInt(value, 10);
+		if (!Number.isNaN(parsed)) return parsed;
+	}
+	return fallback;
+}
+
+function parseOutput(output: string): ParsedOutput | null {
+	let payload: ParsedForegroundPayload;
+	try {
+		payload = JSON.parse(output) as ParsedForegroundPayload;
+	} catch {
+		return null;
+	}
+
+	if (
+		typeof payload.appName !== "string" ||
+		typeof payload.bundleId !== "string"
+	) {
+		return null;
+	}
+
+	const pid = parseInteger(payload.pid, Number.NaN);
 	if (Number.isNaN(pid)) return null;
 
-	const x = parseInt(parts[4], 10) || 0;
-	const y = parseInt(parts[5], 10) || 0;
-	const width = parseInt(parts[6], 10) || 0;
-	const height = parseInt(parts[7], 10) || 0;
+	const x = parseInteger(payload.x);
+	const y = parseInteger(payload.y);
+	const width = parseInteger(payload.width);
+	const height = parseInteger(payload.height);
 
 	return {
 		app: {
-			name: parts[0],
-			bundleId: parts[1],
+			name: payload.appName,
+			bundleId: payload.bundleId,
 			pid,
 		},
 		window: {
-			title: parts[3] || "",
+			title: typeof payload.windowTitle === "string" ? payload.windowTitle : "",
 			bounds: { x, y, width, height },
 		},
 	};
@@ -111,18 +187,18 @@ function findDisplayForWindow(bounds: WindowBounds): {
 
 type AutomationState = "not-attempted" | "granted" | "denied";
 
-let automationState: AutomationState = "not-attempted";
+let automationState: AutomationState = "granted";
 let lastAutomationError: string | null = null;
 
 export async function collectForegroundSnapshot(): Promise<ForegroundSnapshot | null> {
-	const result = await runAppleScript(COMBINED_SCRIPT);
+	const result = await runPersistentJxa(
+		FOREGROUND_SNAPSHOT_SESSION_KEY,
+		COMBINED_SCRIPT,
+	);
 
 	if (!result.success) {
-		if (isAutomationDenied(result.error)) {
-			automationState = "denied";
-			lastAutomationError = result.error;
-			logger.warn("Automation permission denied for System Events");
-		} else if (!result.timedOut) {
+		lastAutomationError = result.error;
+		if (!result.timedOut) {
 			logger.debug("Failed to get foreground snapshot", {
 				error: result.error,
 			});

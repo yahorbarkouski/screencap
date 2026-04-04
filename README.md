@@ -174,7 +174,7 @@ Screencap extracts rich context from your active window:
 
 | Provider          | What it captures                                         |
 | ----------------- | -------------------------------------------------------- |
-| System Events     | Frontmost app, window title, fullscreen state            |
+| Native macOS APIs | Frontmost app, window title, fullscreen state            |
 | Safari            | Current URL, page title                                  |
 | Chromium browsers | Current URL, page title (Chrome, Arc, Brave, Edge, etc.) |
 | Spotify           | Track name, artist, album art                            |
@@ -280,7 +280,7 @@ See [Security & Privacy: Sharing](docs/security-sharing.md) and [E2EE Crypto Spe
 | -------------------------- | --------------------------------- | ----------- |
 | Screen Recording           | Capture screenshots               | Yes         |
 | Accessibility              | Read window titles                | Recommended |
-| Automation -> System Events | Identify focused window           | Recommended |
+| Built-in macOS APIs         | Identify focused window           | Enabled automatically |
 | Automation -> Browsers      | Read URLs from Safari/Chrome/etc. | Recommended |
 | Automation -> Media apps    | Capture Spotify track info        | Optional    |
 

@@ -10,6 +10,7 @@ enum AppGroupStore {
 	private static let widgetModeKey = "widget.dayWrappedMode"
 	private static let widgetSourceFilterKey = "widget.dayWrappedSourceFilter"
 	private static let widgetDayKey = "widget.dayWrappedDayStartMs"
+	private static let widgetSelectionDayKey = "widget.dayWrappedSelectionDayStartMs"
 	private static let diagnosticsKey = "sync.diagnostics.v1"
 
 	static var defaults: UserDefaults {
@@ -64,29 +65,71 @@ enum AppGroupStore {
 		)
 	}
 
-	static func saveWidgetSelectedDayStartMs(_ dayStartMs: Int64) {
+	static func saveWidgetSelectedDayStartMs(_ dayStartMs: Int64, referenceDate: Date = Date()) {
 		defaults.set(dayStartMs, forKey: widgetDayKey)
+		defaults.set(startOfDayMs(for: referenceDate), forKey: widgetSelectionDayKey)
 	}
 
-	static func loadWidgetSelectedDayStartMs() -> Int64? {
-		if let value = defaults.object(forKey: widgetDayKey) as? Int64 {
-			return value
+	static func loadWidgetSelectedDayStartMs(referenceDate: Date = Date()) -> Int64? {
+		guard let selectedDayStartMs = int64Value(forKey: widgetDayKey) else {
+			return nil
 		}
-		if let value = defaults.object(forKey: widgetDayKey) as? Int {
-			return Int64(value)
+
+		let todayStartMs = startOfDayMs(for: referenceDate)
+		let selectionDayStartMs = int64Value(forKey: widgetSelectionDayKey)
+
+		if selectedDayStartMs > todayStartMs {
+			saveWidgetSelectedDayStartMs(todayStartMs, referenceDate: referenceDate)
+			appendLog(
+				scope: "widget-day",
+				message:
+					"clamped widget selected day from \(selectedDayStartMs) to today=\(todayStartMs)"
+			)
+			return todayStartMs
 		}
-		if let value = defaults.object(forKey: widgetDayKey) as? NSNumber {
-			return value.int64Value
+
+		guard let selectionDayStartMs else {
+			if selectedDayStartMs == todayStartMs {
+				saveWidgetSelectedDayStartMs(selectedDayStartMs, referenceDate: referenceDate)
+				return selectedDayStartMs
+			}
+			saveWidgetSelectedDayStartMs(todayStartMs, referenceDate: referenceDate)
+			appendLog(
+				scope: "widget-day",
+				message:
+					"reset widget selected day to today=\(todayStartMs) because legacy selection had no reference day"
+			)
+			return todayStartMs
 		}
-		return nil
+
+		if selectionDayStartMs != todayStartMs {
+			saveWidgetSelectedDayStartMs(todayStartMs, referenceDate: referenceDate)
+			appendLog(
+				scope: "widget-day",
+				message:
+					"reset widget selected day from \(selectedDayStartMs) to today=\(todayStartMs) after day rollover from referenceDay=\(selectionDayStartMs)"
+			)
+			return todayStartMs
+		}
+
+		return selectedDayStartMs
 	}
 
-	static func loadWidgetSnapshot() -> DayWrappedSnapshot? {
-		if
-			let selectedDayStartMs = loadWidgetSelectedDayStartMs(),
+	static func loadWidgetSnapshot(referenceDate: Date = Date()) -> DayWrappedSnapshot? {
+		let selectedDayStartMs = loadWidgetSelectedDayStartMs(referenceDate: referenceDate)
+		if let selectedDayStartMs,
 			let snapshot = loadCachedSnapshot(dayStartMs: selectedDayStartMs)
 		{
 			return snapshot
+		}
+		if let selectedDayStartMs,
+			let snapshot = loadSnapshot(),
+			snapshot.dayStartMs == selectedDayStartMs
+		{
+			return snapshot
+		}
+		if selectedDayStartMs != nil {
+			return nil
 		}
 		return loadSnapshot()
 	}
@@ -145,16 +188,7 @@ enum AppGroupStore {
 	}
 
 	static func latestRequestedDayStartMs() -> Int64 {
-		if let value = defaults.object(forKey: reportDayKey) as? Int64 {
-			return value
-		}
-		if let value = defaults.object(forKey: reportDayKey) as? Int {
-			return Int64(value)
-		}
-		if let value = defaults.object(forKey: reportDayKey) as? NSNumber {
-			return value.int64Value
-		}
-		return 0
+		int64Value(forKey: reportDayKey) ?? 0
 	}
 
 	static func saveUploadStatus(dayStartMs: Int64, message: String) {
@@ -388,5 +422,22 @@ enum AppGroupStore {
 		let lines = value.split(separator: "\n", omittingEmptySubsequences: false)
 		let trimmedLines = lines.suffix(300)
 		return trimmedLines.joined(separator: "\n")
+	}
+
+	private static func int64Value(forKey key: String) -> Int64? {
+		if let value = defaults.object(forKey: key) as? Int64 {
+			return value
+		}
+		if let value = defaults.object(forKey: key) as? Int {
+			return Int64(value)
+		}
+		if let value = defaults.object(forKey: key) as? NSNumber {
+			return value.int64Value
+		}
+		return nil
+	}
+
+	private static func startOfDayMs(for date: Date) -> Int64 {
+		Int64(Calendar.current.startOfDay(for: date).timeIntervalSince1970 * 1000)
 	}
 }
