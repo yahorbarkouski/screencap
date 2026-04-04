@@ -1,3 +1,10 @@
+# [1.34.0](https://github.com/yahorbarkouski/screencap/compare/v1.33.0...v1.34.0) (2026-04-04)
+
+
+### Features
+
+* stop foreground osascript storms and refresh the iPhone widget ([d78edaf](https://github.com/yahorbarkouski/screencap/commit/d78edaf21c72c02c1afee9c986c5b6220477f975))
+
 # [1.33.0](https://github.com/yahorbarkouski/screencap/compare/v1.32.0...v1.33.0) (2026-03-29)
 
 
