@@ -37,8 +37,6 @@ function getApiConfig(apiKey: string, model?: string): ApiConfig {
 			headers: {
 				"Content-Type": "application/json",
 				Authorization: `Bearer ${apiKey}`,
-				"HTTP-Referer": "https://screencap.app",
-				"X-Title": "Screencap",
 			},
 			supportsReasoningEffort: true,
 			supportsTemperature: true,
