@@ -1,3 +1,11 @@
+# [1.35.0](https://github.com/yahorbarkouski/screencap/compare/v1.34.0...v1.35.0) (2026-05-23)
+
+
+### Features
+
+* remove the openrouter redundancies ([03926f1](https://github.com/yahorbarkouski/screencap/commit/03926f1b28d4bc9230c32375fe21599400404086))
+* replace persistent JXA foreground polling ([160d4b4](https://github.com/yahorbarkouski/screencap/commit/160d4b456bb48c1c37ecd16deb6d2e9c2c3b44bc))
+
 # [1.34.0](https://github.com/yahorbarkouski/screencap/compare/v1.33.0...v1.34.0) (2026-04-04)
 
 
