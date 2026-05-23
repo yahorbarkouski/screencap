@@ -1,6 +1,8 @@
-import { screen } from "electron";
+import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { app, screen } from "electron";
 import { createLogger } from "../../../infra/log";
-import { runPersistentJxa } from "../applescript";
 import type {
 	ForegroundApp,
 	ForegroundSnapshot,
@@ -9,74 +11,8 @@ import type {
 } from "../types";
 
 const logger = createLogger({ scope: "SystemEventsProvider" });
-
-const FOREGROUND_SNAPSHOT_SESSION_KEY = "foreground-snapshot";
-
-const COMBINED_SCRIPT = `
-ObjC.import('AppKit');
-ObjC.import('CoreGraphics');
-
-function unwrapString(value) {
-  if (!value || value.isNil()) return '';
-  return ObjC.unwrap(value);
-}
-
-var app = $.NSWorkspace.sharedWorkspace.frontmostApplication;
-if (!app || app.isNil()) {
-  return null;
-}
-
-var pid = app.processIdentifier;
-var appName = unwrapString(app.localizedName);
-var bundleId = unwrapString(app.bundleIdentifier);
-var windowTitle = '';
-var x = 0;
-var y = 0;
-var width = 0;
-var height = 0;
-
-var options = (1 << 0) | (1 << 4);
-var windowsRef = $.CGWindowListCopyWindowInfo(options, 0);
-var windows = ObjC.castRefToObject(windowsRef);
-var count = windows ? windows.count : 0;
-
-for (var i = 0; i < count; i++) {
-  var win = windows.objectAtIndex(i);
-  var ownerPid = win.objectForKey('kCGWindowOwnerPID');
-  if (!ownerPid || ownerPid.intValue !== pid) continue;
-
-  var layer = win.objectForKey('kCGWindowLayer');
-  if (layer && layer.intValue > 0) continue;
-
-  var alpha = win.objectForKey('kCGWindowAlpha');
-  if (alpha && alpha.doubleValue < 0.1) continue;
-
-  var boundsDict = win.objectForKey('kCGWindowBounds');
-  if (!boundsDict) continue;
-
-  var candidateWidth = boundsDict.objectForKey('Width').doubleValue;
-  var candidateHeight = boundsDict.objectForKey('Height').doubleValue;
-  if (candidateWidth < 10 || candidateHeight < 10) continue;
-
-  windowTitle = unwrapString(win.objectForKey('kCGWindowName'));
-  x = Math.round(boundsDict.objectForKey('X').doubleValue);
-  y = Math.round(boundsDict.objectForKey('Y').doubleValue);
-  width = Math.round(candidateWidth);
-  height = Math.round(candidateHeight);
-  break;
-}
-
-return {
-  appName: appName,
-  bundleId: bundleId,
-  pid: pid,
-  windowTitle: windowTitle,
-  x: x,
-  y: y,
-  width: width,
-  height: height,
-};
-`;
+const FOREGROUND_BINARY_NAME = "screencap-foreground";
+const FOREGROUND_TIMEOUT_MS = 800;
 
 interface ParsedOutput {
 	app: ForegroundApp;
@@ -190,25 +126,57 @@ type AutomationState = "not-attempted" | "granted" | "denied";
 let automationState: AutomationState = "granted";
 let lastAutomationError: string | null = null;
 
-export async function collectForegroundSnapshot(): Promise<ForegroundSnapshot | null> {
-	const result = await runPersistentJxa(
-		FOREGROUND_SNAPSHOT_SESSION_KEY,
-		COMBINED_SCRIPT,
-	);
+function getBinaryPath(): string {
+	if (process.env.NODE_ENV === "test") return FOREGROUND_BINARY_NAME;
+	if (app.isPackaged) {
+		return join(process.resourcesPath, "foreground", FOREGROUND_BINARY_NAME);
+	}
 
-	if (!result.success) {
-		lastAutomationError = result.error;
-		if (!result.timedOut) {
-			logger.debug("Failed to get foreground snapshot", {
-				error: result.error,
-			});
-		}
+	return join(process.cwd(), "build", "foreground", FOREGROUND_BINARY_NAME);
+}
+
+async function runForegroundBinary(): Promise<string | null> {
+	const binary = getBinaryPath();
+	if (binary !== FOREGROUND_BINARY_NAME && !existsSync(binary)) {
+		throw new Error(`Foreground binary not found at ${binary}`);
+	}
+
+	return await new Promise((resolve, reject) => {
+		execFile(
+			binary,
+			[],
+			{
+				timeout: FOREGROUND_TIMEOUT_MS,
+				maxBuffer: 1024 * 1024,
+			},
+			(error, stdout) => {
+				if (error) {
+					reject(error);
+					return;
+				}
+
+				resolve(String(stdout).trim());
+			},
+		);
+	});
+}
+
+export async function collectForegroundSnapshot(): Promise<ForegroundSnapshot | null> {
+	let output: string | null;
+	try {
+		output = await runForegroundBinary();
+	} catch (error) {
+		lastAutomationError =
+			error instanceof Error ? error.message : String(error);
+		logger.debug("Failed to get foreground snapshot", {
+			error: lastAutomationError,
+		});
 		return null;
 	}
 
-	const parsed = parseOutput(result.output);
+	const parsed = output ? parseOutput(output) : null;
 	if (!parsed) {
-		logger.debug("Failed to parse output", { output: result.output });
+		logger.debug("Failed to parse output", { output });
 		return null;
 	}
 

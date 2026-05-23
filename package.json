@@ -10,10 +10,11 @@
 		"screencap-mcp": "./dist-mcp/index.js"
 	},
 	"scripts": {
-		"dev": "npm run rebuild:electron && electron-vite dev",
+		"dev": "npm run rebuild:electron && npm run build:helpers && electron-vite dev",
 		"dev:fast": "electron-vite dev",
 		"eval:classification": "npm run rebuild:electron && electron-vite dev -- --eval-classification",
 		"build": "electron-vite build",
+		"build:helpers": "node scripts/build-swift-helpers.mjs",
 		"build:local": "npm run build && electron-builder --mac.identity=null --mac.notarize=false",
 		"build:mcp": "npm run rebuild:node && tsup --config tsup.mcp.config.ts",
 		"preview": "electron-vite preview",

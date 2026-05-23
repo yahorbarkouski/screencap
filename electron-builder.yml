@@ -16,6 +16,10 @@ extraResources:
     to: ocr
     filter:
       - screencap-ocr
+  - from: build/foreground/${arch}
+    to: foreground
+    filter:
+      - screencap-foreground
   - from: electron/assets/sounds
     to: sounds
     filter:

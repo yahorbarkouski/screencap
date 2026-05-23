@@ -2,6 +2,11 @@ const { execSync } = require("node:child_process");
 const { existsSync } = require("node:fs");
 const { join } = require("node:path");
 
+const helperBinaries = [
+	["ocr", "screencap-ocr"],
+	["foreground", "screencap-foreground"],
+];
+
 module.exports = async (context) => {
 	if (process.platform !== "darwin") return;
 
@@ -9,22 +14,22 @@ module.exports = async (context) => {
 		context.appOutDir,
 		`${context.packager.appInfo.productFilename}.app`,
 	);
-	const ocrBinary = join(
-		appPath,
-		"Contents",
-		"Resources",
-		"ocr",
-		"screencap-ocr",
-	);
+	const binaries = helperBinaries
+		.map(([resourceDir, binaryName]) => ({
+			name: binaryName,
+			path: join(appPath, "Contents", "Resources", resourceDir, binaryName),
+		}))
+		.filter((binary) => {
+			if (existsSync(binary.path)) return true;
+			console.log(`${binary.name} binary not found, skipping`);
+			return false;
+		});
 
-	if (!existsSync(ocrBinary)) {
-		console.log("OCR binary not found, skipping");
-		return;
-	}
+	if (binaries.length === 0) return;
 
 	const identity = process.env.CSC_NAME || findDeveloperIdIdentity();
 	if (!identity) {
-		console.log("No Developer ID found, OCR binary will remain unsigned");
+		console.log("No Developer ID found, helper binaries will remain unsigned");
 		return;
 	}
 
@@ -34,11 +39,13 @@ module.exports = async (context) => {
 		"entitlements.mac.plist",
 	);
 
-	console.log(`Signing OCR binary with: ${identity}`);
-	execSync(
-		`codesign --force --options runtime --sign "${identity}" --entitlements "${entitlements}" "${ocrBinary}"`,
-		{ stdio: "inherit" },
-	);
+	for (const binary of binaries) {
+		console.log(`Signing ${binary.name} with: ${identity}`);
+		execSync(
+			`codesign --force --options runtime --sign "${identity}" --entitlements "${entitlements}" "${binary.path}"`,
+			{ stdio: "inherit" },
+		);
+	}
 };
 
 function findDeveloperIdIdentity() {

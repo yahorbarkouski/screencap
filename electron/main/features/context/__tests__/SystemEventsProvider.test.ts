@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const execFile = vi.fn();
+
 const screen = {
 	getAllDisplays: vi.fn(() => [
 		{
@@ -10,14 +12,15 @@ const screen = {
 	]),
 };
 
-const runPersistentJxa = vi.fn();
-
 vi.mock("electron", () => ({
+	app: {
+		isPackaged: false,
+	},
 	screen,
 }));
 
-vi.mock("../applescript", () => ({
-	runPersistentJxa,
+vi.mock("node:child_process", () => ({
+	execFile,
 }));
 
 describe("SystemEventsProvider", () => {
@@ -38,20 +41,21 @@ describe("SystemEventsProvider", () => {
 	});
 
 	it("parses a native foreground snapshot and maps it to a display", async () => {
-		runPersistentJxa.mockResolvedValue({
-			success: true,
-			output: JSON.stringify({
-				appName: "Cursor",
-				bundleId: "com.todesktop.230313mzl4w4u92",
-				pid: 123,
-				windowTitle: "screencal",
-				x: 0,
-				y: 25,
-				width: 1440,
-				height: 875,
-			}),
-			error: null,
-			timedOut: false,
+		execFile.mockImplementation((_binary, _args, _options, callback) => {
+			callback(
+				null,
+				JSON.stringify({
+					appName: "Cursor",
+					bundleId: "com.todesktop.230313mzl4w4u92",
+					pid: 123,
+					windowTitle: "screencal",
+					x: 0,
+					y: 25,
+					width: 1440,
+					height: 875,
+				}),
+				"",
+			);
 		});
 
 		const { collectForegroundSnapshot, getAutomationState } = await import(
@@ -60,11 +64,14 @@ describe("SystemEventsProvider", () => {
 
 		const snapshot = await collectForegroundSnapshot();
 
-		expect(runPersistentJxa).toHaveBeenCalledWith(
-			"foreground-snapshot",
-			expect.stringContaining(
-				"NSWorkspace.sharedWorkspace.frontmostApplication",
-			),
+		expect(execFile).toHaveBeenCalledWith(
+			"screencap-foreground",
+			[],
+			{
+				maxBuffer: 1024 * 1024,
+				timeout: 800,
+			},
+			expect.any(Function),
 		);
 		expect(snapshot).toMatchObject({
 			app: {
@@ -89,11 +96,8 @@ describe("SystemEventsProvider", () => {
 	});
 
 	it("returns null when the native payload cannot be parsed", async () => {
-		runPersistentJxa.mockResolvedValue({
-			success: true,
-			output: "not-json",
-			error: null,
-			timedOut: false,
+		execFile.mockImplementation((_binary, _args, _options, callback) => {
+			callback(null, "not-json", "");
 		});
 
 		const { collectForegroundSnapshot } = await import(
@@ -101,5 +105,31 @@ describe("SystemEventsProvider", () => {
 		);
 
 		await expect(collectForegroundSnapshot()).resolves.toBeNull();
+	});
+
+	it("returns null when the foreground binary exits with an error", async () => {
+		execFile.mockImplementation((_binary, _args, _options, callback) => {
+			callback(new Error("exit code 1"), "", "failed");
+		});
+
+		const { collectForegroundSnapshot, getLastAutomationError } = await import(
+			"../providers/SystemEventsProvider"
+		);
+
+		await expect(collectForegroundSnapshot()).resolves.toBeNull();
+		expect(getLastAutomationError()).toBe("exit code 1");
+	});
+
+	it("returns null when the foreground binary is missing", async () => {
+		execFile.mockImplementation((_binary, _args, _options, callback) => {
+			callback(new Error("spawn ENOENT"), "", "");
+		});
+
+		const { collectForegroundSnapshot, getLastAutomationError } = await import(
+			"../providers/SystemEventsProvider"
+		);
+
+		await expect(collectForegroundSnapshot()).resolves.toBeNull();
+		expect(getLastAutomationError()).toBe("spawn ENOENT");
 	});
 });

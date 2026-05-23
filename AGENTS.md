@@ -217,10 +217,10 @@ Fallback strategy:
 
 - **macOS only** - Uses macOS-specific APIs (System Events, AppleScript, Vision)
 - **Native modules** - sharp/better-sqlite3 require rebuild for Electron vs Node
-- **Permissions** - Screen Recording required; Accessibility + Automation optional
+- **Permissions** - Screen Recording required; Accessibility optional; Automation optional for browser/media enrichment, not foreground app/window tracking
 - **Database**: `~/Library/Application Support/Screencap/screencap.db`
 - **Screenshots**: `~/Library/Application Support/Screencap/screenshots/`
-- **OCR binary** must exist at `build/ocr/screencap-ocr` for dev
+- **Swift helpers** must exist at `build/ocr/screencap-ocr` and `build/foreground/screencap-foreground` for dev (`npm run build:helpers`)
 - **CSP**: Update `electron.vite.config.ts` if adding new image CDNs
 
 ## Key Files
