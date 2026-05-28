@@ -1,5 +1,4 @@
 import {
-	Bell,
 	BookOpen,
 	Briefcase,
 	Clock,
@@ -22,5 +21,4 @@ export const appNavItems: readonly AppNavItem[] = [
 	{ id: "story", icon: BookOpen, label: "Journal" },
 	{ id: "projects", icon: Briefcase, label: "Projects" },
 	{ id: "addictions", icon: Flame, label: "Addictions" },
-	{ id: "reminders", icon: Bell, label: "Reminders" },
 ] as const;

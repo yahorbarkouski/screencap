@@ -76,6 +76,7 @@ export function runMigrations(db: Database.Database): void {
 
 	const eventsColumns = getExistingColumns(db, "events");
 
+	addColumnIfMissing(db, "events", "tracked_addiction", "TEXT", eventsColumns);
 	addColumnIfMissing(
 		db,
 		"events",
@@ -149,13 +150,10 @@ export function runMigrations(db: Database.Database): void {
 		"INTEGER DEFAULT 0",
 		eventsColumns,
 	);
-	addColumnIfMissing(
-		db,
-		"events",
-		"shared_to_friends",
-		"INTEGER DEFAULT 0",
-		eventsColumns,
-	);
+	if (eventsColumns.has("shared_to_friends")) {
+		db.exec("ALTER TABLE events DROP COLUMN shared_to_friends");
+		logger.info("Dropped removed column shared_to_friends from events");
+	}
 
 	db.exec(
 		"UPDATE events SET end_timestamp = timestamp WHERE end_timestamp IS NULL",
@@ -194,173 +192,32 @@ export function runMigrations(db: Database.Database): void {
 	addColumnIfMissing(db, "memory", "description", "TEXT", memoryColumns);
 
 	migrateQueue(db);
-	migrateRoomTables(db);
-	migrateMobileActivityTables(db);
-	migrateRemindersTable(db);
+	dropRemovedFeatureTables(db);
 
 	logger.info("Migrations complete");
 }
 
-function tableExists(db: Database.Database, table: string): boolean {
-	const row = db
-		.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?")
-		.get(table) as { name: string } | undefined;
-	return row !== undefined;
-}
-
-function migrateRoomTables(db: Database.Database): void {
-	if (!tableExists(db, "room_memberships")) {
-		db.exec(`
-			CREATE TABLE room_memberships (
-				room_id TEXT PRIMARY KEY,
-				room_name TEXT NOT NULL,
-				role TEXT NOT NULL,
-				owner_user_id TEXT NOT NULL,
-				owner_username TEXT NOT NULL,
-				joined_at INTEGER NOT NULL,
-				last_synced_at INTEGER
-			)
-		`);
-		db.exec("CREATE INDEX idx_room_memberships_role ON room_memberships(role)");
-		logger.info("Created room_memberships table");
-	}
-
-	if (!tableExists(db, "room_members_cache")) {
-		db.exec(`
-			CREATE TABLE room_members_cache (
-				room_id TEXT NOT NULL,
-				user_id TEXT NOT NULL,
-				username TEXT NOT NULL,
-				role TEXT NOT NULL,
-				PRIMARY KEY(room_id, user_id)
-			)
-		`);
-		logger.info("Created room_members_cache table");
-	}
-
-	if (tableExists(db, "room_events_cache")) {
-		const columns = getExistingColumns(db, "room_events_cache");
-		if (columns.has("payload_ciphertext") || !columns.has("project")) {
-			db.exec("DROP TABLE room_events_cache");
-			logger.info(
-				"Dropped old room_events_cache table for full event schema migration",
-			);
-		}
-	}
-
-	if (!tableExists(db, "room_events_cache")) {
-		db.exec(`
-			CREATE TABLE room_events_cache (
-				id TEXT PRIMARY KEY,
-				room_id TEXT NOT NULL,
-				author_user_id TEXT NOT NULL,
-				author_username TEXT NOT NULL,
-				timestamp_ms INTEGER NOT NULL,
-				end_timestamp_ms INTEGER,
-				project TEXT,
-				category TEXT,
-				caption TEXT,
-				project_progress INTEGER DEFAULT 0,
-				app_bundle_id TEXT,
-				app_name TEXT,
-				window_title TEXT,
-				content_kind TEXT,
-				content_title TEXT,
-				thumbnail_path TEXT,
-				original_path TEXT,
-				synced_at INTEGER NOT NULL
-			)
-		`);
-		db.exec(
-			"CREATE INDEX idx_room_events_cache_room_timestamp ON room_events_cache(room_id, timestamp_ms)",
-		);
-		db.exec(
-			"CREATE INDEX idx_room_events_cache_author ON room_events_cache(author_user_id)",
-		);
-		db.exec(
-			"CREATE INDEX idx_room_events_cache_project ON room_events_cache(project)",
-		);
-		logger.info("Created room_events_cache table with full event schema");
-	}
-
-	const columns = getExistingColumns(db, "room_events_cache");
-	addColumnIfMissing(db, "room_events_cache", "url", "TEXT", columns);
-	addColumnIfMissing(
-		db,
+function dropRemovedFeatureTables(db: Database.Database): void {
+	const tables = [
+		"project_shares",
+		"project_room_links",
+		"room_keys_cache",
+		"social_account",
+		"friends_cache",
+		"room_memberships",
 		"room_events_cache",
-		"background_context",
-		"TEXT",
-		columns,
-	);
-}
+		"room_day_wrapped_cache",
+		"mobile_activity_days_cache",
+		"mobile_paired_devices",
+		"room_members_cache",
+		"chat_threads_cache",
+		"chat_messages_cache",
+		"chat_unread_state",
+		"room_invites_sent",
+		"reminders",
+	];
 
-function migrateRemindersTable(db: Database.Database): void {
-	if (!tableExists(db, "reminders")) {
-		db.exec(`
-			CREATE TABLE reminders (
-				id TEXT PRIMARY KEY,
-				title TEXT NOT NULL,
-				body TEXT,
-				source_text TEXT,
-				remind_at INTEGER,
-				status TEXT NOT NULL DEFAULT 'pending',
-				created_at INTEGER NOT NULL,
-				updated_at INTEGER NOT NULL,
-				triggered_at INTEGER,
-				completed_at INTEGER,
-				thumbnail_path TEXT,
-				original_path TEXT,
-				app_bundle_id TEXT,
-				window_title TEXT,
-				url_host TEXT,
-				content_kind TEXT,
-				context_json TEXT
-			)
-		`);
-		db.exec("CREATE INDEX idx_reminders_remind_at ON reminders(remind_at)");
-		db.exec("CREATE INDEX idx_reminders_status ON reminders(status)");
-		db.exec("CREATE INDEX idx_reminders_created_at ON reminders(created_at)");
-		logger.info("Created reminders table");
-	}
-}
-
-function migrateMobileActivityTables(db: Database.Database): void {
-	if (!tableExists(db, "mobile_activity_days_cache")) {
-		db.exec(`
-			CREATE TABLE mobile_activity_days_cache (
-				device_id TEXT NOT NULL,
-				device_name TEXT,
-				platform TEXT NOT NULL,
-				day_start_ms INTEGER NOT NULL,
-				buckets_json TEXT NOT NULL,
-				synced_at INTEGER NOT NULL,
-				PRIMARY KEY(device_id, day_start_ms)
-			)
-		`);
-		db.exec(
-			"CREATE INDEX idx_mobile_activity_days_day_start ON mobile_activity_days_cache(day_start_ms)",
-		);
-		db.exec(
-			"CREATE INDEX idx_mobile_activity_days_synced_at ON mobile_activity_days_cache(synced_at)",
-		);
-		logger.info("Created mobile_activity_days_cache table");
-	}
-
-	if (!tableExists(db, "mobile_paired_devices")) {
-		db.exec(`
-			CREATE TABLE mobile_paired_devices (
-				device_id TEXT PRIMARY KEY,
-				device_name TEXT,
-				platform TEXT NOT NULL,
-				sign_pub_key_spki_der_b64 TEXT NOT NULL,
-				dh_pub_key_spki_der_b64 TEXT NOT NULL,
-				added_at INTEGER NOT NULL,
-				last_seen_at INTEGER
-			)
-		`);
-		db.exec(
-			"CREATE INDEX idx_mobile_paired_devices_added_at ON mobile_paired_devices(added_at)",
-		);
-		logger.info("Created mobile_paired_devices table");
+	for (const table of tables) {
+		db.exec(`DROP TABLE IF EXISTS ${table}`);
 	}
 }

@@ -4,12 +4,7 @@ import { applyLaunchAtLoginSetting } from "../../app/loginItem";
 import { triggerRetentionCleanupAfterSettingsChange } from "../../features/retention";
 import { isSchedulerRunning, startScheduler } from "../../features/scheduler";
 import { applyShortcuts } from "../../features/shortcuts";
-import {
-	startDayWrappedPublisher,
-	stopDayWrappedPublisher,
-} from "../../features/socialFeed";
 import { getSettings, setSettings } from "../../infra/settings";
-import { testBackendConnection } from "../../infra/settings/BackendConfig";
 import { broadcast } from "../../infra/windows/broadcast";
 import { secureHandle } from "../secure";
 import { ipcNoArgs, ipcSetSettingsArgs } from "../validation";
@@ -27,16 +22,6 @@ export function registerSettingsHandlers(): void {
 			setSettings(settings);
 			applyShortcuts(settings);
 			if (
-				previous.social.dayWrapped.enabled !==
-				settings.social.dayWrapped.enabled
-			) {
-				if (settings.social.dayWrapped.enabled) {
-					startDayWrappedPublisher();
-				} else {
-					stopDayWrappedPublisher();
-				}
-			}
-			if (
 				previous.captureInterval !== settings.captureInterval &&
 				isSchedulerRunning()
 			) {
@@ -49,14 +34,6 @@ export function registerSettingsHandlers(): void {
 				applyLaunchAtLoginSetting(settings.launchAtLogin);
 			}
 			broadcast(IpcEvents.SettingsChanged, settings);
-		},
-	);
-
-	secureHandle(
-		IpcChannels.Settings.TestBackendConnection,
-		ipcNoArgs,
-		async () => {
-			return testBackendConnection();
 		},
 	);
 }

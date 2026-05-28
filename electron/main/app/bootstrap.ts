@@ -1,7 +1,6 @@
 import { app } from "electron";
 import type { ClassificationEvalOptions } from "../features/aiEval";
 import { runClassificationEval } from "../features/aiEval";
-import { startMobileActivitySync } from "../features/mobileActivity";
 import { checkScreenCapturePermission } from "../features/permissions";
 import { startQueueProcessor } from "../features/queue";
 import {
@@ -9,13 +8,7 @@ import {
 	startRetentionService,
 } from "../features/retention";
 import { startScheduler } from "../features/scheduler";
-import { startBackgroundSync } from "../features/sharedProjects";
 import { startShortcuts } from "../features/shortcuts";
-import { startReminderScheduler } from "../features/smartReminder";
-import {
-	startDayWrappedPublisher,
-	startSocialCommentNotifications,
-} from "../features/socialFeed";
 import { initializeUpdater } from "../features/update";
 import { createLogger } from "../infra/log";
 import { startCpuSampler } from "../infra/log/cpu";
@@ -114,13 +107,6 @@ export async function bootstrap(): Promise<void> {
 	}
 
 	initializeUpdater();
-	startBackgroundSync();
-	startMobileActivitySync();
-	if (getSettings().social.dayWrapped.enabled) {
-		startDayWrappedPublisher();
-	}
-	startSocialCommentNotifications();
-	startReminderScheduler();
 
 	setupLifecycleHandlers();
 

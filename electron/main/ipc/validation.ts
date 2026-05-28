@@ -25,10 +25,8 @@ export const ipcOpenExternalArgs = z.tuple([zLimitedString(2000)]);
 
 export const ipcOpenNativeArgs = z.tuple([zLimitedString(10_000)]);
 
-export const ipcPreviewEventArgs = z.tuple([z.any()]);
-
 export const ipcOpenSettingsTabArgs = z.tuple([
-	z.enum(["capture", "ai", "automation", "data", "social", "system"]),
+	z.enum(["capture", "ai", "automation", "data", "system"]),
 ]);
 
 export const ipcPickDirectoryArgs = ipcNoArgs;
@@ -64,29 +62,7 @@ const zGetEventsOptions = z
 	})
 	.strict();
 
-const zGetMobileActivityDaysOptions = z
-	.object({
-		startDate: z.number().int().optional(),
-		endDate: z.number().int().optional(),
-	})
-	.strict();
-
 export const ipcGetEventsArgs = z.tuple([zGetEventsOptions]);
-
-export const ipcGetMobileActivityDaysArgs = z.tuple([
-	zGetMobileActivityDaysOptions,
-]);
-
-export const ipcSyncMobileActivityArgs = z.union([
-	ipcNoArgs,
-	z.tuple([zGetMobileActivityDaysOptions]),
-]);
-
-export const ipcGetUnifiedEventsArgs = z.tuple([
-	zGetEventsOptions.extend({
-		includeRemote: z.boolean().optional(),
-	}),
-]);
 
 export const ipcGetTimelineFacetsArgs = z.tuple([
 	z
@@ -319,47 +295,6 @@ const zShortcutSettings = z
 		captureNow: zShortcutAccelerator,
 		captureProjectProgress: zShortcutAccelerator,
 		endOfDay: zShortcutAccelerator,
-		smartReminder: zShortcutAccelerator,
-	})
-	.strict();
-
-const zSharingSettings = z
-	.object({
-		includeAppName: z.boolean(),
-		includeWindowTitle: z.boolean(),
-		includeContentInfo: z.boolean(),
-	})
-	.strict();
-
-const zSocialSharingSettings = z
-	.object({
-		dayWrapped: z
-			.object({
-				enabled: z.boolean(),
-				includeApps: z.boolean(),
-				includeAddiction: z.boolean(),
-			})
-			.strict(),
-		ui: z
-			.object({
-				hideDayWrappedSharingDisabledWarning: z.boolean(),
-			})
-			.strict(),
-	})
-	.strict();
-
-const zAvatarSettings = z
-	.object({
-		pattern: z.literal("ascii"),
-		backgroundColor: z.string().max(100),
-		foregroundColor: z.string().max(100),
-		asciiChar: z
-			.string()
-			.trim()
-			.min(1)
-			.max(1)
-			.regex(/^[\x21-\x7E]$/)
-			.default("@"),
 	})
 	.strict();
 
@@ -374,9 +309,6 @@ export const ipcSetSettingsArgs = z.tuple([
 			automationRules: zAutomationRules,
 			onboarding: zOnboardingState,
 			shortcuts: zShortcutSettings,
-			sharing: zSharingSettings,
-			social: zSocialSharingSettings,
-			avatar: zAvatarSettings,
 			llmEnabled: z.boolean(),
 			allowVisionUploads: z.boolean(),
 			cloudLlmModel: zLimitedString(500),
@@ -385,8 +317,6 @@ export const ipcSetSettingsArgs = z.tuple([
 			localLlmModel: zLimitedString(500),
 			autoDetectProgress: z.boolean(),
 			showDominantWebsites: z.boolean(),
-			customBackendEnabled: z.boolean(),
-			customBackendUrl: z.string().max(2000),
 		})
 		.strict(),
 ]);
@@ -436,58 +366,6 @@ export const ipcProjectJournalGetActivityArgs = z.tuple([
 			startAt: z.number().int().nonnegative(),
 			endAt: z.number().int().nonnegative(),
 			limitPerRepo: zPositiveInt.max(5000).optional(),
-		})
-		.strict(),
-]);
-
-const zReminderStatus = z.enum([
-	"pending",
-	"triggered",
-	"completed",
-	"cancelled",
-]);
-
-export const ipcGetRemindersArgs = z.union([
-	ipcNoArgs,
-	z.tuple([
-		z
-			.object({
-				status: zReminderStatus.optional(),
-				limit: zPositiveInt.max(1000).optional(),
-				offset: zNonNegativeInt.max(100000).optional(),
-				includeNotes: z.boolean().optional(),
-			})
-			.strict(),
-	]),
-]);
-
-export const ipcCreateReminderArgs = z.tuple([
-	z
-		.object({
-			id: zLimitedString(256),
-			title: zLimitedString(1000),
-			body: z.string().max(50000).nullable().optional(),
-			sourceText: z.string().max(50000).nullable().optional(),
-			remindAt: z.number().int().nullable().optional(),
-			thumbnailPath: zLimitedString(10000).nullable().optional(),
-			originalPath: zLimitedString(10000).nullable().optional(),
-			appBundleId: zLimitedString(500).nullable().optional(),
-			windowTitle: zLimitedString(2000).nullable().optional(),
-			urlHost: zLimitedString(500).nullable().optional(),
-			contentKind: zLimitedString(200).nullable().optional(),
-			contextJson: z.string().max(100000).nullable().optional(),
-		})
-		.strict(),
-]);
-
-export const ipcUpdateReminderArgs = z.tuple([
-	zLimitedString(256),
-	z
-		.object({
-			title: zLimitedString(1000).optional(),
-			body: z.string().max(50000).nullable().optional(),
-			remindAt: z.number().int().nullable().optional(),
-			status: zReminderStatus.optional(),
 		})
 		.strict(),
 ]);

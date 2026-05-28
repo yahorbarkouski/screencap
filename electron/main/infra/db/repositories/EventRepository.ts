@@ -56,11 +56,11 @@ export function insertEvent(event: Partial<Event>): void {
       tags, confidence, caption, tracked_addiction, 
       addiction_candidate, addiction_confidence, addiction_prompt,
       thumbnail_path, original_path, stable_hash, detail_hash, 
-      merged_count, dismissed, user_label, status,
-      app_bundle_id, app_name, window_title, url_host, url_canonical,
-      content_kind, content_id, content_title, is_fullscreen,
-      context_provider, context_confidence, context_key, context_json, shared_to_friends
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	      merged_count, dismissed, user_label, status,
+	      app_bundle_id, app_name, window_title, url_host, url_canonical,
+	      content_kind, content_id, content_title, is_fullscreen,
+	      context_provider, context_confidence, context_key, context_json
+	    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
 	stmt.run(
@@ -103,7 +103,6 @@ export function insertEvent(event: Partial<Event>): void {
 		event.contextConfidence ?? null,
 		event.contextKey ?? null,
 		event.contextJson ?? null,
-		event.sharedToFriends ?? 0,
 	);
 }
 
@@ -329,7 +328,6 @@ export function listExpiredEventIds(
 
 export interface HqCleanupCutoffs {
 	regularCutoff: number;
-	sharedCutoff: number;
 	progressCutoff: number;
 	progressFallbackCutoff: number;
 	eodBufferMs: number;
@@ -361,29 +359,25 @@ export function listHqCleanupCandidates(
       SELECT e.id, e.original_path, e.timestamp
       FROM events e
       WHERE e.original_path IS NOT NULL
-        AND (
-          -- Tier 1: Regular events (not progress, not shared)
-          (e.project_progress = 0 AND e.shared_to_friends = 0 
-           AND COALESCE(e.end_timestamp, e.timestamp) < ?)
-          OR
-          -- Tier 2: Shared events (longer cutoff, image already uploaded)
-          (e.shared_to_friends = 1 
-           AND COALESCE(e.end_timestamp, e.timestamp) < ?)
-          OR
-          -- Tier 3a: Progress events with EOD submitted + buffer
-          (e.project_progress = 1 AND e.shared_to_friends = 0
-           AND COALESCE(e.end_timestamp, e.timestamp) < ?
-           AND EXISTS (
-             SELECT 1 FROM eod_entries eod
+	        AND (
+	          -- Tier 1: Regular events
+	          (e.project_progress = 0
+	           AND COALESCE(e.end_timestamp, e.timestamp) < ?)
+	          OR
+	          -- Tier 2a: Progress events with EOD submitted + buffer
+	          (e.project_progress = 1
+	           AND COALESCE(e.end_timestamp, e.timestamp) < ?
+	           AND EXISTS (
+	             SELECT 1 FROM eod_entries eod
              WHERE eod.submitted_at IS NOT NULL
                AND eod.submitted_at < ?
                AND eod.day_start <= e.timestamp
-               AND e.timestamp <= eod.day_end
-           ))
-          OR
-          -- Tier 3b: Progress events fallback (older than 7 days, no EOD needed)
-          (e.project_progress = 1 
-           AND COALESCE(e.end_timestamp, e.timestamp) < ?)
+	               AND e.timestamp <= eod.day_end
+	           ))
+	          OR
+	          -- Tier 2b: Progress events fallback (older than 7 days, no EOD needed)
+	          (e.project_progress = 1
+	           AND COALESCE(e.end_timestamp, e.timestamp) < ?)
         )
       ${cursorClause}
       ORDER BY e.timestamp ASC
@@ -393,7 +387,6 @@ export function listHqCleanupCandidates(
 		.all(
 			...[
 				cutoffs.regularCutoff,
-				cutoffs.sharedCutoff,
 				cutoffs.progressCutoff,
 				eodSubmittedBefore,
 				cutoffs.progressFallbackCutoff,
@@ -876,11 +869,12 @@ export function getAddictionStatsBatch(
 		thumbnail_path: string | null;
 	}>;
 
+	const statsMap = new Map(rows.map((r) => [r.name, r]));
 	const coverMap = new Map(coverRows.map((r) => [r.name, r]));
 
 	const result: Record<string, AddictionStatsRow> = {};
 	for (const name of names) {
-		const stats = rows.find((r) => r.name === name);
+		const stats = statsMap.get(name);
 		const cover = coverMap.get(name);
 		result[name] = {
 			name,

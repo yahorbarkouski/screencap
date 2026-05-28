@@ -8,18 +8,12 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { CountItem } from "@/components/wrapped/CountList";
 import {
-	computeCombinedDaylineSlots,
+	computeDaylineSlots,
 	countCoveredSlots,
 	SLOT_MINUTES,
 } from "@/lib/dayline";
 import { useAppStore } from "@/stores/app";
-import type {
-	EodContentV2,
-	EodEntryInput,
-	EodSection,
-	Event,
-	MobileActivityDay,
-} from "@/types";
+import type { EodContentV2, EodEntryInput, EodSection, Event } from "@/types";
 import {
 	BottomActions,
 	GhostButton,
@@ -51,8 +45,6 @@ export function EndOfDayFlow() {
 	const [step, setStep] = useState<Step>("summary");
 	const [events, setEvents] = useState<Event[]>([]);
 	const [prevEvents, setPrevEvents] = useState<Event[]>([]);
-	const [mobileDays, setMobileDays] = useState<MobileActivityDay[]>([]);
-	const [prevMobileDays, setPrevMobileDays] = useState<MobileActivityDay[]>([]);
 	const [stats, setStats] = useState<
 		Array<{ category: string; count: number }>
 	>([]);
@@ -125,8 +117,6 @@ export function EndOfDayFlow() {
 			const [
 				loadedEvents,
 				loadedPrevEvents,
-				loadedMobileDays,
-				loadedPrevMobileDays,
 				loadedStats,
 				loadedPrevStats,
 				existing,
@@ -141,14 +131,6 @@ export function EndOfDayFlow() {
 					endDate: prevDayEndMs,
 					dismissed: false,
 				}),
-				window.api.mobileActivity?.listDays({
-					startDate: dayStartMs,
-					endDate: dayStartMs,
-				}) ?? Promise.resolve([]),
-				window.api.mobileActivity?.listDays({
-					startDate: prevDayStartMs,
-					endDate: prevDayStartMs,
-				}) ?? Promise.resolve([]),
 				window.api.storage.getStats(dayStartMs, dayEndMs),
 				window.api.storage.getStats(prevDayStartMs, prevDayEndMs),
 				window.api.eod.getEntryByDayStart(dayStartMs),
@@ -156,8 +138,6 @@ export function EndOfDayFlow() {
 
 			setEvents(loadedEvents);
 			setPrevEvents(loadedPrevEvents);
-			setMobileDays(loadedMobileDays);
-			setPrevMobileDays(loadedPrevMobileDays);
 			setStats(loadedStats);
 			setPrevStats(loadedPrevStats);
 
@@ -239,10 +219,10 @@ export function EndOfDayFlow() {
 
 	const slots = useMemo(() => {
 		if (!dayStartMs) return [];
-		return computeCombinedDaylineSlots(events, mobileDays, dayStartMs, {
+		return computeDaylineSlots(events, dayStartMs, {
 			showDominantWebsites: settings.showDominantWebsites,
 		});
-	}, [dayStartMs, events, mobileDays, settings.showDominantWebsites]);
+	}, [dayStartMs, events, settings.showDominantWebsites]);
 
 	const activeMinutes = useMemo(() => {
 		const active = slots.filter((s) => s.count > 0).length;
@@ -251,20 +231,10 @@ export function EndOfDayFlow() {
 
 	const prevSlots = useMemo(() => {
 		if (!prevDayStartMs) return [];
-		return computeCombinedDaylineSlots(
-			prevEvents,
-			prevMobileDays,
-			prevDayStartMs,
-			{
-				showDominantWebsites: settings.showDominantWebsites,
-			},
-		);
-	}, [
-		prevDayStartMs,
-		prevEvents,
-		prevMobileDays,
-		settings.showDominantWebsites,
-	]);
+		return computeDaylineSlots(prevEvents, prevDayStartMs, {
+			showDominantWebsites: settings.showDominantWebsites,
+		});
+	}, [prevDayStartMs, prevEvents, settings.showDominantWebsites]);
 
 	const prevActiveMinutes = useMemo(() => {
 		const active = prevSlots.filter((s) => s.count > 0).length;

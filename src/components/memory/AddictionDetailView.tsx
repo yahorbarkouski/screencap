@@ -28,6 +28,7 @@ import {
 	formatDurationCompact,
 	formatRelativeTime,
 	groupEventsByDate,
+	limitGroupedItems,
 } from "@/lib/utils";
 import type { Event, Memory } from "@/types";
 import { EventCard } from "../timeline/EventCard";
@@ -39,6 +40,8 @@ const RISK_CALENDAR_LEVELS = [
 	"bg-destructive/40",
 	"bg-destructive/60",
 ] as const;
+
+const EPISODE_BATCH_SIZE = 120;
 
 function formatSignedInt(value: number): string {
 	return `${value >= 0 ? "+" : ""}${value}`;
@@ -102,8 +105,11 @@ export function AddictionDetailView({
 		isLoading: boolean;
 		error: string | null;
 	}>({ events: [], isLoading: false, error: null });
+	const [visibleEpisodeCount, setVisibleEpisodeCount] =
+		useState(EPISODE_BATCH_SIZE);
 	const [coverIdx, setCoverIdx] = useState(0);
 	const addictionIdRef = useRef(addiction.id);
+	const refreshDebounceRef = useRef<ReturnType<typeof setTimeout>>();
 
 	useEffect(() => {
 		addictionIdRef.current = addiction.id;
@@ -113,6 +119,7 @@ export function AddictionDetailView({
 		setShowDeleteConfirm(false);
 		setIsDeleting(false);
 		setEventsState({ events: [], isLoading: false, error: null });
+		setVisibleEpisodeCount(EPISODE_BATCH_SIZE);
 		setCoverIdx(0);
 	}, [addiction.id]);
 
@@ -124,6 +131,7 @@ export function AddictionDetailView({
 
 	const updateRange = useCallback((start?: number, end?: number) => {
 		setRange({ start, end });
+		setVisibleEpisodeCount(EPISODE_BATCH_SIZE);
 	}, []);
 
 	const fetchEvents = useCallback(async () => {
@@ -149,17 +157,23 @@ export function AddictionDetailView({
 		void fetchEvents();
 	}, [fetchEvents]);
 
+	const debouncedFetchEvents = useCallback(() => {
+		if (refreshDebounceRef.current) clearTimeout(refreshDebounceRef.current);
+		refreshDebounceRef.current = setTimeout(fetchEvents, 5_000);
+	}, [fetchEvents]);
+
 	useEffect(() => {
 		if (!window.api) return;
-		const offCreated = window.api.on("event:created", fetchEvents);
-		const offUpdated = window.api.on("event:updated", fetchEvents);
-		const offChanged = window.api.on("events:changed", fetchEvents);
+		const offCreated = window.api.on("event:created", debouncedFetchEvents);
+		const offUpdated = window.api.on("event:updated", debouncedFetchEvents);
+		const offChanged = window.api.on("events:changed", debouncedFetchEvents);
 		return () => {
+			if (refreshDebounceRef.current) clearTimeout(refreshDebounceRef.current);
 			offCreated();
 			offUpdated();
 			offChanged();
 		};
-	}, [fetchEvents]);
+	}, [debouncedFetchEvents]);
 
 	const incidentsInRange = eventsState.events.length;
 
@@ -272,6 +286,10 @@ export function AddictionDetailView({
 		);
 		return groupEventsByDate(sorted);
 	}, [eventsState.events]);
+	const visibleGroupedEvents = useMemo(
+		() => limitGroupedItems(groupedEvents, visibleEpisodeCount),
+		[groupedEvents, visibleEpisodeCount],
+	);
 
 	const lastIncidentLabel = lastIncidentAt
 		? formatRelativeTime(lastIncidentAt)
@@ -491,24 +509,37 @@ export function AddictionDetailView({
 									</div>
 								) : (
 									<div className="space-y-10">
-										{Array.from(groupedEvents.entries()).map(
-											([date, events]) => (
-												<div key={date}>
-													<div className="mb-4 text-sm font-medium text-muted-foreground">
-														{date}
-													</div>
-													<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-														{events.map((event) => (
-															<EventCard
-																key={event.id}
-																event={event}
-																showProject
-															/>
-														))}
-													</div>
+										{visibleGroupedEvents.entries.map(([date, events]) => (
+											<div key={date}>
+												<div className="mb-4 text-sm font-medium text-muted-foreground">
+													{date}
 												</div>
-											),
-										)}
+												<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+													{events.map((event) => (
+														<EventCard
+															key={event.id}
+															event={event}
+															showProject
+														/>
+													))}
+												</div>
+											</div>
+										))}
+										{visibleGroupedEvents.hasMore ? (
+											<div className="flex justify-center">
+												<Button
+													variant="outline"
+													size="sm"
+													onClick={() =>
+														setVisibleEpisodeCount(
+															(count) => count + EPISODE_BATCH_SIZE,
+														)
+													}
+												>
+													Show more
+												</Button>
+											</div>
+										) : null}
 									</div>
 								)}
 							</div>

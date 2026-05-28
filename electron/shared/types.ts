@@ -68,10 +68,6 @@ export interface Event {
 	contextConfidence: number | null;
 	contextKey: string | null;
 	contextJson: string | null;
-	sharedToFriends: number;
-	authorUserId?: string;
-	authorUsername?: string;
-	isRemote?: boolean;
 }
 
 export type LatestEventByDisplayId = Pick<
@@ -133,28 +129,6 @@ export interface ShortcutSettings {
 	captureNow: string | null;
 	captureProjectProgress: string | null;
 	endOfDay: string | null;
-	smartReminder: string | null;
-}
-
-export interface SharingSettings {
-	includeAppName: boolean;
-	includeWindowTitle: boolean;
-	includeContentInfo: boolean;
-}
-
-export interface DayWrappedSharingSettings {
-	enabled: boolean;
-	includeApps: boolean;
-	includeAddiction: boolean;
-}
-
-export interface SocialUiSettings {
-	hideDayWrappedSharingDisabledWarning: boolean;
-}
-
-export interface SocialSharingSettings {
-	dayWrapped: DayWrappedSharingSettings;
-	ui: SocialUiSettings;
 }
 
 export interface Settings {
@@ -166,9 +140,6 @@ export interface Settings {
 	automationRules: AutomationRules;
 	onboarding: OnboardingState;
 	shortcuts: ShortcutSettings;
-	sharing: SharingSettings;
-	social: SocialSharingSettings;
-	avatar: AvatarSettings;
 	llmEnabled: boolean;
 	allowVisionUploads: boolean;
 	cloudLlmModel: string;
@@ -177,8 +148,6 @@ export interface Settings {
 	localLlmModel: string;
 	autoDetectProgress: boolean;
 	showDominantWebsites: boolean;
-	customBackendEnabled: boolean;
-	customBackendUrl: string;
 }
 
 export interface ProjectRepo {
@@ -552,255 +521,6 @@ export interface UpdateState {
 	lastCheckedAt?: number;
 }
 
-export interface ProjectShare {
-	projectName: string;
-	publicId: string;
-	writeKey: string;
-	shareUrl: string;
-	createdAt: number;
-	updatedAt: number;
-	lastPublishedAt: number | null;
-}
-
-export interface CreateShareResult {
-	publicId: string;
-	writeKey: string;
-	shareUrl: string;
-}
-
-export interface SocialIdentity {
-	userId: string;
-	deviceId: string;
-	username: string;
-}
-
-export type DevicePlatform = "macos" | "ios";
-
-export type DevicePairingSessionStatus =
-	| "pending"
-	| "claimed"
-	| "approved"
-	| "expired";
-
-export interface DevicePairingSession {
-	id: string;
-	code: string;
-	pairingUrl: string;
-	status: DevicePairingSessionStatus;
-	createdAt: number;
-	expiresAt: number;
-	claimedDeviceName: string | null;
-	claimedAt: number | null;
-	approvedAt: number | null;
-}
-
-export interface PairedDevice {
-	deviceId: string;
-	deviceName: string | null;
-	platform: DevicePlatform;
-	addedAt: number;
-	lastSeenAt: number | null;
-	isCurrent: boolean;
-}
-
-export interface MobileActivityHourBucket {
-	hour: number;
-	durationSeconds: number;
-	category: AutomationCategory;
-	appName: string | null;
-	appBundleId?: string | null;
-	domain?: string | null;
-	rawCategory?: string | null;
-	apps?: MobileActivityBucketApp[] | null;
-	domains?: MobileActivityBucketDomain[] | null;
-	caption?: string | null;
-	confidence?: number | null;
-	classificationSource?: string | null;
-}
-
-export interface MobileActivityDay {
-	deviceId: string;
-	deviceName: string | null;
-	platform: "ios";
-	dayStartMs: number;
-	buckets: MobileActivityHourBucket[];
-	syncedAt: number;
-}
-
-export interface MobileActivityBucketApp {
-	name: string;
-	bundleId?: string | null;
-	durationSeconds: number;
-	numberOfPickups?: number | null;
-	numberOfNotifications?: number | null;
-}
-
-export interface MobileActivityBucketDomain {
-	domain: string;
-	durationSeconds: number;
-}
-
-export interface GetMobileActivityDaysOptions {
-	startDate?: number;
-	endDate?: number;
-}
-
-export interface MobileActivitySyncStatus {
-	inFlight: boolean;
-	lastAttemptAt: number | null;
-	lastSuccessAt: number | null;
-	lastError: string | null;
-}
-
-export type AvatarPattern = "ascii";
-
-export interface AvatarSettings {
-	pattern: AvatarPattern;
-	backgroundColor: string;
-	foregroundColor: string;
-	asciiChar: string;
-}
-
-export interface Friend {
-	userId: string;
-	username: string;
-	deviceId: string | null;
-	dhPubKey: string | null;
-	avatarSettings: AvatarSettings | null;
-	createdAt: number;
-}
-
-export interface FriendRequest {
-	id: string;
-	fromUserId: string;
-	fromUsername: string;
-	toUserId: string;
-	toUsername: string;
-	status: "pending" | "accepted" | "rejected";
-	createdAt: number;
-	respondedAt: number | null;
-}
-
-export interface ChatThread {
-	id: string;
-	kind: "dm" | "project";
-	roomId: string | null;
-	title: string;
-	createdAt: number;
-}
-
-export interface ChatMessage {
-	id: string;
-	threadId: string;
-	authorUserId: string;
-	timestampMs: number;
-	text: string;
-}
-
-export interface Room {
-	id: string;
-	kind: "project";
-	name: string;
-	visibility: "private" | "public";
-	role: "owner" | "member";
-	createdBy: string;
-	createdAt: number;
-}
-
-export interface RoomInvite {
-	id: string;
-	roomId: string;
-	roomName: string;
-	fromUserId: string;
-	fromUsername: string;
-	createdAt: number;
-}
-
-export interface RoomMember {
-	userId: string;
-	username: string;
-	role: string;
-}
-
-export type InviteStatus = "pending" | "member" | "none";
-
-export type SentInviteStatus = "pending" | "accepted" | "declined" | "expired";
-
-export interface SentInvite {
-	id: string;
-	roomId: string;
-	toUserId: string;
-	toUsername: string;
-	sentAt: number;
-	status: SentInviteStatus;
-}
-
-export interface RoomTimelineEvent {
-	id: string;
-	roomId: string;
-	authorUserId: string;
-	timestampMs: number;
-	caption: string | null;
-	imageRef: string | null;
-}
-
-export interface SharedProject {
-	roomId: string;
-	projectName: string;
-	ownerUserId: string;
-	ownerUsername: string;
-	isOwner: boolean;
-	joinedAt: number;
-	lastSyncedAt: number | null;
-}
-
-export interface SharedEvent {
-	id: string;
-	roomId: string;
-	authorUserId: string;
-	authorUsername: string;
-	timestampMs: number;
-	endTimestampMs: number | null;
-	project: string | null;
-	category: string | null;
-	caption: string | null;
-	projectProgress: number;
-	appBundleId: string | null;
-	appName: string | null;
-	windowTitle: string | null;
-	contentKind: string | null;
-	contentTitle: string | null;
-	thumbnailPath: string | null;
-	originalPath: string | null;
-	imageRef: string | null;
-	url: string | null;
-	background: BackgroundContext[];
-}
-
-export interface DayWrappedSlot {
-	startMs: number;
-	count: number;
-	category: AutomationCategory;
-	addiction: string | null;
-	appName: string | null;
-}
-
-export interface DayWrappedSnapshot {
-	roomId: string;
-	authorUserId: string;
-	authorUsername: string;
-	publishedAtMs: number;
-	dayStartMs: number;
-	slots: DayWrappedSlot[];
-}
-
-export interface AcceptRoomInviteParams {
-	roomId: string;
-	roomName: string;
-	ownerUserId: string;
-	ownerUsername: string;
-}
-
 export interface LogEntry {
 	timestamp: string;
 	level: string;
@@ -826,59 +546,4 @@ export interface CrashSessionLogSummary {
 	id: string;
 	createdAt: string;
 	sizeBytes: number;
-}
-
-export type ReminderStatus =
-	| "pending"
-	| "triggered"
-	| "completed"
-	| "cancelled";
-
-export interface Reminder {
-	id: string;
-	title: string;
-	body: string | null;
-	sourceText: string | null;
-	remindAt: number | null;
-	status: ReminderStatus;
-	createdAt: number;
-	updatedAt: number;
-	triggeredAt: number | null;
-	completedAt: number | null;
-	thumbnailPath: string | null;
-	originalPath: string | null;
-	appBundleId: string | null;
-	windowTitle: string | null;
-	urlHost: string | null;
-	contentKind: string | null;
-	contextJson: string | null;
-}
-
-export interface ReminderInput {
-	id: string;
-	title: string;
-	body?: string | null;
-	sourceText?: string | null;
-	remindAt?: number | null;
-	thumbnailPath?: string | null;
-	originalPath?: string | null;
-	appBundleId?: string | null;
-	windowTitle?: string | null;
-	urlHost?: string | null;
-	contentKind?: string | null;
-	contextJson?: string | null;
-}
-
-export interface ReminderUpdate {
-	title?: string;
-	body?: string | null;
-	remindAt?: number | null;
-	status?: ReminderStatus;
-}
-
-export interface GetRemindersOptions {
-	status?: ReminderStatus;
-	limit?: number;
-	offset?: number;
-	includeNotes?: boolean;
 }

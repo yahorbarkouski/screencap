@@ -10,8 +10,7 @@ import {
 } from "@/components/ui/context-menu";
 import { copyBestImage } from "@/lib/copyImage";
 import { cn, formatTime } from "@/lib/utils";
-import type { AvatarSettings, Event } from "@/types";
-import { AuthorAvatar } from "./AuthorAvatar";
+import type { Event } from "@/types";
 
 function formatTimeLabel(event: Event): string {
 	const endTimestamp = event.endTimestamp ?? event.timestamp;
@@ -34,15 +33,11 @@ export function ProgressCard({
 	showProject = false,
 	isLast = false,
 	onUnmark,
-	isMe = false,
-	avatarSettings,
 }: {
 	event: Event;
 	showProject?: boolean;
 	isLast?: boolean;
 	onUnmark?: () => void;
-	isMe?: boolean;
-	avatarSettings?: AvatarSettings;
 }) {
 	const [open, setOpen] = useState(false);
 	const timeLabel = useMemo(() => formatTimeLabel(event), [event]);
@@ -123,19 +118,7 @@ export function ProgressCard({
 									/>
 								) : (
 									<div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-										{event.isRemote ? "Image syncing..." : "No image"}
-									</div>
-								)}
-
-								{event.authorUsername && (
-									<div className="absolute top-2 left-2">
-										<AuthorAvatar
-											userId={event.authorUserId}
-											username={event.authorUsername}
-											isMe={isMe}
-											size="md"
-											avatarSettings={isMe ? avatarSettings : undefined}
-										/>
+										No image
 									</div>
 								)}
 
@@ -147,15 +130,13 @@ export function ProgressCard({
 									>
 										<Expand className="h-4 w-4" />
 									</button>
-									{!event.isRemote && (
-										<button
-											type="button"
-											onClick={handleUnmark}
-											className="p-1.5 rounded-md bg-black/60 hover:bg-destructive text-white/90 hover:text-white transition-colors"
-										>
-											<Trash2 className="h-4 w-4" />
-										</button>
-									)}
+									<button
+										type="button"
+										onClick={handleUnmark}
+										className="p-1.5 rounded-md bg-black/60 hover:bg-destructive text-white/90 hover:text-white transition-colors"
+									>
+										<Trash2 className="h-4 w-4" />
+									</button>
 								</div>
 
 								{(event.caption || showProject) && (

@@ -1,62 +1,35 @@
 import type {
-	AcceptRoomInviteParams,
 	AddictionStatsItem,
 	AppInfo,
 	AutomationStatus,
-	AvatarSettings,
 	CaptureResult,
 	CaptureTriggerOptions,
 	CaptureTriggerResult,
 	CategoryStats,
-	ChatMessage,
-	ChatThread,
 	ClassificationResult,
 	ClearableStorageCategory,
 	ContextStatus,
 	ContextTestResult,
 	CrashSessionLogSummary,
-	CreateShareResult,
-	DayWrappedSnapshot,
-	DevicePairingSession,
 	EodEntry,
 	EodEntryInput,
 	Event,
 	EventScreenshot,
 	EventSummary,
-	Friend,
-	FriendRequest,
 	GetEventsOptions,
-	GetMobileActivityDaysOptions,
-	GetRemindersOptions,
 	GetTimelineFacetsOptions,
 	GitCommit,
-	InviteStatus,
 	LLMTestResult,
 	LogsCollectResult,
 	Memory,
-	MobileActivityDay,
-	MobileActivitySyncStatus,
 	OcrResult,
-	PairedDevice,
 	PeriodType,
 	PermissionStatus,
 	ProjectRepo,
-	ProjectShare,
 	ProjectStatsItem,
 	RecordedApp,
-	Reminder,
-	ReminderInput,
-	ReminderUpdate,
 	RendererLogEntry,
-	Room,
-	RoomInvite,
-	RoomMember,
-	RoomTimelineEvent,
-	SentInvite,
 	Settings,
-	SharedEvent,
-	SharedProject,
-	SocialIdentity,
 	StorageUsageBreakdown,
 	Story,
 	StoryInput,
@@ -72,7 +45,6 @@ export const IpcChannels = {
 		GetInfo: "app:get-info",
 		OpenExternal: "app:open-external",
 		OpenNative: "app:open-native",
-		PreviewEvent: "app:preview-event",
 		OpenSettingsTab: "app:open-settings-tab",
 		RevealInFinder: "app:reveal-in-finder",
 		PickDirectory: "app:pick-directory",
@@ -121,7 +93,6 @@ export const IpcChannels = {
 	Storage: {
 		GetEvents: "storage:get-events",
 		GetEventsCount: "storage:get-events-count",
-		GetUnifiedEvents: "storage:get-unified-events",
 		GetEvent: "storage:get-event",
 		GetEventScreenshots: "storage:get-event-screenshots",
 		GetDiskUsage: "storage:get-disk-usage",
@@ -157,7 +128,6 @@ export const IpcChannels = {
 	Settings: {
 		Get: "settings:get",
 		Set: "settings:set",
-		TestBackendConnection: "settings:test-backend-connection",
 	},
 	Shortcuts: {
 		SetSuspended: "shortcuts:set-suspended",
@@ -183,66 +153,6 @@ export const IpcChannels = {
 		UpsertEntry: "eod:upsert-entry",
 		ListEntries: "eod:list-entries",
 	},
-	Publishing: {
-		CreateShare: "publishing:create-share",
-		GetShare: "publishing:get-share",
-		DisableShare: "publishing:disable-share",
-		SyncShare: "publishing:sync-share",
-	},
-	Social: {
-		GetIdentity: "social:get-identity",
-		RegisterUsername: "social:register-username",
-		SendFriendRequest: "social:send-friend-request",
-		ListFriends: "social:list-friends",
-		ListFriendRequests: "social:list-friend-requests",
-		AcceptFriendRequest: "social:accept-friend-request",
-		RejectFriendRequest: "social:reject-friend-request",
-		SyncAvatarSettings: "social:sync-avatar-settings",
-	},
-	MobileActivity: {
-		ListDays: "mobile-activity:list-days",
-		Sync: "mobile-activity:sync",
-		GetSyncStatus: "mobile-activity:get-sync-status",
-	},
-	DevicePairing: {
-		CreateSession: "device-pairing:create-session",
-		GetSession: "device-pairing:get-session",
-		ApproveSession: "device-pairing:approve-session",
-		ListDevices: "device-pairing:list-devices",
-		RevokeDevice: "device-pairing:revoke-device",
-	},
-	Chat: {
-		ListThreads: "chat:list-threads",
-		OpenDmThread: "chat:open-dm-thread",
-		OpenProjectThread: "chat:open-project-thread",
-		FetchMessages: "chat:fetch-messages",
-		SendMessage: "chat:send-message",
-		MarkThreadRead: "chat:mark-thread-read",
-	},
-	Rooms: {
-		EnsureProjectRoom: "rooms:ensure-project-room",
-		InviteFriendToProjectRoom: "rooms:invite-friend-to-project-room",
-		ListRooms: "rooms:list-rooms",
-		ListInvites: "rooms:list-invites",
-		AcceptProjectInvite: "rooms:accept-project-invite",
-		FetchRoomEvents: "rooms:fetch-room-events",
-		GetRoomMembers: "rooms:get-room-members",
-		ListSentInvites: "rooms:list-sent-invites",
-		GetInviteStatus: "rooms:get-invite-status",
-	},
-	SharedProjects: {
-		List: "shared-projects:list",
-		GetEvents: "shared-projects:get-events",
-		Sync: "shared-projects:sync",
-		SyncAll: "shared-projects:sync-all",
-	},
-	SocialFeed: {
-		EnsureFriendsFeedRoom: "social-feed:ensure-friends-feed-room",
-		GetFeed: "social-feed:get-feed",
-		GetFriendDayWrapped: "social-feed:get-friend-day-wrapped",
-		PublishEventToAllFriends: "social-feed:publish-event-to-all-friends",
-		UnpublishEvent: "social-feed:unpublish-event",
-	},
 	Logs: {
 		Collect: "logs:collect",
 		CopyToClipboard: "logs:copy-to-clipboard",
@@ -250,15 +160,6 @@ export const IpcChannels = {
 		AppendRendererLogs: "logs:append-renderer-logs",
 		ListCrashSessions: "logs:list-crash-sessions",
 		SaveCrashSessionToFile: "logs:save-crash-session-to-file",
-	},
-	Reminders: {
-		List: "reminders:list",
-		Get: "reminders:get",
-		Create: "reminders:create",
-		Update: "reminders:update",
-		Delete: "reminders:delete",
-		MarkCompleted: "reminders:mark-completed",
-		StartCapture: "reminders:start-capture",
 	},
 } as const;
 
@@ -276,12 +177,8 @@ export const IpcEvents = {
 		"shortcut:capture-project-progress-preview",
 	ShortcutCaptureProjectProgress: "shortcut:capture-project-progress",
 	ShortcutEndOfDay: "shortcut:end-of-day",
-	PreviewEvent: "preview:event",
 	OpenSettingsTab: "settings:open-tab",
 	SettingsChanged: "settings:changed",
-	RemindersChanged: "reminders:changed",
-	ReminderTriggered: "reminder:triggered",
-	SmartReminderCapturePreview: "smart-reminder:capture-preview",
 } as const;
 
 export interface IpcInvokeHandlers {
@@ -290,9 +187,8 @@ export interface IpcInvokeHandlers {
 	[IpcChannels.App.GetInfo]: () => AppInfo;
 	[IpcChannels.App.OpenExternal]: (url: string) => void;
 	[IpcChannels.App.OpenNative]: (path: string) => void;
-	[IpcChannels.App.PreviewEvent]: (event: SharedEvent) => void;
 	[IpcChannels.App.OpenSettingsTab]: (
-		tab: "capture" | "ai" | "automation" | "data" | "social" | "system",
+		tab: "capture" | "ai" | "automation" | "data" | "system",
 	) => void;
 	[IpcChannels.App.RevealInFinder]: () => void;
 	[IpcChannels.App.PickDirectory]: () => Promise<string | null>;
@@ -335,9 +231,6 @@ export interface IpcInvokeHandlers {
 
 	[IpcChannels.Storage.GetEvents]: (options: GetEventsOptions) => Event[];
 	[IpcChannels.Storage.GetEventsCount]: (options: GetEventsOptions) => number;
-	[IpcChannels.Storage.GetUnifiedEvents]: (
-		options: GetEventsOptions,
-	) => Event[];
 	[IpcChannels.Storage.GetEvent]: (id: string) => Event | null;
 	[IpcChannels.Storage.GetEventScreenshots]: (
 		eventId: string,
@@ -395,10 +288,6 @@ export interface IpcInvokeHandlers {
 
 	[IpcChannels.Settings.Get]: () => Settings;
 	[IpcChannels.Settings.Set]: (settings: Settings) => void;
-	[IpcChannels.Settings.TestBackendConnection]: () => Promise<{
-		success: boolean;
-		error?: string;
-	}>;
 
 	[IpcChannels.Shortcuts.SetSuspended]: (suspended: boolean) => void;
 
@@ -437,123 +326,6 @@ export interface IpcInvokeHandlers {
 	[IpcChannels.Eod.UpsertEntry]: (entry: EodEntryInput) => void;
 	[IpcChannels.Eod.ListEntries]: () => EodEntry[];
 
-	[IpcChannels.Publishing.CreateShare]: (
-		projectName: string,
-	) => Promise<CreateShareResult>;
-	[IpcChannels.Publishing.GetShare]: (
-		projectName: string,
-	) => ProjectShare | null;
-	[IpcChannels.Publishing.DisableShare]: (projectName: string) => void;
-	[IpcChannels.Publishing.SyncShare]: (projectName: string) => Promise<number>;
-
-	[IpcChannels.Social.GetIdentity]: () => SocialIdentity | null;
-	[IpcChannels.Social.RegisterUsername]: (
-		username: string,
-	) => Promise<SocialIdentity>;
-	[IpcChannels.Social.SendFriendRequest]: (toUsername: string) => Promise<{
-		requestId: string;
-		status: "pending" | "accepted";
-	}>;
-	[IpcChannels.Social.ListFriends]: () => Promise<Friend[]>;
-	[IpcChannels.Social.ListFriendRequests]: () => Promise<FriendRequest[]>;
-	[IpcChannels.Social.AcceptFriendRequest]: (
-		requestId: string,
-	) => Promise<void>;
-	[IpcChannels.Social.RejectFriendRequest]: (
-		requestId: string,
-	) => Promise<void>;
-	[IpcChannels.Social.SyncAvatarSettings]: (
-		avatarSettings: AvatarSettings,
-	) => Promise<void>;
-
-	[IpcChannels.MobileActivity.ListDays]: (
-		options: GetMobileActivityDaysOptions,
-	) => MobileActivityDay[];
-	[IpcChannels.MobileActivity.Sync]: (
-		options?: GetMobileActivityDaysOptions,
-	) => Promise<{ count: number }>;
-	[IpcChannels.MobileActivity.GetSyncStatus]: () => MobileActivitySyncStatus;
-
-	[IpcChannels.DevicePairing
-		.CreateSession]: () => Promise<DevicePairingSession>;
-	[IpcChannels.DevicePairing.GetSession]: (
-		sessionId: string,
-	) => Promise<DevicePairingSession | null>;
-	[IpcChannels.DevicePairing.ApproveSession]: (
-		sessionId: string,
-	) => Promise<DevicePairingSession | null>;
-	[IpcChannels.DevicePairing.ListDevices]: () => Promise<PairedDevice[]>;
-	[IpcChannels.DevicePairing.RevokeDevice]: (deviceId: string) => Promise<void>;
-
-	[IpcChannels.Chat.ListThreads]: () => Promise<ChatThread[]>;
-	[IpcChannels.Chat.OpenDmThread]: (friendUserId: string) => Promise<string>;
-	[IpcChannels.Chat.OpenProjectThread]: (roomId: string) => Promise<string>;
-	[IpcChannels.Chat.FetchMessages]: (
-		threadId: string,
-		since?: number,
-	) => Promise<ChatMessage[]>;
-	[IpcChannels.Chat.SendMessage]: (
-		threadId: string,
-		text: string,
-	) => Promise<void>;
-	[IpcChannels.Chat.MarkThreadRead]: (
-		threadId: string,
-		lastReadTimestampMs?: number,
-	) => Promise<void>;
-
-	[IpcChannels.Rooms.EnsureProjectRoom]: (
-		projectName: string,
-	) => Promise<string>;
-	[IpcChannels.Rooms.InviteFriendToProjectRoom]: (params: {
-		projectName: string;
-		friendUserId: string;
-		friendUsername?: string;
-	}) => Promise<{ status: "invited" | "already_member" | "already_invited" }>;
-	[IpcChannels.Rooms.ListRooms]: () => Promise<Room[]>;
-	[IpcChannels.Rooms.ListInvites]: () => Promise<RoomInvite[]>;
-	[IpcChannels.Rooms.AcceptProjectInvite]: (
-		params: AcceptRoomInviteParams,
-	) => Promise<void>;
-	[IpcChannels.Rooms.FetchRoomEvents]: (
-		roomId: string,
-		since?: number,
-	) => Promise<RoomTimelineEvent[]>;
-	[IpcChannels.Rooms.GetRoomMembers]: (roomId: string) => Promise<RoomMember[]>;
-	[IpcChannels.Rooms.ListSentInvites]: (
-		roomId: string,
-	) => Promise<SentInvite[]>;
-	[IpcChannels.Rooms.GetInviteStatus]: (
-		roomId: string,
-		friendUserId: string,
-	) => Promise<InviteStatus>;
-
-	[IpcChannels.SharedProjects.List]: () => SharedProject[];
-	[IpcChannels.SharedProjects.GetEvents]: (params: {
-		roomId: string;
-		startDate?: number;
-		endDate?: number;
-		limit?: number;
-	}) => SharedEvent[];
-	[IpcChannels.SharedProjects.Sync]: (
-		roomId: string,
-	) => Promise<{ count: number }>;
-	[IpcChannels.SharedProjects.SyncAll]: () => Promise<void>;
-
-	[IpcChannels.SocialFeed.EnsureFriendsFeedRoom]: () => Promise<string>;
-	[IpcChannels.SocialFeed.GetFeed]: (params?: {
-		startDate?: number;
-		endDate?: number;
-		limit?: number;
-		includeOwnEvents?: boolean;
-	}) => Promise<SharedEvent[]>;
-	[IpcChannels.SocialFeed.GetFriendDayWrapped]: (
-		friendUserId: string,
-	) => Promise<DayWrappedSnapshot | null>;
-	[IpcChannels.SocialFeed.PublishEventToAllFriends]: (
-		eventId: string,
-	) => Promise<void>;
-	[IpcChannels.SocialFeed.UnpublishEvent]: (eventId: string) => Promise<void>;
-
 	[IpcChannels.Logs.Collect]: (rendererLogs?: string) => LogsCollectResult;
 	[IpcChannels.Logs.CopyToClipboard]: (rendererLogs?: string) => void;
 	[IpcChannels.Logs.SaveToFile]: (
@@ -564,28 +336,11 @@ export interface IpcInvokeHandlers {
 	[IpcChannels.Logs.SaveCrashSessionToFile]: (
 		id: string,
 	) => Promise<string | null>;
-
-	[IpcChannels.Reminders.List]: (options?: GetRemindersOptions) => Reminder[];
-	[IpcChannels.Reminders.Get]: (id: string) => Reminder | null;
-	[IpcChannels.Reminders.Create]: (input: ReminderInput) => Reminder;
-	[IpcChannels.Reminders.Update]: (id: string, updates: ReminderUpdate) => void;
-	[IpcChannels.Reminders.Delete]: (id: string) => void;
-	[IpcChannels.Reminders.MarkCompleted]: (id: string) => void;
-	[IpcChannels.Reminders.StartCapture]: () => Promise<void>;
 }
 
 export interface ProjectProgressPreview {
 	imageBase64: string;
 	project: string | null;
-}
-
-export interface SmartReminderCapturePreviewPayload {
-	imageBase64: string;
-	appBundleId: string | null;
-	windowTitle: string | null;
-	urlHost: string | null;
-	contentKind: string | null;
-	contextJson: string | null;
 }
 
 export interface IpcEventPayloads {
@@ -601,17 +356,11 @@ export interface IpcEventPayloads {
 	[IpcEvents.ShortcutCaptureProjectProgressPreview]: ProjectProgressPreview;
 	[IpcEvents.ShortcutCaptureProjectProgress]: string | null;
 	[IpcEvents.ShortcutEndOfDay]: { dayStart: number } | undefined;
-	[IpcEvents.PreviewEvent]: SharedEvent;
 	[IpcEvents.OpenSettingsTab]:
 		| "capture"
 		| "ai"
 		| "automation"
 		| "data"
-		| "social"
 		| "system";
 	[IpcEvents.SettingsChanged]: Settings;
-	[IpcEvents.RemindersChanged]: undefined;
-	[IpcEvents.ReminderTriggered]: Reminder;
-	[IpcEvents.SmartReminderCapturePreview]: SmartReminderCapturePreviewPayload;
-	"navigate:reminders": undefined;
 }

@@ -22,7 +22,6 @@ import {
 	X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AuthorAvatar } from "@/components/progress/AuthorAvatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,13 +52,7 @@ import { copyBestImage } from "@/lib/copyImage";
 import { isNsfwEvent } from "@/lib/nsfw";
 import { cn, getCategoryColor } from "@/lib/utils";
 import { useAppStore } from "@/stores/app";
-import type {
-	AutomationRule,
-	Event,
-	EventScreenshot,
-	Settings,
-	SocialIdentity,
-} from "@/types";
+import type { AutomationRule, Event, EventScreenshot, Settings } from "@/types";
 import { parseBackgroundFromEvent } from "@/types";
 
 const CATEGORIES = ["Study", "Work", "Leisure", "Chores", "Social", "Unknown"];
@@ -163,7 +156,6 @@ export function EventPreview({ event, open, onOpenChange }: EventPreviewProps) {
 		Settings["automationRules"] | null
 	>(null);
 	const [projects, setProjects] = useState<string[]>([]);
-	const [identity, setIdentity] = useState<SocialIdentity | null>(null);
 	const removeEvent = useAppStore((s) => s.removeEvent);
 	const updateEvent = useAppStore((s) => s.updateEvent);
 
@@ -236,13 +228,6 @@ export function EventPreview({ event, open, onOpenChange }: EventPreviewProps) {
 			? Math.round(event.projectProgressConfidence * 100)
 			: null;
 
-	const isSharedFromOther =
-		event.isRemote &&
-		event.authorUserId &&
-		event.authorUsername &&
-		identity &&
-		event.authorUserId !== identity.userId;
-
 	useEffect(() => {
 		setPreviewPath(previewHighResPath ?? previewBasePath ?? null);
 	}, [previewBasePath, previewHighResPath]);
@@ -312,11 +297,6 @@ export function EventPreview({ event, open, onOpenChange }: EventPreviewProps) {
 	}, [open]);
 
 	useEffect(() => {
-		if (!window.api?.social) return;
-		void window.api.social.getIdentity().then(setIdentity);
-	}, []);
-
-	useEffect(() => {
 		if (!open || screenshots.length < 2) return;
 
 		const handler = (e: KeyboardEvent) => {
@@ -370,27 +350,6 @@ export function EventPreview({ event, open, onOpenChange }: EventPreviewProps) {
 		removeEvent(event.id);
 		onOpenChange(false);
 	};
-
-	const [isSharing, setIsSharing] = useState(false);
-	const [shareError, setShareError] = useState(false);
-
-	const canShareToFriends = Boolean(identity && !event.isRemote);
-	const isSharedToFriends = event.sharedToFriends === 1;
-
-	const handleShareToFriends = useCallback(async () => {
-		if (!canShareToFriends || isSharedToFriends) return;
-		setIsSharing(true);
-		setShareError(false);
-		try {
-			await window.api.socialFeed.publishEventToAllFriends(event.id);
-			updateEvent(event.id, { sharedToFriends: 1 });
-		} catch {
-			setShareError(true);
-			setTimeout(() => setShareError(false), 2000);
-		} finally {
-			setIsSharing(false);
-		}
-	}, [canShareToFriends, isSharedToFriends, event.id, updateEvent]);
 
 	const handleMarkProgress = async () => {
 		await window.api.storage.markProjectProgress(event.id);
@@ -525,31 +484,6 @@ export function EventPreview({ event, open, onOpenChange }: EventPreviewProps) {
 							</span>
 						</div>
 					</div>
-					<Button
-						size="sm"
-						variant="ghost"
-						className={cn(
-							"px-2 py-1",
-							isSharedToFriends
-								? "bg-muted text-accent-foreground hover:bg-muted"
-								: "",
-						)}
-						onClick={() => void handleShareToFriends()}
-						disabled={!canShareToFriends || isSharing || isSharedToFriends}
-					>
-						{isSharing ? (
-							<div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-						) : (
-							<Users className="h-4 w-4" />
-						)}
-						{isSharedToFriends
-							? "Shared"
-							: shareError
-								? "Failed"
-								: isSharing
-									? "Sharing..."
-									: "Share"}
-					</Button>
 				</div>
 
 				<ScrollArea className="flex-1">
@@ -748,23 +682,6 @@ export function EventPreview({ event, open, onOpenChange }: EventPreviewProps) {
 
 						<div className="p-6 max-w-3xl mx-auto w-full">
 							<div className="space-y-4">
-								{isSharedFromOther && (
-									<div className="flex items-center gap-3 p-4 rounded-2xl bg-muted/10">
-										<AuthorAvatar
-											userId={event.authorUserId}
-											username={event.authorUsername!}
-										/>
-										<div className="min-w-0">
-											<div className="text-[10px] font-mono tracking-[0.2em] text-muted-foreground uppercase">
-												Shared by
-											</div>
-											<div className="mt-0.5 text-sm font-semibold truncate">
-												@{event.authorUsername}
-											</div>
-										</div>
-									</div>
-								)}
-
 								<div className="rounded-xl border border-border/30 overflow-hidden divide-y divide-border/20">
 									{(event.trackedAddiction || event.addictionCandidate) && (
 										<div

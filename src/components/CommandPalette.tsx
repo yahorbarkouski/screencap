@@ -1,7 +1,6 @@
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { Command } from "cmdk";
 import {
-	Bell,
 	BookOpen,
 	Bot,
 	Briefcase,
@@ -14,7 +13,6 @@ import {
 	Tag,
 	Trash2,
 	TrendingUp,
-	Users,
 	Workflow,
 } from "lucide-react";
 import { useCallback, useMemo } from "react";
@@ -174,14 +172,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 								Go to Addictions
 							</Command.Item>
 							<Command.Item
-								value="go reminders"
-								className={itemClassName}
-								onSelect={() => navigateToView("reminders")}
-							>
-								<Bell className="h-4 w-4" />
-								Go to Reminders
-							</Command.Item>
-							<Command.Item
 								value="go settings"
 								className={itemClassName}
 								onSelect={() => navigateToView("settings")}
@@ -223,14 +213,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 							>
 								<Database className="h-4 w-4" />
 								Data
-							</Command.Item>
-							<Command.Item
-								value="settings social"
-								className={itemClassName}
-								onSelect={() => navigateToSettingsTab("social")}
-							>
-								<Users className="h-4 w-4" />
-								Social
 							</Command.Item>
 							<Command.Item
 								value="settings system"

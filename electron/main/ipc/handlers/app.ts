@@ -27,7 +27,6 @@ import {
 	ipcOpenExternalArgs,
 	ipcOpenNativeArgs,
 	ipcOpenSettingsTabArgs,
-	ipcPreviewEventArgs,
 } from "../validation";
 
 const logger = createLogger({ scope: "AppIPC" });
@@ -161,18 +160,9 @@ export function registerAppHandlers(): void {
 	);
 
 	secureHandle(
-		IpcChannels.App.PreviewEvent,
-		ipcPreviewEventArgs,
-		(event: unknown) => {
-			showMainWindow();
-			broadcast(IpcEvents.PreviewEvent, event);
-		},
-	);
-
-	secureHandle(
 		IpcChannels.App.OpenSettingsTab,
 		ipcOpenSettingsTabArgs,
-		(tab: "capture" | "ai" | "automation" | "data" | "social" | "system") => {
+		(tab: "capture" | "ai" | "automation" | "data" | "system") => {
 			showMainWindow();
 			broadcast(IpcEvents.OpenSettingsTab, tab);
 		},

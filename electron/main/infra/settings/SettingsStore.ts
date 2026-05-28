@@ -9,8 +9,6 @@ const logger = createLogger({ scope: "SettingsStore" });
 
 const ONBOARDING_VERSION = 1;
 
-const DEFAULT_BACKEND_URL = "https://screencap-frontend.vercel.app";
-
 const DEFAULT_SETTINGS: Settings = {
 	apiKey: null,
 	captureInterval: 5,
@@ -27,28 +25,6 @@ const DEFAULT_SETTINGS: Settings = {
 		captureNow: "Command+Shift+O",
 		captureProjectProgress: "Command+Shift+P",
 		endOfDay: "Command+Shift+E",
-		smartReminder: "Alt+Space",
-	},
-	sharing: {
-		includeAppName: true,
-		includeWindowTitle: false,
-		includeContentInfo: true,
-	},
-	social: {
-		dayWrapped: {
-			enabled: false,
-			includeApps: false,
-			includeAddiction: false,
-		},
-		ui: {
-			hideDayWrappedSharingDisabledWarning: false,
-		},
-	},
-	avatar: {
-		pattern: "ascii",
-		backgroundColor: "#0a0a0a",
-		foregroundColor: "#ffffff",
-		asciiChar: "@",
 	},
 	llmEnabled: true,
 	allowVisionUploads: true,
@@ -58,11 +34,7 @@ const DEFAULT_SETTINGS: Settings = {
 	localLlmModel: "llama3.2",
 	autoDetectProgress: false,
 	showDominantWebsites: false,
-	customBackendEnabled: false,
-	customBackendUrl: "",
 };
-
-export { DEFAULT_BACKEND_URL };
 
 const zNonEmptyString = z.string().min(1);
 const zLimitedString = (max: number) => zNonEmptyString.max(max);
@@ -111,77 +83,9 @@ const zShortcutSettings = z
 			DEFAULT_SETTINGS.shortcuts.captureProjectProgress,
 		),
 		endOfDay: zShortcutAccelerator.catch(DEFAULT_SETTINGS.shortcuts.endOfDay),
-		smartReminder: zShortcutAccelerator.catch(
-			DEFAULT_SETTINGS.shortcuts.smartReminder,
-		),
 	})
 	.strip()
 	.catch(DEFAULT_SETTINGS.shortcuts);
-
-const zSharingSettings = z
-	.object({
-		includeAppName: z.boolean().catch(DEFAULT_SETTINGS.sharing.includeAppName),
-		includeWindowTitle: z
-			.boolean()
-			.catch(DEFAULT_SETTINGS.sharing.includeWindowTitle),
-		includeContentInfo: z
-			.boolean()
-			.catch(DEFAULT_SETTINGS.sharing.includeContentInfo),
-	})
-	.strip()
-	.catch(DEFAULT_SETTINGS.sharing);
-
-const zDayWrappedSharingSettings = z
-	.object({
-		enabled: z.boolean().catch(DEFAULT_SETTINGS.social.dayWrapped.enabled),
-		includeApps: z
-			.boolean()
-			.catch(DEFAULT_SETTINGS.social.dayWrapped.includeApps),
-		includeAddiction: z
-			.boolean()
-			.catch(DEFAULT_SETTINGS.social.dayWrapped.includeAddiction),
-	})
-	.strip()
-	.catch(DEFAULT_SETTINGS.social.dayWrapped);
-
-const zSocialUiSettings = z
-	.object({
-		hideDayWrappedSharingDisabledWarning: z
-			.boolean()
-			.catch(DEFAULT_SETTINGS.social.ui.hideDayWrappedSharingDisabledWarning),
-	})
-	.strip()
-	.catch(DEFAULT_SETTINGS.social.ui);
-
-const zSocialSharingSettings = z
-	.object({
-		dayWrapped: zDayWrappedSharingSettings,
-		ui: zSocialUiSettings,
-	})
-	.strip()
-	.catch(DEFAULT_SETTINGS.social);
-
-const zAvatarSettings = z
-	.object({
-		pattern: z.enum(["ascii"]).catch(DEFAULT_SETTINGS.avatar.pattern),
-		backgroundColor: z
-			.string()
-			.max(100)
-			.catch(DEFAULT_SETTINGS.avatar.backgroundColor),
-		foregroundColor: z
-			.string()
-			.max(100)
-			.catch(DEFAULT_SETTINGS.avatar.foregroundColor),
-		asciiChar: z
-			.string()
-			.trim()
-			.min(1)
-			.max(1)
-			.regex(/^[\x21-\x7E]$/)
-			.catch(DEFAULT_SETTINGS.avatar.asciiChar),
-	})
-	.strip()
-	.catch(DEFAULT_SETTINGS.avatar);
 
 const settingsFileSchema: z.ZodType<Settings, z.ZodTypeDef, unknown> = z
 	.object({
@@ -203,9 +107,6 @@ const settingsFileSchema: z.ZodType<Settings, z.ZodTypeDef, unknown> = z
 		automationRules: zAutomationRules,
 		onboarding: zOnboardingState,
 		shortcuts: zShortcutSettings,
-		sharing: zSharingSettings,
-		social: zSocialSharingSettings,
-		avatar: zAvatarSettings,
 		llmEnabled: z.boolean().catch(DEFAULT_SETTINGS.llmEnabled),
 		allowVisionUploads: z.boolean().catch(DEFAULT_SETTINGS.allowVisionUploads),
 		cloudLlmModel: zLimitedString(500).catch(DEFAULT_SETTINGS.cloudLlmModel),
@@ -218,13 +119,6 @@ const settingsFileSchema: z.ZodType<Settings, z.ZodTypeDef, unknown> = z
 		showDominantWebsites: z
 			.boolean()
 			.catch(DEFAULT_SETTINGS.showDominantWebsites),
-		customBackendEnabled: z
-			.boolean()
-			.catch(DEFAULT_SETTINGS.customBackendEnabled),
-		customBackendUrl: z
-			.string()
-			.max(2000)
-			.catch(DEFAULT_SETTINGS.customBackendUrl),
 	})
 	.strip()
 	.catch(DEFAULT_SETTINGS);

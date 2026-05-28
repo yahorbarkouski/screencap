@@ -56,10 +56,6 @@ export interface Event {
 	contextConfidence: number | null;
 	contextKey: string | null;
 	contextJson: string | null;
-	sharedToFriends: number;
-	authorUserId?: string;
-	authorUsername?: string;
-	isRemote?: boolean;
 }
 
 export function parseBackgroundFromEvent(event: Event): BackgroundContext[] {
@@ -133,37 +129,6 @@ export interface ShortcutSettings {
 	captureNow: string | null;
 	captureProjectProgress: string | null;
 	endOfDay: string | null;
-	smartReminder: string | null;
-}
-
-export interface SharingSettings {
-	includeAppName: boolean;
-	includeWindowTitle: boolean;
-	includeContentInfo: boolean;
-}
-
-export interface DayWrappedSharingSettings {
-	enabled: boolean;
-	includeApps: boolean;
-	includeAddiction: boolean;
-}
-
-export interface SocialUiSettings {
-	hideDayWrappedSharingDisabledWarning: boolean;
-}
-
-export type AvatarPattern = "ascii";
-
-export interface AvatarSettings {
-	pattern: AvatarPattern;
-	backgroundColor: string;
-	foregroundColor: string;
-	asciiChar: string;
-}
-
-export interface SocialSharingSettings {
-	dayWrapped: DayWrappedSharingSettings;
-	ui: SocialUiSettings;
 }
 
 export interface Settings {
@@ -175,9 +140,6 @@ export interface Settings {
 	automationRules: AutomationRules;
 	onboarding: OnboardingState;
 	shortcuts: ShortcutSettings;
-	sharing: SharingSettings;
-	social: SocialSharingSettings;
-	avatar: AvatarSettings;
 	llmEnabled: boolean;
 	allowVisionUploads: boolean;
 	cloudLlmModel: string;
@@ -186,8 +148,6 @@ export interface Settings {
 	localLlmModel: string;
 	autoDetectProgress: boolean;
 	showDominantWebsites: boolean;
-	customBackendEnabled: boolean;
-	customBackendUrl: string;
 }
 
 export interface ProjectRepo {
@@ -325,16 +285,9 @@ export type View =
 	| "story"
 	| "projects"
 	| "addictions"
-	| "reminders"
 	| "settings";
 
-export type SettingsTab =
-	| "capture"
-	| "ai"
-	| "automation"
-	| "data"
-	| "social"
-	| "system";
+export type SettingsTab = "capture" | "ai" | "automation" | "data" | "system";
 
 export interface AutomationStatus {
 	systemEvents: "granted" | "denied" | "not-determined";
@@ -468,246 +421,6 @@ export interface ProjectStatsItem {
 	coverProjectProgress: number;
 }
 
-export interface ProjectShare {
-	projectName: string;
-	publicId: string;
-	writeKey: string;
-	shareUrl: string;
-	createdAt: number;
-	updatedAt: number;
-	lastPublishedAt: number | null;
-}
-
-export interface CreateShareResult {
-	publicId: string;
-	writeKey: string;
-	shareUrl: string;
-}
-
-export interface SocialIdentity {
-	userId: string;
-	deviceId: string;
-	username: string;
-}
-
-export type DevicePlatform = "macos" | "ios";
-
-export type DevicePairingSessionStatus =
-	| "pending"
-	| "claimed"
-	| "approved"
-	| "expired";
-
-export interface DevicePairingSession {
-	id: string;
-	code: string;
-	pairingUrl: string;
-	status: DevicePairingSessionStatus;
-	createdAt: number;
-	expiresAt: number;
-	claimedDeviceName: string | null;
-	claimedAt: number | null;
-	approvedAt: number | null;
-}
-
-export interface PairedDevice {
-	deviceId: string;
-	deviceName: string | null;
-	platform: DevicePlatform;
-	addedAt: number;
-	lastSeenAt: number | null;
-	isCurrent: boolean;
-}
-
-export interface MobileActivityHourBucket {
-	hour: number;
-	durationSeconds: number;
-	category: AutomationCategory;
-	appName: string | null;
-	appBundleId?: string | null;
-	domain?: string | null;
-	rawCategory?: string | null;
-	apps?: MobileActivityBucketApp[] | null;
-	domains?: MobileActivityBucketDomain[] | null;
-	caption?: string | null;
-	confidence?: number | null;
-	classificationSource?: string | null;
-}
-
-export interface MobileActivityDay {
-	deviceId: string;
-	deviceName: string | null;
-	platform: "ios";
-	dayStartMs: number;
-	buckets: MobileActivityHourBucket[];
-	syncedAt: number;
-}
-
-export interface MobileActivityBucketApp {
-	name: string;
-	bundleId?: string | null;
-	durationSeconds: number;
-	numberOfPickups?: number | null;
-	numberOfNotifications?: number | null;
-}
-
-export interface MobileActivityBucketDomain {
-	domain: string;
-	durationSeconds: number;
-}
-
-export interface GetMobileActivityDaysOptions {
-	startDate?: number;
-	endDate?: number;
-}
-
-export interface MobileActivitySyncStatus {
-	inFlight: boolean;
-	lastAttemptAt: number | null;
-	lastSuccessAt: number | null;
-	lastError: string | null;
-}
-
-export interface Friend {
-	userId: string;
-	username: string;
-	deviceId: string | null;
-	dhPubKey: string | null;
-	avatarSettings: AvatarSettings | null;
-	createdAt: number;
-}
-
-export interface FriendRequest {
-	id: string;
-	fromUserId: string;
-	fromUsername: string;
-	toUserId: string;
-	toUsername: string;
-	status: "pending" | "accepted" | "rejected";
-	createdAt: number;
-	respondedAt: number | null;
-}
-
-export interface ChatThread {
-	id: string;
-	kind: "dm" | "project";
-	roomId: string | null;
-	title: string;
-	createdAt: number;
-}
-
-export interface ChatMessage {
-	id: string;
-	threadId: string;
-	authorUserId: string;
-	timestampMs: number;
-	text: string;
-}
-
-export interface Room {
-	id: string;
-	kind: "project";
-	name: string;
-	visibility: "private" | "public";
-	role: "owner" | "member";
-	createdBy: string;
-	createdAt: number;
-}
-
-export interface RoomInvite {
-	id: string;
-	roomId: string;
-	roomName: string;
-	fromUserId: string;
-	fromUsername: string;
-	createdAt: number;
-}
-
-export interface RoomMember {
-	userId: string;
-	username: string;
-	role: string;
-}
-
-export type InviteStatus = "pending" | "member" | "none";
-
-export type SentInviteStatus = "pending" | "accepted" | "declined" | "expired";
-
-export interface SentInvite {
-	id: string;
-	roomId: string;
-	toUserId: string;
-	toUsername: string;
-	sentAt: number;
-	status: SentInviteStatus;
-}
-
-export interface RoomTimelineEvent {
-	id: string;
-	roomId: string;
-	authorUserId: string;
-	timestampMs: number;
-	caption: string | null;
-	imageRef: string | null;
-}
-
-export interface SharedProject {
-	roomId: string;
-	projectName: string;
-	ownerUserId: string;
-	ownerUsername: string;
-	isOwner: boolean;
-	joinedAt: number;
-	lastSyncedAt: number | null;
-}
-
-export interface SharedEvent {
-	id: string;
-	roomId: string;
-	authorUserId: string;
-	authorUsername: string;
-	timestampMs: number;
-	endTimestampMs: number | null;
-	project: string | null;
-	category: string | null;
-	caption: string | null;
-	projectProgress: number;
-	appBundleId: string | null;
-	appName: string | null;
-	windowTitle: string | null;
-	contentKind: string | null;
-	contentTitle: string | null;
-	thumbnailPath: string | null;
-	originalPath: string | null;
-	imageRef: string | null;
-	url: string | null;
-	background: BackgroundContext[];
-}
-
-export interface DayWrappedSlot {
-	startMs: number;
-	count: number;
-	category: AutomationCategory;
-	addiction: string | null;
-	appName: string | null;
-}
-
-export interface DayWrappedSnapshot {
-	roomId: string;
-	authorUserId: string;
-	authorUsername: string;
-	publishedAtMs: number;
-	dayStartMs: number;
-	slots: DayWrappedSlot[];
-}
-
-export interface AcceptRoomInviteParams {
-	roomId: string;
-	roomName: string;
-	ownerUserId: string;
-	ownerUsername: string;
-}
-
 export interface LogsCollectResult {
 	logs: string;
 	entryCount: number;
@@ -727,70 +440,6 @@ export interface CrashSessionLogSummary {
 	sizeBytes: number;
 }
 
-export type ReminderStatus =
-	| "pending"
-	| "triggered"
-	| "completed"
-	| "cancelled";
-
-export interface Reminder {
-	id: string;
-	title: string;
-	body: string | null;
-	sourceText: string | null;
-	remindAt: number | null;
-	status: ReminderStatus;
-	createdAt: number;
-	updatedAt: number;
-	triggeredAt: number | null;
-	completedAt: number | null;
-	thumbnailPath: string | null;
-	originalPath: string | null;
-	appBundleId: string | null;
-	windowTitle: string | null;
-	urlHost: string | null;
-	contentKind: string | null;
-	contextJson: string | null;
-}
-
-export interface ReminderInput {
-	id: string;
-	title: string;
-	body?: string | null;
-	sourceText?: string | null;
-	remindAt?: number | null;
-	thumbnailPath?: string | null;
-	originalPath?: string | null;
-	appBundleId?: string | null;
-	windowTitle?: string | null;
-	urlHost?: string | null;
-	contentKind?: string | null;
-	contextJson?: string | null;
-}
-
-export interface ReminderUpdate {
-	title?: string;
-	body?: string | null;
-	remindAt?: number | null;
-	status?: ReminderStatus;
-}
-
-export interface GetRemindersOptions {
-	status?: ReminderStatus;
-	limit?: number;
-	offset?: number;
-	includeNotes?: boolean;
-}
-
-export interface SmartReminderCapturePreviewPayload {
-	imageBase64: string;
-	appBundleId: string | null;
-	windowTitle: string | null;
-	urlHost: string | null;
-	contentKind: string | null;
-	contextJson: string | null;
-}
-
 declare global {
 	interface Window {
 		api: {
@@ -800,7 +449,6 @@ declare global {
 				getInfo: () => Promise<AppInfo>;
 				openExternal: (url: string) => Promise<void>;
 				openNative: (path: string) => Promise<void>;
-				previewEvent: (event: SharedEvent) => Promise<void>;
 				openSettingsTab: (tab: SettingsTab) => Promise<void>;
 				revealInFinder: () => Promise<void>;
 				pickDirectory: () => Promise<string | null>;
@@ -883,23 +531,6 @@ declare global {
 					search?: string;
 					dismissed?: boolean;
 				}) => Promise<number>;
-				getUnifiedEvents: (options: {
-					limit?: number;
-					offset?: number;
-					category?: string;
-					project?: string;
-					projectProgress?: boolean;
-					trackedAddiction?: string;
-					hasTrackedAddiction?: boolean;
-					needsAddictionReview?: boolean;
-					appBundleId?: string;
-					urlHost?: string;
-					startDate?: number;
-					endDate?: number;
-					search?: string;
-					dismissed?: boolean;
-					includeRemote?: boolean;
-				}) => Promise<Event[]>;
 				getEvent: (id: string) => Promise<Event | null>;
 				getEventScreenshots: (eventId: string) => Promise<EventScreenshot[]>;
 				getDiskUsage: () => Promise<StorageUsageBreakdown>;
@@ -965,10 +596,6 @@ declare global {
 			settings: {
 				get: () => Promise<Settings>;
 				set: (settings: Settings) => Promise<void>;
-				testBackendConnection: () => Promise<{
-					success: boolean;
-					error?: string;
-				}>;
 			};
 			shortcuts: {
 				setSuspended: (suspended: boolean) => Promise<void>;
@@ -1011,104 +638,6 @@ declare global {
 				upsertEntry: (entry: EodEntryInput) => Promise<void>;
 				listEntries: () => Promise<EodEntry[]>;
 			};
-			publishing: {
-				createShare: (projectName: string) => Promise<CreateShareResult>;
-				getShare: (projectName: string) => Promise<ProjectShare | null>;
-				disableShare: (projectName: string) => Promise<void>;
-				syncShare: (projectName: string) => Promise<number>;
-			};
-			social: {
-				getIdentity: () => Promise<SocialIdentity | null>;
-				registerUsername: (username: string) => Promise<SocialIdentity>;
-				sendFriendRequest: (
-					toUsername: string,
-				) => Promise<{ requestId: string; status: "pending" | "accepted" }>;
-				listFriends: () => Promise<Friend[]>;
-				listFriendRequests: () => Promise<FriendRequest[]>;
-				acceptFriendRequest: (requestId: string) => Promise<void>;
-				rejectFriendRequest: (requestId: string) => Promise<void>;
-				syncAvatarSettings: (avatarSettings: AvatarSettings) => Promise<void>;
-			};
-			mobileActivity: {
-				listDays: (
-					options: GetMobileActivityDaysOptions,
-				) => Promise<MobileActivityDay[]>;
-				sync: (
-					options?: GetMobileActivityDaysOptions,
-				) => Promise<{ count: number }>;
-				getSyncStatus: () => Promise<MobileActivitySyncStatus>;
-			};
-			devicePairing: {
-				createSession: () => Promise<DevicePairingSession>;
-				getSession: (sessionId: string) => Promise<DevicePairingSession | null>;
-				approveSession: (
-					sessionId: string,
-				) => Promise<DevicePairingSession | null>;
-				listDevices: () => Promise<PairedDevice[]>;
-				revokeDevice: (deviceId: string) => Promise<void>;
-			};
-			chat: {
-				listThreads: () => Promise<ChatThread[]>;
-				openDmThread: (friendUserId: string) => Promise<string>;
-				openProjectThread: (roomId: string) => Promise<string>;
-				fetchMessages: (
-					threadId: string,
-					since?: number,
-				) => Promise<ChatMessage[]>;
-				sendMessage: (threadId: string, text: string) => Promise<void>;
-				markThreadRead: (
-					threadId: string,
-					lastReadTimestampMs?: number,
-				) => Promise<void>;
-			};
-			rooms: {
-				ensureProjectRoom: (projectName: string) => Promise<string>;
-				inviteFriendToProjectRoom: (params: {
-					projectName: string;
-					friendUserId: string;
-					friendUsername?: string;
-				}) => Promise<{
-					status: "invited" | "already_member" | "already_invited";
-				}>;
-				listRooms: () => Promise<Room[]>;
-				listInvites: () => Promise<RoomInvite[]>;
-				acceptProjectInvite: (params: AcceptRoomInviteParams) => Promise<void>;
-				fetchRoomEvents: (
-					roomId: string,
-					since?: number,
-				) => Promise<RoomTimelineEvent[]>;
-				getRoomMembers: (roomId: string) => Promise<RoomMember[]>;
-				listSentInvites: (roomId: string) => Promise<SentInvite[]>;
-				getInviteStatus: (
-					roomId: string,
-					friendUserId: string,
-				) => Promise<InviteStatus>;
-			};
-			sharedProjects: {
-				list: () => Promise<SharedProject[]>;
-				getEvents: (params: {
-					roomId: string;
-					startDate?: number;
-					endDate?: number;
-					limit?: number;
-				}) => Promise<SharedEvent[]>;
-				sync: (roomId: string) => Promise<{ count: number }>;
-				syncAll: () => Promise<void>;
-			};
-			socialFeed: {
-				ensureFriendsFeedRoom: () => Promise<string>;
-				getFeed: (params?: {
-					startDate?: number;
-					endDate?: number;
-					limit?: number;
-					includeOwnEvents?: boolean;
-				}) => Promise<SharedEvent[]>;
-				getFriendDayWrapped: (
-					friendUserId: string,
-				) => Promise<DayWrappedSnapshot | null>;
-				publishEventToAllFriends: (eventId: string) => Promise<void>;
-				unpublishEvent: (eventId: string) => Promise<void>;
-			};
 			logs: {
 				collect: (rendererLogs?: string) => Promise<LogsCollectResult>;
 				copyToClipboard: (rendererLogs?: string) => Promise<void>;
@@ -1116,15 +645,6 @@ declare global {
 				appendRendererLogs: (entries: RendererLogEntry[]) => Promise<void>;
 				listCrashSessions: () => Promise<CrashSessionLogSummary[]>;
 				saveCrashSessionToFile: (id: string) => Promise<string | null>;
-			};
-			reminders: {
-				list: (options?: GetRemindersOptions) => Promise<Reminder[]>;
-				get: (id: string) => Promise<Reminder | null>;
-				create: (input: ReminderInput) => Promise<Reminder>;
-				update: (id: string, updates: ReminderUpdate) => Promise<void>;
-				delete: (id: string) => Promise<void>;
-				markCompleted: (id: string) => Promise<void>;
-				startCapture: () => Promise<void>;
 			};
 			on: (
 				channel:
@@ -1140,23 +660,17 @@ declare global {
 					| "shortcut:capture-project-progress-preview"
 					| "shortcut:capture-project-progress"
 					| "shortcut:end-of-day"
-					| "preview:event"
 					| "settings:open-tab"
 					| "settings:changed"
-					| "reminders:changed"
-					| "reminder:triggered"
-					| "smart-reminder:capture-preview"
 					| "selection-overlay:init"
-					| "selection-overlay:hover-result"
-					| "smart-reminder:popup-init",
+					| "selection-overlay:hover-result",
 				callback: (...args: unknown[]) => void,
 			) => () => void;
 			send: (
 				channel:
 					| "selection-overlay:ready"
 					| "selection-overlay:result"
-					| "selection-overlay:hover"
-					| "smart-reminder:popup-result",
+					| "selection-overlay:hover",
 				...args: unknown[]
 			) => void;
 		};

@@ -3,25 +3,16 @@ import { createLogger } from "../infra/log";
 import {
 	registerAppHandlers,
 	registerCaptureHandlers,
-	registerChatHandlers,
-	registerDevicePairingHandlers,
 	registerEodHandlers,
 	registerLLMHandlers,
 	registerLogsHandlers,
-	registerMobileActivityHandlers,
 	registerOcrHandlers,
 	registerPermissionHandlers,
 	registerPopupHandlers,
 	registerProjectJournalHandlers,
-	registerPublishingHandlers,
-	registerRemindersHandlers,
-	registerRoomsHandlers,
 	registerSchedulerHandlers,
 	registerSettingsHandlers,
-	registerSharedProjectsHandlers,
 	registerShortcutsHandlers,
-	registerSocialFeedHandlers,
-	registerSocialHandlers,
 	registerStorageHandlers,
 	registerUpdateHandlers,
 	registerWindowHandlers,
@@ -56,15 +47,6 @@ export function registerAllHandlers(
 	registerPopupHandlers();
 	registerUpdateHandlers();
 	registerEodHandlers();
-	registerPublishingHandlers();
-	registerSocialHandlers();
-	registerSocialFeedHandlers();
-	registerMobileActivityHandlers();
-	registerDevicePairingHandlers();
-	registerChatHandlers();
-	registerRoomsHandlers();
-	registerSharedProjectsHandlers();
-	registerRemindersHandlers();
 
 	registered = true;
 	logger.info("IPC handlers registered");

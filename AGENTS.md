@@ -13,7 +13,6 @@ Key features:
 - Daily journal entries and "Day Wrapped" tray widget
 - Project tracking with Git integration
 - Addiction tracking with confirmation/rejection workflow
-- Social features: sharing projects, friend feeds, encrypted room collaboration
 - Privacy-focused: local-first with optional cloud AI (text-first, vision fallback)
 
 ## Commands
@@ -101,15 +100,6 @@ src/              # Renderer process (React UI)
 - `appIcons/` - App icon extraction
 - `aiEval/` - Classification evaluation harness
 
-**Social:**
-- `social/` - Username registration, friend requests, avatar sync
-- `publishing/` - Project share creation with E2EE
-- `rooms/` - Project collaboration rooms
-- `sharedProjects/` - Syncing shared project events
-- `socialFeed/` - Friends feed, day wrapped snapshots
-- `chat/` - Direct messages and project threads
-- `sync/` - Data synchronization
-
 ### Infrastructure (electron/main/infra/)
 
 - `db/` - SQLite schema, migrations, repositories (better-sqlite3)
@@ -131,8 +121,6 @@ src/              # Renderer process (React UI)
 - `onboarding/` - Onboarding wizard
 - `layout/` - Layout components (titlebar, navigation)
 - `visualization/` - Charts and visualizations
-- `avatar/` - User avatar components
-- `preview/` - Event preview modal
 - `dialogs/` - Dialog components
 - `performance/` - Performance guards
 - `ui/` - Reusable UI components (shadcn/ui-style)
@@ -163,7 +151,6 @@ SQLite with main tables:
 - `automation_rules` - Per-app/website rules
 - `project_repos` - Git repos linked to projects
 - `eod_entries` - End-of-day journal entries
-- `social_*` tables - Social features
 
 Schema: `electron/main/infra/db/schema.ts`, migrations: `migrations.ts`
 

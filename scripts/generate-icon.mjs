@@ -7,16 +7,6 @@ import sharp from "sharp";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const buildDir = path.join(__dirname, "..", "build");
-const iosAppIconSetDir = path.join(
-	__dirname,
-	"..",
-	"ios",
-	"ScreencapMobile",
-	"Resources",
-	"Assets.xcassets",
-	"AppIcon.appiconset",
-);
-const IOS_ICON_BACKGROUND = "#0a0a0a";
 
 const S_PATTERN = [
 	"    ######    ",
@@ -298,30 +288,6 @@ async function createIco() {
 	console.log("Generated icon.ico");
 }
 
-async function createIOSAppIconSet() {
-	fs.mkdirSync(iosAppIconSetDir, { recursive: true });
-
-	const mapping = [
-		["icon-20@2x.png", 40],
-		["icon-20@3x.png", 60],
-		["icon-29@2x.png", 58],
-		["icon-29@3x.png", 87],
-		["icon-40@2x.png", 80],
-		["icon-40@3x.png", 120],
-		["icon-60@2x.png", 120],
-		["icon-60@3x.png", 180],
-		["icon-1024.png", 1024],
-	];
-
-	for (const [filename, size] of mapping) {
-		await writePng(path.join(iosAppIconSetDir, filename), generateIcon(size), {
-			opaqueBackground: IOS_ICON_BACKGROUND,
-		});
-	}
-
-	console.log("Generated iOS AppIcon asset set");
-}
-
 function generateTrayIcon(size) {
 	const canvas = createCanvas(size, size);
 	const ctx = canvas.getContext("2d");
@@ -400,7 +366,6 @@ async function main() {
 	}
 
 	await createIco();
-	await createIOSAppIconSet();
 
 	console.log("\n✓ All icons generated successfully");
 }

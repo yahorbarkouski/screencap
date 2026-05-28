@@ -1,64 +1,37 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { IpcChannels, IpcEvents } from "../shared/ipc";
 import type {
-	AcceptRoomInviteParams,
 	AddictionStatsItem,
 	AppInfo,
 	AutomationStatus,
-	AvatarSettings,
 	CaptureResult,
 	CaptureTriggerOptions,
 	CaptureTriggerResult,
 	CategoryStats,
-	ChatMessage,
-	ChatThread,
 	ClassificationResult,
 	ClearableStorageCategory,
 	ContextStatus,
 	ContextTestResult,
 	CrashSessionLogSummary,
-	CreateShareResult,
-	DayWrappedSnapshot,
-	DevicePairingSession,
 	EodEntry,
 	EodEntryInput,
 	Event,
 	EventScreenshot,
 	EventSummary,
-	Friend,
-	FriendRequest,
 	GetEventsOptions,
-	GetMobileActivityDaysOptions,
-	GetRemindersOptions,
 	GetTimelineFacetsOptions,
 	GitCommit,
-	InviteStatus,
 	LLMTestResult,
 	LogsCollectResult,
 	Memory,
-	MobileActivityDay,
-	MobileActivitySyncStatus,
 	OcrResult,
-	PairedDevice,
 	PeriodType,
 	PermissionStatus,
 	ProjectRepo,
-	ProjectShare,
 	ProjectStatsItem,
 	RecordedApp,
-	Reminder,
-	ReminderInput,
-	ReminderUpdate,
 	RendererLogEntry,
-	Room,
-	RoomInvite,
-	RoomMember,
-	RoomTimelineEvent,
-	SentInvite,
 	Settings,
-	SharedEvent,
-	SharedProject,
-	SocialIdentity,
 	StorageUsageBreakdown,
 	Story,
 	StoryInput,
@@ -71,15 +44,12 @@ const allowedEventChannels = new Set<string>([
 	...Object.values(IpcEvents),
 	"selection-overlay:init",
 	"selection-overlay:hover-result",
-	"smart-reminder:popup-init",
-	"navigate:reminders",
 ]);
 
 const allowedSendChannels = new Set<string>([
 	"selection-overlay:ready",
 	"selection-overlay:result",
 	"selection-overlay:hover",
-	"smart-reminder:popup-result",
 ]);
 
 const api = {
@@ -93,10 +63,8 @@ const api = {
 			ipcRenderer.invoke(IpcChannels.App.OpenExternal, url),
 		openNative: (path: string): Promise<void> =>
 			ipcRenderer.invoke(IpcChannels.App.OpenNative, path),
-		previewEvent: (event: SharedEvent): Promise<void> =>
-			ipcRenderer.invoke(IpcChannels.App.PreviewEvent, event),
 		openSettingsTab: (
-			tab: "capture" | "ai" | "automation" | "data" | "social" | "system",
+			tab: "capture" | "ai" | "automation" | "data" | "system",
 		): Promise<void> =>
 			ipcRenderer.invoke(IpcChannels.App.OpenSettingsTab, tab),
 		revealInFinder: (): Promise<void> =>
@@ -182,10 +150,6 @@ const api = {
 			ipcRenderer.invoke(IpcChannels.Storage.GetEvents, options),
 		getEventsCount: (options: GetEventsOptions): Promise<number> =>
 			ipcRenderer.invoke(IpcChannels.Storage.GetEventsCount, options),
-		getUnifiedEvents: (
-			options: GetEventsOptions & { includeRemote?: boolean },
-		): Promise<Event[]> =>
-			ipcRenderer.invoke(IpcChannels.Storage.GetUnifiedEvents, options),
 		getEvent: (id: string): Promise<Event | null> =>
 			ipcRenderer.invoke(IpcChannels.Storage.GetEvent, id),
 		getEventScreenshots: (eventId: string): Promise<EventScreenshot[]> =>
@@ -271,8 +235,6 @@ const api = {
 		get: (): Promise<Settings> => ipcRenderer.invoke(IpcChannels.Settings.Get),
 		set: (settings: Settings) =>
 			ipcRenderer.invoke(IpcChannels.Settings.Set, settings),
-		testBackendConnection: (): Promise<{ success: boolean; error?: string }> =>
-			ipcRenderer.invoke(IpcChannels.Settings.TestBackendConnection),
 	},
 
 	shortcuts: {
@@ -336,192 +298,6 @@ const api = {
 			ipcRenderer.invoke(IpcChannels.Eod.ListEntries),
 	},
 
-	publishing: {
-		createShare: (projectName: string): Promise<CreateShareResult> =>
-			ipcRenderer.invoke(IpcChannels.Publishing.CreateShare, projectName),
-		getShare: (projectName: string): Promise<ProjectShare | null> =>
-			ipcRenderer.invoke(IpcChannels.Publishing.GetShare, projectName),
-		disableShare: (projectName: string): Promise<void> =>
-			ipcRenderer.invoke(IpcChannels.Publishing.DisableShare, projectName),
-		syncShare: (projectName: string): Promise<number> =>
-			ipcRenderer.invoke(IpcChannels.Publishing.SyncShare, projectName),
-	},
-
-	social: {
-		getIdentity: (): Promise<SocialIdentity | null> =>
-			ipcRenderer.invoke(IpcChannels.Social.GetIdentity),
-		registerUsername: (username: string): Promise<SocialIdentity> =>
-			ipcRenderer.invoke(IpcChannels.Social.RegisterUsername, username),
-		sendFriendRequest: (
-			toUsername: string,
-		): Promise<{ requestId: string; status: "pending" | "accepted" }> =>
-			ipcRenderer.invoke(IpcChannels.Social.SendFriendRequest, toUsername),
-		listFriends: (): Promise<Friend[]> =>
-			ipcRenderer.invoke(IpcChannels.Social.ListFriends),
-		listFriendRequests: (): Promise<FriendRequest[]> =>
-			ipcRenderer.invoke(IpcChannels.Social.ListFriendRequests),
-		acceptFriendRequest: (requestId: string): Promise<void> =>
-			ipcRenderer.invoke(IpcChannels.Social.AcceptFriendRequest, requestId),
-		rejectFriendRequest: (requestId: string): Promise<void> =>
-			ipcRenderer.invoke(IpcChannels.Social.RejectFriendRequest, requestId),
-		syncAvatarSettings: (avatarSettings: AvatarSettings): Promise<void> =>
-			ipcRenderer.invoke(IpcChannels.Social.SyncAvatarSettings, avatarSettings),
-	},
-
-	mobileActivity: {
-		listDays: (
-			options: GetMobileActivityDaysOptions,
-		): Promise<MobileActivityDay[]> =>
-			ipcRenderer.invoke(IpcChannels.MobileActivity.ListDays, options),
-		sync: (
-			options?: GetMobileActivityDaysOptions,
-		): Promise<{ count: number }> => {
-			if (options) {
-				return ipcRenderer.invoke(IpcChannels.MobileActivity.Sync, options);
-			}
-			return ipcRenderer.invoke(IpcChannels.MobileActivity.Sync);
-		},
-		getSyncStatus: (): Promise<MobileActivitySyncStatus> =>
-			ipcRenderer.invoke(IpcChannels.MobileActivity.GetSyncStatus),
-	},
-
-	devicePairing: {
-		createSession: (): Promise<DevicePairingSession> =>
-			ipcRenderer.invoke(IpcChannels.DevicePairing.CreateSession),
-		getSession: (sessionId: string): Promise<DevicePairingSession | null> =>
-			ipcRenderer.invoke(IpcChannels.DevicePairing.GetSession, sessionId),
-		approveSession: (sessionId: string): Promise<DevicePairingSession | null> =>
-			ipcRenderer.invoke(IpcChannels.DevicePairing.ApproveSession, sessionId),
-		listDevices: (): Promise<PairedDevice[]> =>
-			ipcRenderer.invoke(IpcChannels.DevicePairing.ListDevices),
-		revokeDevice: (deviceId: string): Promise<void> =>
-			ipcRenderer.invoke(IpcChannels.DevicePairing.RevokeDevice, deviceId),
-	},
-
-	chat: {
-		listThreads: (): Promise<ChatThread[]> =>
-			ipcRenderer.invoke(IpcChannels.Chat.ListThreads),
-		openDmThread: (friendUserId: string): Promise<string> =>
-			ipcRenderer.invoke(IpcChannels.Chat.OpenDmThread, friendUserId),
-		openProjectThread: (roomId: string): Promise<string> =>
-			ipcRenderer.invoke(IpcChannels.Chat.OpenProjectThread, roomId),
-		fetchMessages: (
-			threadId: string,
-			since?: number,
-		): Promise<ChatMessage[]> => {
-			if (since !== undefined) {
-				return ipcRenderer.invoke(
-					IpcChannels.Chat.FetchMessages,
-					threadId,
-					since,
-				);
-			}
-			return ipcRenderer.invoke(IpcChannels.Chat.FetchMessages, threadId);
-		},
-		sendMessage: (threadId: string, text: string): Promise<void> =>
-			ipcRenderer.invoke(IpcChannels.Chat.SendMessage, threadId, text),
-		markThreadRead: (
-			threadId: string,
-			lastReadTimestampMs?: number,
-		): Promise<void> => {
-			if (lastReadTimestampMs !== undefined) {
-				return ipcRenderer.invoke(
-					IpcChannels.Chat.MarkThreadRead,
-					threadId,
-					lastReadTimestampMs,
-				);
-			}
-			return ipcRenderer.invoke(IpcChannels.Chat.MarkThreadRead, threadId);
-		},
-	},
-
-	rooms: {
-		ensureProjectRoom: (projectName: string): Promise<string> =>
-			ipcRenderer.invoke(IpcChannels.Rooms.EnsureProjectRoom, projectName),
-		inviteFriendToProjectRoom: (params: {
-			projectName: string;
-			friendUserId: string;
-			friendUsername?: string;
-		}): Promise<{ status: "invited" | "already_member" | "already_invited" }> =>
-			ipcRenderer.invoke(IpcChannels.Rooms.InviteFriendToProjectRoom, params),
-		listRooms: (): Promise<Room[]> =>
-			ipcRenderer.invoke(IpcChannels.Rooms.ListRooms),
-		listInvites: (): Promise<RoomInvite[]> =>
-			ipcRenderer.invoke(IpcChannels.Rooms.ListInvites),
-		acceptProjectInvite: (params: AcceptRoomInviteParams): Promise<void> =>
-			ipcRenderer.invoke(IpcChannels.Rooms.AcceptProjectInvite, params),
-		fetchRoomEvents: (
-			roomId: string,
-			since?: number,
-		): Promise<RoomTimelineEvent[]> => {
-			if (since !== undefined) {
-				return ipcRenderer.invoke(
-					IpcChannels.Rooms.FetchRoomEvents,
-					roomId,
-					since,
-				);
-			}
-			return ipcRenderer.invoke(IpcChannels.Rooms.FetchRoomEvents, roomId);
-		},
-		getRoomMembers: (roomId: string): Promise<RoomMember[]> =>
-			ipcRenderer.invoke(IpcChannels.Rooms.GetRoomMembers, roomId),
-		listSentInvites: (roomId: string): Promise<SentInvite[]> =>
-			ipcRenderer.invoke(IpcChannels.Rooms.ListSentInvites, roomId),
-		getInviteStatus: (
-			roomId: string,
-			friendUserId: string,
-		): Promise<InviteStatus> =>
-			ipcRenderer.invoke(
-				IpcChannels.Rooms.GetInviteStatus,
-				roomId,
-				friendUserId,
-			),
-	},
-
-	sharedProjects: {
-		list: (): Promise<SharedProject[]> =>
-			ipcRenderer.invoke(IpcChannels.SharedProjects.List),
-		getEvents: (params: {
-			roomId: string;
-			startDate?: number;
-			endDate?: number;
-			limit?: number;
-		}): Promise<SharedEvent[]> =>
-			ipcRenderer.invoke(IpcChannels.SharedProjects.GetEvents, params),
-		sync: (roomId: string): Promise<{ count: number }> =>
-			ipcRenderer.invoke(IpcChannels.SharedProjects.Sync, roomId),
-		syncAll: (): Promise<void> =>
-			ipcRenderer.invoke(IpcChannels.SharedProjects.SyncAll),
-	},
-
-	socialFeed: {
-		ensureFriendsFeedRoom: (): Promise<string> =>
-			ipcRenderer.invoke(IpcChannels.SocialFeed.EnsureFriendsFeedRoom),
-		getFeed: (params?: {
-			startDate?: number;
-			endDate?: number;
-			limit?: number;
-			includeOwnEvents?: boolean;
-		}): Promise<SharedEvent[]> => {
-			if (!params) return ipcRenderer.invoke(IpcChannels.SocialFeed.GetFeed);
-			return ipcRenderer.invoke(IpcChannels.SocialFeed.GetFeed, params);
-		},
-		getFriendDayWrapped: (
-			friendUserId: string,
-		): Promise<DayWrappedSnapshot | null> =>
-			ipcRenderer.invoke(
-				IpcChannels.SocialFeed.GetFriendDayWrapped,
-				friendUserId,
-			),
-		publishEventToAllFriends: (eventId: string): Promise<void> =>
-			ipcRenderer.invoke(
-				IpcChannels.SocialFeed.PublishEventToAllFriends,
-				eventId,
-			),
-		unpublishEvent: (eventId: string): Promise<void> =>
-			ipcRenderer.invoke(IpcChannels.SocialFeed.UnpublishEvent, eventId),
-	},
-
 	logs: {
 		collect: (rendererLogs?: string): Promise<LogsCollectResult> =>
 			ipcRenderer.invoke(IpcChannels.Logs.Collect, rendererLogs),
@@ -535,27 +311,6 @@ const api = {
 			ipcRenderer.invoke(IpcChannels.Logs.ListCrashSessions),
 		saveCrashSessionToFile: (id: string): Promise<string | null> =>
 			ipcRenderer.invoke(IpcChannels.Logs.SaveCrashSessionToFile, id),
-	},
-
-	reminders: {
-		list: (options?: GetRemindersOptions): Promise<Reminder[]> => {
-			if (options) {
-				return ipcRenderer.invoke(IpcChannels.Reminders.List, options);
-			}
-			return ipcRenderer.invoke(IpcChannels.Reminders.List);
-		},
-		get: (id: string): Promise<Reminder | null> =>
-			ipcRenderer.invoke(IpcChannels.Reminders.Get, id),
-		create: (input: ReminderInput): Promise<Reminder> =>
-			ipcRenderer.invoke(IpcChannels.Reminders.Create, input),
-		update: (id: string, updates: ReminderUpdate): Promise<void> =>
-			ipcRenderer.invoke(IpcChannels.Reminders.Update, id, updates),
-		delete: (id: string): Promise<void> =>
-			ipcRenderer.invoke(IpcChannels.Reminders.Delete, id),
-		markCompleted: (id: string): Promise<void> =>
-			ipcRenderer.invoke(IpcChannels.Reminders.MarkCompleted, id),
-		startCapture: (): Promise<void> =>
-			ipcRenderer.invoke(IpcChannels.Reminders.StartCapture),
 	},
 
 	on: (channel: string, callback: (...args: unknown[]) => void) => {
@@ -585,31 +340,16 @@ export type API = typeof api;
 export {
 	IpcChannels,
 	IpcEvents,
-	type AcceptRoomInviteParams,
 	type Event,
 	type EventScreenshot,
 	type GitCommit,
 	type LogsCollectResult,
 	type Memory,
 	type ProjectRepo,
-	type ProjectShare,
-	type CreateShareResult,
-	type SharedProject,
-	type SharedEvent,
-	type DayWrappedSnapshot,
-	type SocialIdentity,
-	type Friend,
-	type FriendRequest,
-	type ChatThread,
-	type ChatMessage,
-	type Room,
-	type RoomInvite,
-	type RoomTimelineEvent,
 	type Settings,
 	type Story,
 	type PermissionStatus,
 	type GetEventsOptions,
-	type GetRemindersOptions,
 	type CategoryStats,
 	type StoryInput,
 	type EventSummary,
@@ -625,7 +365,4 @@ export {
 	type UpdateState,
 	type EodEntry,
 	type EodEntryInput,
-	type Reminder,
-	type ReminderInput,
-	type ReminderUpdate,
 };

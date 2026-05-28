@@ -11,10 +11,7 @@ import type {
 import { ensureAppIcon } from "../../features/appIcons/AppIconService";
 import { ensureFavicon } from "../../features/favicons/FaviconService";
 import { normalizeProjectsInDb } from "../../features/projects";
-import { publishEvent } from "../../features/publishing/PublishingService";
 import { triggerQueueProcess } from "../../features/queue";
-import { getUnifiedEvents } from "../../features/sharedProjects/UnifiedEventsService";
-import { publishProgressEventToRoom } from "../../features/sync/RoomSyncService";
 import {
 	confirmAddiction,
 	deleteEvent,
@@ -48,7 +45,6 @@ import {
 	insertMemory,
 	updateMemory,
 } from "../../infra/db/repositories/MemoryRepository";
-import { getRoomIdForProject } from "../../infra/db/repositories/ProjectRoomLinkRepository";
 import {
 	addToQueue,
 	isEventQueued,
@@ -79,7 +75,6 @@ import {
 	ipcGetStatsBatchArgs,
 	ipcGetStoriesArgs,
 	ipcGetTimelineFacetsArgs,
-	ipcGetUnifiedEventsArgs,
 	ipcIdArgs,
 	ipcIdsArgs,
 	ipcInsertMemoryArgs,
@@ -127,31 +122,6 @@ export function registerStorageHandlers(): void {
 		ipcGetEventsArgs,
 		(options: GetEventsOptions) => {
 			return getEventsCount(options);
-		},
-	);
-
-	secureHandle(
-		IpcChannels.Storage.GetUnifiedEvents,
-		ipcGetUnifiedEventsArgs,
-		(options: GetEventsOptions & { includeRemote?: boolean }) => {
-			const result = getUnifiedEvents(options);
-			const missing = new Map<string, string | null>();
-			const missingApps = new Set<string>();
-			for (const e of result) {
-				if (e.urlHost && !e.faviconPath) {
-					missing.set(e.urlHost, e.urlCanonical ?? null);
-				}
-				if (e.appBundleId && !e.appIconPath) {
-					missingApps.add(e.appBundleId);
-				}
-			}
-			missing.forEach((urlCanonical, host) => {
-				void ensureFavicon(host, urlCanonical);
-			});
-			missingApps.forEach((bundleId) => {
-				void ensureAppIcon(bundleId);
-			});
-			return result;
 		},
 	);
 
@@ -242,39 +212,10 @@ export function registerStorageHandlers(): void {
 		IpcChannels.Storage.SetEventProject,
 		ipcSetEventProjectArgs,
 		(id: string, project: string | null) => {
-			const event = getEventById(id);
-			const previousProject = event?.project;
 			const next = project?.trim() || null;
 
 			updateEvent(id, { project: next });
 			broadcastEventUpdated(id);
-
-			if (!event) return;
-
-			const isProgressEvent =
-				event.projectProgress && event.projectProgress > 0;
-			if (!isProgressEvent) return;
-
-			const previousRoomId = previousProject
-				? getRoomIdForProject(previousProject)
-				: null;
-			const newRoomId = next ? getRoomIdForProject(next) : null;
-
-			if (newRoomId && newRoomId !== previousRoomId) {
-				void publishProgressEventToRoom(id).catch((error) => {
-					logger.warn("Publish to room on project change failed", {
-						eventId: id,
-						newProject: next,
-						error: String(error),
-					});
-				});
-				void publishEvent(id).catch((error) => {
-					logger.warn("Publish to public share on project change failed", {
-						eventId: id,
-						error: String(error),
-					});
-				});
-			}
 		},
 	);
 
@@ -290,19 +231,6 @@ export function registerStorageHandlers(): void {
 
 			updateEvent(input.id, { caption, project });
 			broadcastEventUpdated(input.id);
-
-			void publishEvent(input.id).catch((error) => {
-				logger.warn("Publish to public share failed", {
-					eventId: input.id,
-					error: String(error),
-				});
-			});
-			void publishProgressEventToRoom(input.id).catch((error) => {
-				logger.warn("Publish to room failed", {
-					eventId: input.id,
-					error: String(error),
-				});
-			});
 
 			if (event.status !== "pending") return;
 			if (!event.originalPath || !existsSync(event.originalPath)) return;
@@ -323,19 +251,6 @@ export function registerStorageHandlers(): void {
 				projectProgressEvidence: "manual",
 			});
 			broadcastEventUpdated(id);
-
-			void publishEvent(id).catch((error) => {
-				logger.warn("Publish to public share failed on mark progress", {
-					eventId: id,
-					error: String(error),
-				});
-			});
-			void publishProgressEventToRoom(id).catch((error) => {
-				logger.warn("Publish to room failed on mark progress", {
-					eventId: id,
-					error: String(error),
-				});
-			});
 		},
 	);
 
@@ -350,19 +265,6 @@ export function registerStorageHandlers(): void {
 					potentialProgress: 0,
 				});
 				broadcastEventUpdated(id);
-
-				void publishEvent(id).catch((error) => {
-					logger.warn("Publish to public share failed on bulk mark progress", {
-						eventId: id,
-						error: String(error),
-					});
-				});
-				void publishProgressEventToRoom(id).catch((error) => {
-					logger.warn("Publish to room failed on bulk mark progress", {
-						eventId: id,
-						error: String(error),
-					});
-				});
 			}
 		},
 	);

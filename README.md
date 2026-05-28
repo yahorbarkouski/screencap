@@ -2,20 +2,19 @@
 
 To understand where your day went
 
-A macOS desktop app that captures screenshots, windows and apps (both background and foreground) on a schedule and transforms them into a timeline, daily summaries, project milestones, addiction tracking, with optional E2E-encrypted social feed.
+A macOS desktop app that captures screenshots, windows and apps (both background and foreground) on a schedule and transforms them into a timeline, daily summaries, project milestones, and addiction tracking.
 Screencap answers the questions like:
 
 - *What did I actually do today?*
 - *How long did I really work?*
 - *Am I spending too much time on Chess?*
 - *What progress did I make on my project?*
-- *What my colleagues are doing?*
 - *What actual progress on project X has been made since September?*
 
-The idea behind this opensource is to inspire as many forks as possible. The project (both app and [social backend](https://github.com/yahorbarkouski/screencap-website)) are fully free to use, enrouranging everyone to customise and build their own Screencaps.
-Project started as a background project tracker, as we all tend to have zero-to-little screenshots from projects we worked on for months. Then addiction tracker came it, the Spotify background played, End Of Day flow, activity popup, and social E2E network in tray (I couldn't help myself)
+The idea behind this opensource is to inspire as many forks as possible. The project is fully free to use, encouraging everyone to customise and build their own Screencaps.
+Project started as a background project tracker, as we all tend to have zero-to-little screenshots from projects we worked on for months. Then addiction tracker came in, Spotify background context, End Of Day flow, and the activity popup.
 
-[Download](https://github.com/yahorbarkouski/screencap/releases) · [Homebrew Tap](https://github.com/yahorbarkouski/homebrew-tap) · [Changelog](CHANGELOG.md) · [Security](docs/security.md) · [E2EE & Sharing](docs/security-sharing.md) · [Local LLM](docs/local-llm.md)
+[Download](https://github.com/yahorbarkouski/screencap/releases) · [Homebrew Tap](https://github.com/yahorbarkouski/homebrew-tap) · [Changelog](CHANGELOG.md) · [Security](docs/security.md) · [Local LLM](docs/local-llm.md)
 
 ---
 
@@ -140,32 +139,12 @@ Define behaviors you want to track, then measure. Bullet chess in my case:) But 
 
 ![Project progress](docs/screenshots/project-progress-2.png)
 
-A dedicated timeline for milestones and momentum, the foundation for multiplayer collaboration
+A dedicated timeline for milestones and momentum.
 
 - **Automatic detection** — AI identifies progress-worthy captures
 - **Manual milestones** — `⌘⇧P` to capture and caption a moment
 - **Git integration** — link local repositories to see commits alongside work sessions
 - **Multi-project filtering** — track progress across all projects or focus on one
-
-**Sharing:** Projects can be shared with friends via encrypted rooms. Invite collaborators by username, and everyone sees each other's milestones in a unified timeline. All shared content is end-to-end encrypted; the server never sees your screenshots or captions, but just in case you can selfhost and set your own backend, for a better guide see screencap-website project
-
-### Social & Friends
-
-So you can feel-not-ask each other:)
-
-|                            Activity Feed                            | Friend's Day |
-|:-------------------------------------------------------------------:|:---:|
-|      ![Social Feed](docs/screenshots/social-feed-friends.png)       | ![Friend Profile](docs/screenshots/social-friend-profile.png) |
-| See what friends are working on. Screenshots, captions, and context | View a friend's dayline, categories, and recent activity in real-time. |
-
-The flow is simple:
-
-- **Choose a username**
-- **Add friends**
-- **Share Day Wrapped** — let friends see your dayline in real-time
-- **Shared projects** — invite friends to project rooms, see their milestones
-- **Comments** — react to shared events with threaded messages
-- **Activity feed** — see what friends are working on
 
 ### Context Providers
 
@@ -239,22 +218,8 @@ Local-first overall, but for LLM classification both local and remote (openroute
 | --------------- | ------------------ |---------------------------------------------------------|
 | Cloud AI        | Context + OCR text | OpenRouter/OpenAI                                       |
 | Cloud Vision    | Screenshot images  | OpenRouter/OpenAI (if enabled)                          |
-| Friends/Sharing | Encrypted events   | Backend (default: screencaping.com; can be self-hosted) |
 | Auto-updates    | Version check      | GitHub Releases                                         |
 
-
-### End-to-End Encryption
-
-All shared content (screenshots, captions, chat) is encrypted on your device before upload.
-
-- **Device identity** — Ed25519 signing key + X25519 key agreement key
-- **Room keys** — 32-byte secrets, per-recipient-device encrypted envelopes
-- **Event encryption** — AES-256-GCM with keys derived via HKDF
-- **Chat encryption** — DMs use X25519 shared secret; rooms use room key
-
-The server sees ciphertext, metadata (timestamps, usernames, project names), and encrypted blobs. It cannot read content.
-
-See [Security & Privacy: Sharing](docs/security-sharing.md) and [E2EE Crypto Spec](docs/friends-rooms-e2ee.md).
 
 ---
 
@@ -371,50 +336,6 @@ Captures still happen, but no LLM calls. Events get basic category from context 
 
 ---
 
-## Social Setup
-
-### Create Your Identity
-
-1. Open the **tray popup** -> Social tab
-2. Choose a username (alphanumeric, unique)
-3. Your device generates E2EE keys automatically
-
-### Add Friends
-
-1. Click **+** in the Social tab
-2. Enter their username
-3. They accept your request
-
-### Share Day Wrapped
-
-**Settings -> Social -> Day Wrapped Sharing -> Enable**
-
-Friends see your dayline in their feed. You control what's shared:
-
-- Categories (always)
-- App names (optional)
-- Addiction flags (optional)
-
-### Share Projects
-
-1. Open **Projects** -> select a project -> **Share**
-2. Invite friends by username
-3. They accept the room invite and see your milestones
-
----
-
-## Self-Hosting
-
-Screencap's backend is open source. Run your own:
-
-1. **Settings -> System -> Custom Backend -> Enable**
-2. Enter your backend URL
-3. See [Self-Hosted Backend Guide](docs/self-hosted-backend.md)
-
-Your data, your server, full control.
-
----
-
 ## Development
 
 ### Requirements
@@ -465,7 +386,7 @@ screencap/
 ├── electron/
 │   ├── main/           # Main process
 │   │   ├── app/        # Window, tray, popup, lifecycle
-│   │   ├── features/   # Capture, AI, context, social, sync
+│   │   ├── features/   # Capture, AI, context, projects, retention
 │   │   ├── infra/      # Settings, logging, storage
 │   │   └── ipc/        # Secure IPC handlers
 │   ├── preload/        # Context bridge (window.api)
@@ -487,9 +408,6 @@ screencap/
 | `ContextService`        | App/window/URL/media extraction    |
 | `ClassificationService` | AI pipeline orchestration          |
 | `EventService`          | Event creation, merging, storage   |
-| `IdentityService`       | E2EE key management                |
-| `RoomsService`          | Shared project rooms               |
-| `SocialFeedService`     | Friend activity publishing         |
 
 
 ---

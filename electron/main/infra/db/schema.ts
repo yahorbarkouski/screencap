@@ -46,8 +46,7 @@ export function createTables(db: Database.Database): void {
       context_provider TEXT,
       context_confidence REAL,
       context_key TEXT,
-      context_json TEXT,
-      shared_to_friends INTEGER DEFAULT 0
+      context_json TEXT
     );
 
     CREATE TABLE IF NOT EXISTS event_screenshots (
@@ -125,166 +124,6 @@ export function createTables(db: Database.Database): void {
       UNIQUE(project_key, repo_root)
     );
 
-    CREATE TABLE IF NOT EXISTS project_shares (
-      project_name TEXT PRIMARY KEY,
-      public_id TEXT NOT NULL,
-      write_key TEXT NOT NULL,
-      share_url TEXT NOT NULL,
-      created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL,
-      last_published_at INTEGER
-    );
-
-    CREATE TABLE IF NOT EXISTS project_room_links (
-      project_name TEXT PRIMARY KEY,
-      room_id TEXT NOT NULL,
-      created_at INTEGER NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS room_keys_cache (
-      room_id TEXT PRIMARY KEY,
-      room_key_enc TEXT NOT NULL,
-      updated_at INTEGER NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS social_account (
-      user_id TEXT PRIMARY KEY,
-      device_id TEXT NOT NULL,
-      username TEXT NOT NULL,
-      enc_private_keys_json TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS friends_cache (
-      friend_user_id TEXT PRIMARY KEY,
-      username TEXT NOT NULL,
-      last_seen INTEGER
-    );
-
-    CREATE TABLE IF NOT EXISTS room_memberships (
-      room_id TEXT PRIMARY KEY,
-      room_name TEXT NOT NULL,
-      role TEXT NOT NULL,
-      owner_user_id TEXT NOT NULL,
-      owner_username TEXT NOT NULL,
-      joined_at INTEGER NOT NULL,
-      last_synced_at INTEGER
-    );
-
-    CREATE TABLE IF NOT EXISTS room_events_cache (
-      id TEXT PRIMARY KEY,
-      room_id TEXT NOT NULL,
-      author_user_id TEXT NOT NULL,
-      author_username TEXT NOT NULL,
-      timestamp_ms INTEGER NOT NULL,
-      end_timestamp_ms INTEGER,
-      project TEXT,
-      category TEXT,
-      caption TEXT,
-      project_progress INTEGER DEFAULT 0,
-      app_bundle_id TEXT,
-      app_name TEXT,
-      window_title TEXT,
-      content_kind TEXT,
-      content_title TEXT,
-      url TEXT,
-      background_context TEXT,
-      thumbnail_path TEXT,
-      original_path TEXT,
-      synced_at INTEGER NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS room_day_wrapped_cache (
-      id TEXT PRIMARY KEY,
-      room_id TEXT NOT NULL,
-      author_user_id TEXT NOT NULL,
-      author_username TEXT NOT NULL,
-      timestamp_ms INTEGER NOT NULL,
-      day_start_ms INTEGER NOT NULL,
-      slots_json TEXT NOT NULL,
-      synced_at INTEGER NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS mobile_activity_days_cache (
-      device_id TEXT NOT NULL,
-      device_name TEXT,
-      platform TEXT NOT NULL,
-      day_start_ms INTEGER NOT NULL,
-      buckets_json TEXT NOT NULL,
-      synced_at INTEGER NOT NULL,
-      PRIMARY KEY(device_id, day_start_ms)
-    );
-
-    CREATE TABLE IF NOT EXISTS mobile_paired_devices (
-      device_id TEXT PRIMARY KEY,
-      device_name TEXT,
-      platform TEXT NOT NULL,
-      sign_pub_key_spki_der_b64 TEXT NOT NULL,
-      dh_pub_key_spki_der_b64 TEXT NOT NULL,
-      added_at INTEGER NOT NULL,
-      last_seen_at INTEGER
-    );
-
-    CREATE TABLE IF NOT EXISTS room_members_cache (
-      room_id TEXT NOT NULL,
-      user_id TEXT NOT NULL,
-      username TEXT NOT NULL,
-      role TEXT NOT NULL,
-      PRIMARY KEY(room_id, user_id)
-    );
-
-    CREATE TABLE IF NOT EXISTS chat_threads_cache (
-      thread_id TEXT PRIMARY KEY,
-      kind TEXT NOT NULL,
-      room_id TEXT,
-      title TEXT NOT NULL,
-      updated_at INTEGER NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS chat_messages_cache (
-      thread_id TEXT NOT NULL,
-      message_id TEXT NOT NULL,
-      timestamp_ms INTEGER NOT NULL,
-      author_user_id TEXT NOT NULL,
-      ciphertext TEXT NOT NULL,
-      updated_at INTEGER NOT NULL,
-      PRIMARY KEY(thread_id, message_id)
-    );
-
-    CREATE TABLE IF NOT EXISTS chat_unread_state (
-      thread_id TEXT PRIMARY KEY,
-      last_read_timestamp_ms INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS room_invites_sent (
-      id TEXT PRIMARY KEY,
-      room_id TEXT NOT NULL,
-      to_user_id TEXT NOT NULL,
-      to_username TEXT NOT NULL,
-      sent_at INTEGER NOT NULL,
-      status TEXT NOT NULL DEFAULT 'pending',
-      UNIQUE(room_id, to_user_id)
-    );
-
-    CREATE TABLE IF NOT EXISTS reminders (
-      id TEXT PRIMARY KEY,
-      title TEXT NOT NULL,
-      body TEXT,
-      source_text TEXT,
-      remind_at INTEGER,
-      status TEXT NOT NULL DEFAULT 'pending',
-      created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL,
-      triggered_at INTEGER,
-      completed_at INTEGER,
-      thumbnail_path TEXT,
-      original_path TEXT,
-      app_bundle_id TEXT,
-      window_title TEXT,
-      url_host TEXT,
-      content_kind TEXT,
-      context_json TEXT
-    );
   `);
 
 	logger.info("Tables created");
@@ -298,8 +137,13 @@ export function createIndexes(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_events_display_timestamp ON events(display_id, timestamp);
     CREATE INDEX IF NOT EXISTS idx_events_category ON events(category);
     CREATE INDEX IF NOT EXISTS idx_events_project ON events(project);
+    CREATE INDEX IF NOT EXISTS idx_events_project_dismissed_timestamp ON events(project, dismissed, timestamp DESC);
     CREATE INDEX IF NOT EXISTS idx_events_project_progress ON events(project_progress);
+    CREATE INDEX IF NOT EXISTS idx_events_project_progress_dismissed_timestamp ON events(project_progress, dismissed, timestamp DESC);
     CREATE INDEX IF NOT EXISTS idx_events_project_progress_project_timestamp ON events(project_progress, project, timestamp);
+    CREATE INDEX IF NOT EXISTS idx_events_project_progress_project_dismissed_timestamp ON events(project_progress, project, dismissed, timestamp DESC);
+    CREATE INDEX IF NOT EXISTS idx_events_tracked_addiction_dismissed_timestamp ON events(tracked_addiction, dismissed, timestamp DESC);
+    CREATE INDEX IF NOT EXISTS idx_events_addiction_review_dismissed_timestamp ON events(addiction_candidate, tracked_addiction, dismissed, timestamp DESC);
     CREATE INDEX IF NOT EXISTS idx_events_status ON events(status);
     CREATE INDEX IF NOT EXISTS idx_events_app_bundle_id ON events(app_bundle_id);
     CREATE INDEX IF NOT EXISTS idx_events_url_host ON events(url_host);
@@ -318,23 +162,6 @@ export function createIndexes(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_project_repos_repo_root ON project_repos(repo_root);
     CREATE INDEX IF NOT EXISTS idx_eod_entries_day_start ON eod_entries(day_start);
     CREATE INDEX IF NOT EXISTS idx_eod_entries_submitted_at ON eod_entries(submitted_at);
-    CREATE INDEX IF NOT EXISTS idx_project_shares_public_id ON project_shares(public_id);
-    CREATE INDEX IF NOT EXISTS idx_project_room_links_room_id ON project_room_links(room_id);
-    CREATE INDEX IF NOT EXISTS idx_room_keys_cache_updated_at ON room_keys_cache(updated_at);
-    CREATE INDEX IF NOT EXISTS idx_friends_cache_last_seen ON friends_cache(last_seen);
-    CREATE INDEX IF NOT EXISTS idx_room_memberships_role ON room_memberships(role);
-    CREATE INDEX IF NOT EXISTS idx_room_events_cache_room_timestamp ON room_events_cache(room_id, timestamp_ms);
-    CREATE INDEX IF NOT EXISTS idx_room_events_cache_author ON room_events_cache(author_user_id);
-    CREATE INDEX IF NOT EXISTS idx_room_events_cache_project ON room_events_cache(project);
-    CREATE INDEX IF NOT EXISTS idx_mobile_activity_days_day_start ON mobile_activity_days_cache(day_start_ms);
-    CREATE INDEX IF NOT EXISTS idx_mobile_activity_days_synced_at ON mobile_activity_days_cache(synced_at);
-    CREATE INDEX IF NOT EXISTS idx_mobile_paired_devices_added_at ON mobile_paired_devices(added_at);
-    CREATE INDEX IF NOT EXISTS idx_chat_messages_cache_thread_timestamp ON chat_messages_cache(thread_id, timestamp_ms);
-    CREATE INDEX IF NOT EXISTS idx_room_invites_sent_room_id ON room_invites_sent(room_id);
-    CREATE INDEX IF NOT EXISTS idx_room_invites_sent_to_user_id ON room_invites_sent(to_user_id);
-    CREATE INDEX IF NOT EXISTS idx_reminders_remind_at ON reminders(remind_at);
-    CREATE INDEX IF NOT EXISTS idx_reminders_status ON reminders(status);
-    CREATE INDEX IF NOT EXISTS idx_reminders_created_at ON reminders(created_at);
   `);
 
 	logger.info("Indexes created");

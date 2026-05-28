@@ -6,7 +6,6 @@ import type {
 	Memory,
 	Settings,
 	SettingsTab,
-	SharedEvent,
 	Story,
 	View,
 } from "@/types";
@@ -96,9 +95,6 @@ interface AppState {
 	eodDayStart: number | null;
 	openEod: (dayStart: number) => void;
 	closeEod: () => void;
-
-	previewEvent: SharedEvent | null;
-	setPreviewEvent: (event: SharedEvent | null) => void;
 }
 
 export const useAppStore = create<AppState>((set, _get) => ({
@@ -239,28 +235,6 @@ export const useAppStore = create<AppState>((set, _get) => ({
 			captureNow: "Command+Shift+O",
 			captureProjectProgress: "Command+Shift+P",
 			endOfDay: "Command+Shift+E",
-			smartReminder: "Alt+Shift+R",
-		},
-		sharing: {
-			includeAppName: true,
-			includeWindowTitle: false,
-			includeContentInfo: true,
-		},
-		social: {
-			dayWrapped: {
-				enabled: false,
-				includeApps: false,
-				includeAddiction: false,
-			},
-			ui: {
-				hideDayWrappedSharingDisabledWarning: false,
-			},
-		},
-		avatar: {
-			pattern: "ascii",
-			backgroundColor: "#0a0a0a",
-			foregroundColor: "#ffffff",
-			asciiChar: "@",
 		},
 		llmEnabled: true,
 		allowVisionUploads: true,
@@ -270,8 +244,6 @@ export const useAppStore = create<AppState>((set, _get) => ({
 		localLlmModel: "llama3.2",
 		autoDetectProgress: false,
 		showDominantWebsites: false,
-		customBackendEnabled: false,
-		customBackendUrl: "",
 	},
 	setSettings: (settings) => set({ settings }),
 	settingsLoaded: false,
@@ -299,7 +271,4 @@ export const useAppStore = create<AppState>((set, _get) => ({
 				: { eodOpen: true, eodDayStart: dayStart },
 		),
 	closeEod: () => set((state) => (state.eodOpen ? { eodOpen: false } : {})),
-
-	previewEvent: null,
-	setPreviewEvent: (event) => set({ previewEvent: event }),
 }));

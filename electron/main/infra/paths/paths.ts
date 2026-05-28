@@ -26,10 +26,6 @@ export function getSettingsPath(): string {
 	return join(getUserDataPath(), "settings.json");
 }
 
-export function getSocialAccountPath(): string {
-	return join(getUserDataPath(), "social-account.json");
-}
-
 export function getScreenshotsDir(): string {
 	return ensureDir(join(getUserDataPath(), "screenshots"));
 }
@@ -52,12 +48,4 @@ export function getAppIconsDir(): string {
 
 export function getTempCapturesDir(): string {
 	return ensureDir(join(getScreenshotsDir(), "tmp"));
-}
-
-export function getSharedImagesDir(): string {
-	return ensureDir(join(getScreenshotsDir(), "shared"));
-}
-
-export function getSharedRoomImagesDir(roomId: string): string {
-	return ensureDir(join(getSharedImagesDir(), roomId));
 }

@@ -17,7 +17,6 @@ import { captureInstant, processInstantCapture } from "../capture";
 import { processCaptureGroup } from "../events";
 import { checkScreenCapturePermission } from "../permissions";
 import { triggerManualCaptureWithPrimaryDisplay } from "../scheduler";
-import { startSmartReminderCapture } from "../smartReminder";
 
 const logger = createLogger({ scope: "Shortcuts" });
 
@@ -212,15 +211,6 @@ async function handleEndOfDay(): Promise<void> {
 	});
 }
 
-async function handleSmartReminder(): Promise<void> {
-	if (!checkScreenCapturePermission()) {
-		logger.warn("No screen capture permission for smart reminder");
-		return;
-	}
-
-	await startSmartReminderCapture();
-}
-
 function registerShortcut(
 	accelerator: string,
 	handler: () => void | Promise<void>,
@@ -248,7 +238,6 @@ function buildBindings(shortcuts: ShortcutSettings): Array<{
 		shortcuts.captureProjectProgress,
 	);
 	const endOfDay = normalizeAccelerator(shortcuts.endOfDay);
-	const smartReminder = normalizeAccelerator(shortcuts.smartReminder);
 
 	const bindings: Array<{
 		action: keyof ShortcutSettings;
@@ -277,14 +266,6 @@ function buildBindings(shortcuts: ShortcutSettings): Array<{
 			action: "endOfDay",
 			accelerator: endOfDay,
 			handler: handleEndOfDay,
-		});
-	}
-
-	if (smartReminder) {
-		bindings.push({
-			action: "smartReminder",
-			accelerator: smartReminder,
-			handler: handleSmartReminder,
 		});
 	}
 

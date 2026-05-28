@@ -6,8 +6,6 @@ import {
 	ChevronRight,
 	Flame,
 	LayoutGrid,
-	User,
-	Users,
 	X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -20,9 +18,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ShortcutKbd } from "@/components/ui/shortcut-kbd";
 import { useSettings } from "@/hooks/useSettings";
-import { computeCombinedDaylineSlots, SLOTS_PER_HOUR } from "@/lib/dayline";
-import type { Event, MobileActivityDay, SharedEvent } from "@/types";
-import { AvatarDisplay } from "./AvatarDisplay";
+import { computeDaylineSlots, SLOTS_PER_HOUR } from "@/lib/dayline";
+import type { Event } from "@/types";
 import {
 	Dayline,
 	DaylineTimeMarkers,
@@ -30,26 +27,18 @@ import {
 	DayWrappedLegend,
 	VIEW_MODE_ORDER,
 } from "./Dayline";
-import { SocialTray, type SocialTrayTopHeaderState } from "./SocialTray";
 import { useLockBodyScroll } from "./useLockBodyScroll";
 import { usePopupAutoHeight } from "./usePopupAutoHeight";
 
 export function StreakPopup() {
 	const [events, setEvents] = useState<Event[]>([]);
-	const [mobileDays, setMobileDays] = useState<MobileActivityDay[]>([]);
-	const [hasPreviousDays, setHasPreviousDays] = useState(true);
 	const rootRef = useRef<HTMLDivElement | null>(null);
 	const [isQuitConfirmOpen, setIsQuitConfirmOpen] = useState(false);
 	const [daylineMode, setDaylineMode] = useState<DaylineViewMode>("categories");
 	const [selectedLabels, setSelectedLabels] = useState<Set<string>>(new Set());
-	const [view, setView] = useState<"day" | "social">("day");
 	const [today, setToday] = useState(() => startOfDay(new Date()));
 	const [day, setDay] = useState(() => startOfDay(new Date()));
 	const { settings } = useSettings();
-	const [socialSelectedEvent, setSocialSelectedEvent] =
-		useState<SharedEvent | null>(null);
-	const [socialTopHeader, setSocialTopHeader] =
-		useState<SocialTrayTopHeaderState | null>(null);
 
 	const handleLabelToggle = useCallback((label: string) => {
 		setSelectedLabels((prev) => {
@@ -63,11 +52,6 @@ export function StreakPopup() {
 		});
 	}, []);
 
-	useEffect(() => {
-		if (view !== "social" && socialSelectedEvent) {
-			setSocialSelectedEvent(null);
-		}
-	}, [socialSelectedEvent, view]);
 	const todayStartMs = useMemo(() => today.getTime(), [today]);
 	const dayStartMs = useMemo(() => startOfDay(day).getTime(), [day]);
 	const dayEndMs = useMemo(() => endOfDay(day).getTime(), [day]);
@@ -79,66 +63,24 @@ export function StreakPopup() {
 	useEffect(() => {
 		const fetchDayData = async () => {
 			if (!window.api) return;
-			const [eventResult, mobileResult] = await Promise.all([
-				window.api.storage.getEvents({
-					startDate: dayStartMs,
-					endDate: dayEndMs,
-					dismissed: false,
-				}),
-				window.api.mobileActivity.listDays({
-					startDate: dayStartMs,
-					endDate: dayStartMs,
-				}),
-			]);
+			const eventResult = await window.api.storage.getEvents({
+				startDate: dayStartMs,
+				endDate: dayEndMs,
+				dismissed: false,
+			});
 			setEvents(eventResult);
-			setMobileDays(mobileResult);
 		};
 		void fetchDayData();
 		const interval = setInterval(fetchDayData, 30000);
 		return () => clearInterval(interval);
 	}, [dayEndMs, dayStartMs]);
 
-	useEffect(() => {
-		if (!window.api?.mobileActivity) return;
-		let cancelled = false;
-		void window.api.mobileActivity
-			.sync({
-				startDate: dayStartMs,
-				endDate: dayEndMs,
-			})
-			.then(async () => {
-				if (cancelled || !window.api?.mobileActivity) return;
-				const days = await window.api.mobileActivity.listDays({
-					startDate: dayStartMs,
-					endDate: dayStartMs,
-				});
-				if (!cancelled) setMobileDays(days);
-			})
-			.catch(() => {});
-		return () => {
-			cancelled = true;
-		};
-	}, [dayEndMs, dayStartMs]);
-
-	useEffect(() => {
-		const checkPreviousDays = async () => {
-			if (!window.api) return;
-			const result = await window.api.storage.getEvents({
-				endDate: todayStartMs - 1,
-				limit: 1,
-				dismissed: false,
-			});
-			setHasPreviousDays(result.length > 10);
-		};
-		void checkPreviousDays();
-	}, [todayStartMs]);
-
 	const slots = useMemo(
 		() =>
-			computeCombinedDaylineSlots(events, mobileDays, dayStartMs, {
+			computeDaylineSlots(events, dayStartMs, {
 				showDominantWebsites: settings.showDominantWebsites,
 			}),
-		[events, mobileDays, dayStartMs, settings.showDominantWebsites],
+		[events, dayStartMs, settings.showDominantWebsites],
 	);
 	const titleDate = format(day, "EEE, MMM d");
 
@@ -170,25 +112,12 @@ export function StreakPopup() {
 		window.close();
 	}, []);
 
-	const triggerSmartReminder = useCallback(() => {
-		if (!window.api?.reminders?.startCapture) return;
-		void window.api.reminders.startCapture();
-		window.close();
-	}, []);
-
 	useEffect(() => {
 		if (!window.api) return;
 		return window.api.on("shortcut:capture-now", () => {
 			triggerCaptureNow();
 		});
 	}, [triggerCaptureNow]);
-
-	useEffect(() => {
-		if (!window.api) return;
-		return window.api.on("popup:reset-to-personal", () => {
-			setView("day");
-		});
-	}, []);
 
 	useEffect(() => {
 		if (!window.api) return;
@@ -239,119 +168,28 @@ export function StreakPopup() {
 
 			<div className="flex items-center justify-between pr-0.5">
 				<div className="flex items-center gap-1.5">
-					{view === "social" && socialTopHeader ? (
-						<div className="flex items-center gap-1 min-w-0">
-							<button
-								type="button"
-								aria-label="Back"
-								className="inline-flex size-4 items-center mr-1 justify-center rounded-md border border-border bg-background/30 text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground shrink-0"
-								onClick={() => socialTopHeader.onBack()}
-							>
-								<ChevronLeft className="size-2" />
-							</button>
-							<div
-								className={`flex items-center gap-1 min-w-0 ${socialTopHeader.kind === "event" && socialTopHeader.onUserClick ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
-								onClick={
-									socialTopHeader.kind === "event" &&
-									socialTopHeader.onUserClick
-										? socialTopHeader.onUserClick
-										: undefined
-								}
-								onKeyDown={
-									socialTopHeader.kind === "event" &&
-									socialTopHeader.onUserClick
-										? (e) => {
-												if (e.key === "Enter" || e.key === " ") {
-													socialTopHeader.onUserClick?.();
-												}
-											}
-										: undefined
-								}
-								role={
-									socialTopHeader.kind === "event" &&
-									socialTopHeader.onUserClick
-										? "button"
-										: undefined
-								}
-								tabIndex={
-									socialTopHeader.kind === "event" &&
-									socialTopHeader.onUserClick
-										? 0
-										: undefined
-								}
-							>
-								<AvatarDisplay
-									username={socialTopHeader.username}
-									size="xs"
-									isOwn={
-										socialTopHeader.kind === "event"
-											? socialTopHeader.isOwn
-											: undefined
-									}
-									ownAvatarUrl={
-										socialTopHeader.kind === "event"
-											? socialTopHeader.ownAvatarUrl
-											: undefined
-									}
-									avatarSettings={socialTopHeader.avatarSettings}
-								/>
-								<div className="text-xs font-medium text-foreground/90 truncate">
-									{socialTopHeader.username}
-								</div>
-							</div>
-						</div>
-					) : (
-						<div className="font-mono text-[10px] tracking-[0.28em] text-muted-foreground">
-							{view === "day" ? "DAY WRAPPED" : "FEED"}
-						</div>
-					)}
-					{view === "day" && (
-						<>
-							<button
-								type="button"
-								aria-label="Previous day"
-								className="inline-flex size-4 items-center justify-center rounded-md border border-border bg-background/30 text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
-								onClick={() => setDay((d) => startOfDay(subDays(d, 1)))}
-							>
-								<ChevronLeft className="size-2" />
-							</button>
-							<button
-								type="button"
-								aria-label="Next day"
-								disabled={!canGoForward}
-								className={`inline-flex size-4 items-center justify-center rounded-md border border-border bg-background/30 text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground ${canGoForward ? "" : "pointer-events-none opacity-0"}`}
-								onClick={() => setDay((d) => startOfDay(addDays(d, 1)))}
-							>
-								<ChevronRight className="size-2" />
-							</button>
-						</>
-					)}
-				</div>
-				<div className="flex items-center gap-0.5">
+					<div className="font-mono text-[10px] tracking-[0.28em] text-muted-foreground">
+						DAY WRAPPED
+					</div>
 					<button
 						type="button"
-						aria-label={`View: ${view === "day" ? "My Day" : "Social"}`}
-						className={`inline-flex items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground ${hasPreviousDays ? "size-6" : "h-6 px-2 text-[10px] font-medium"}`}
-						onClick={() => setView((v) => (v === "day" ? "social" : "day"))}
+						aria-label="Previous day"
+						className="inline-flex size-4 items-center justify-center rounded-md border border-border bg-background/30 text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
+						onClick={() => setDay((d) => startOfDay(subDays(d, 1)))}
 					>
-						{hasPreviousDays ? (
-							view === "day" ? (
-								<User className="size-3.5" />
-							) : (
-								<Users className="size-3.5" />
-							)
-						) : view === "day" ? (
-							<div className="flex items-center gap-1">
-								<Users className="size-3.5" />
-								Friends
-							</div>
-						) : (
-							<div className="flex items-center gap-1">
-								<User className="size-3.5" />
-								Me
-							</div>
-						)}
+						<ChevronLeft className="size-2" />
 					</button>
+					<button
+						type="button"
+						aria-label="Next day"
+						disabled={!canGoForward}
+						className={`inline-flex size-4 items-center justify-center rounded-md border border-border bg-background/30 text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground ${canGoForward ? "" : "pointer-events-none opacity-0"}`}
+						onClick={() => setDay((d) => startOfDay(addDays(d, 1)))}
+					>
+						<ChevronRight className="size-2" />
+					</button>
+				</div>
+				<div className="flex items-center gap-0.5">
 					<button
 						type="button"
 						aria-label="Close"
@@ -363,151 +201,122 @@ export function StreakPopup() {
 				</div>
 			</div>
 
-			<div style={{ display: view === "day" ? "block" : "none" }}>
-				<div className="mt-1 pr-1">
-					<div className="flex items-center justify-between mb-3">
-						<div className="text-sm font-medium text-foreground/90">
-							{titleDate}
-						</div>
-						<button
-							type="button"
-							aria-label={`View: ${daylineMode}`}
-							className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
-							onClick={() =>
-								setDaylineMode((m) => {
-									const idx = VIEW_MODE_ORDER.indexOf(m);
-									return VIEW_MODE_ORDER[(idx + 1) % VIEW_MODE_ORDER.length];
-								})
-							}
-						>
-							{daylineMode === "categories" && (
-								<LayoutGrid className="size-3" />
-							)}
-							{daylineMode === "addiction" && <Flame className="size-3" />}
-							{daylineMode === "apps" && <AppWindow className="size-3" />}
-						</button>
+			<div className="mt-1 pr-1">
+				<div className="flex items-center justify-between mb-3">
+					<div className="text-sm font-medium text-foreground/90">
+						{titleDate}
 					</div>
+					<button
+						type="button"
+						aria-label={`View: ${daylineMode}`}
+						className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
+						onClick={() =>
+							setDaylineMode((m) => {
+								const idx = VIEW_MODE_ORDER.indexOf(m);
+								return VIEW_MODE_ORDER[(idx + 1) % VIEW_MODE_ORDER.length];
+							})
+						}
+					>
+						{daylineMode === "categories" && <LayoutGrid className="size-3" />}
+						{daylineMode === "addiction" && <Flame className="size-3" />}
+						{daylineMode === "apps" && <AppWindow className="size-3" />}
+					</button>
+				</div>
 
-					<Dayline
-						slots={slots}
-						mode={daylineMode}
-						currentSlotIdx={currentSlotIdx}
-						selectedLabels={selectedLabels}
-					/>
-					<DaylineTimeMarkers
-						slots={slots}
-						mode={daylineMode}
-						selectedLabels={selectedLabels}
-					/>
+				<Dayline
+					slots={slots}
+					mode={daylineMode}
+					currentSlotIdx={currentSlotIdx}
+					selectedLabels={selectedLabels}
+				/>
+				<DaylineTimeMarkers
+					slots={slots}
+					mode={daylineMode}
+					selectedLabels={selectedLabels}
+				/>
 
-					<DayWrappedLegend
-						slots={slots}
-						mode={daylineMode}
-						selectedLabels={selectedLabels}
-						onLabelToggle={handleLabelToggle}
-					/>
+				<DayWrappedLegend
+					slots={slots}
+					mode={daylineMode}
+					selectedLabels={selectedLabels}
+					onLabelToggle={handleLabelToggle}
+				/>
 
-					<div className="mt-4 grid grid-cols-2 gap-2">
-						<Button
-							size="sm"
-							variant="outline"
-							className="w-full hover:bg-primary/10"
-							onClick={() => {
-								window.api?.window.show();
-								window.close();
-							}}
-							disabled={!window.api}
-						>
-							Open app
-						</Button>
+				<div className="mt-4 grid grid-cols-2 gap-2">
+					<Button
+						size="sm"
+						variant="outline"
+						className="w-full hover:bg-primary/10"
+						onClick={() => {
+							window.api?.window.show();
+							window.close();
+						}}
+						disabled={!window.api}
+					>
+						Open app
+					</Button>
 
-						<DropdownMenu>
-							<div className="flex w-full">
+					<DropdownMenu>
+						<div className="flex w-full">
+							<Button
+								size="sm"
+								className={`flex-1 justify-center rounded-r-none ${
+									isEvening
+										? "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+										: "bg-green-800/20 text-green-500 hover:bg-green-800/30"
+								}`}
+								onClick={
+									isEvening ? triggerEndOfDay : triggerProjectProgressCapture
+								}
+								disabled={!window.api}
+							>
+								<span>{isEvening ? "End of day" : "Capture progress"}</span>
+							</Button>
+							<DropdownMenuTrigger asChild>
 								<Button
 									size="sm"
-									className={`flex-1 justify-center rounded-r-none ${
+									className={`rounded-l-none px-2 border-l border-green-800/10 ${
 										isEvening
 											? "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
 											: "bg-green-800/20 text-green-500 hover:bg-green-800/30"
 									}`}
-									onClick={
-										isEvening ? triggerEndOfDay : triggerProjectProgressCapture
-									}
 									disabled={!window.api}
+									aria-label="More actions"
 								>
-									<span>{isEvening ? "End of day" : "Capture progress"}</span>
+									<ChevronDown className="size-3" />
 								</Button>
-								<DropdownMenuTrigger asChild>
-									<Button
-										size="sm"
-										className={`rounded-l-none px-2 border-l border-green-800/10 ${
-											isEvening
-												? "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
-												: "bg-green-800/20 text-green-500 hover:bg-green-800/30"
-										}`}
-										disabled={!window.api}
-										aria-label="More actions"
-									>
-										<ChevronDown className="size-3" />
-									</Button>
-								</DropdownMenuTrigger>
-							</div>
-							<DropdownMenuContent
-								align="end"
-								side="top"
-								avoidCollisions={false}
+							</DropdownMenuTrigger>
+						</div>
+						<DropdownMenuContent align="end" side="top" avoidCollisions={false}>
+							<DropdownMenuItem
+								onSelect={
+									isEvening ? triggerProjectProgressCapture : triggerEndOfDay
+								}
+								className="flex items-center justify-between gap-3"
 							>
-								<DropdownMenuItem
-									onSelect={
-										isEvening ? triggerProjectProgressCapture : triggerEndOfDay
+								<span>{isEvening ? "Capture progress" : "End of day"}</span>
+								<ShortcutKbd
+									accelerator={
+										isEvening
+											? settings.shortcuts.captureProjectProgress
+											: settings.shortcuts.endOfDay
 									}
-									className="flex items-center justify-between gap-3"
-								>
-									<span>{isEvening ? "Capture progress" : "End of day"}</span>
-									<ShortcutKbd
-										accelerator={
-											isEvening
-												? settings.shortcuts.captureProjectProgress
-												: settings.shortcuts.endOfDay
-										}
-										className="h-4 px-1 text-[9px] rounded-sm"
-									/>
-								</DropdownMenuItem>
-								<DropdownMenuItem
-									onSelect={triggerCaptureNow}
-									className="flex items-center justify-between gap-3"
-								>
-									<span>Capture now</span>
-									<ShortcutKbd
-										accelerator={settings.shortcuts.captureNow}
-										className="h-4 px-1 text-[9px] rounded-sm"
-									/>
-								</DropdownMenuItem>
-								<DropdownMenuItem
-									onSelect={triggerSmartReminder}
-									className="flex items-center justify-between gap-3"
-								>
-									<span>Smart reminder</span>
-									<ShortcutKbd
-										accelerator={settings.shortcuts.smartReminder}
-										className="h-4 px-1 text-[9px] rounded-sm"
-									/>
-								</DropdownMenuItem>
-							</DropdownMenuContent>
-						</DropdownMenu>
-					</div>
+									className="h-4 px-1 text-[9px] rounded-sm"
+								/>
+							</DropdownMenuItem>
+							<DropdownMenuItem
+								onSelect={triggerCaptureNow}
+								className="flex items-center justify-between gap-3"
+							>
+								<span>Capture now</span>
+								<ShortcutKbd
+									accelerator={settings.shortcuts.captureNow}
+									className="h-4 px-1 text-[9px] rounded-sm"
+								/>
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
 				</div>
-			</div>
-			<div
-				className="mt-2"
-				style={{ display: view === "social" ? "block" : "none" }}
-			>
-				<SocialTray
-					selectedEvent={socialSelectedEvent}
-					onSelectedEventChange={setSocialSelectedEvent}
-					onTopHeaderChange={setSocialTopHeader}
-					useExternalHeader
-				/>
 			</div>
 		</div>
 	);

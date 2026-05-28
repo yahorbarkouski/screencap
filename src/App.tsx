@@ -8,9 +8,7 @@ import { Titlebar } from "@/components/layout/Titlebar";
 import { AddictionsView } from "@/components/memory/AddictionsView";
 import { ProjectsView } from "@/components/memory/ProjectsView";
 import { OnboardingWizard } from "@/components/onboarding";
-import { EventPreviewModal } from "@/components/preview/EventPreviewModal";
 import { ProjectProgressView } from "@/components/progress/ProjectProgressView";
-import { RemindersView } from "@/components/reminders/RemindersView";
 import { SettingsView } from "@/components/settings/SettingsView";
 import { StoryView } from "@/components/story/StoryView";
 import { Timeline } from "@/components/timeline/Timeline";
@@ -20,7 +18,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { useSettings } from "@/hooks/useSettings";
 import { getLogicalDayStart } from "@/lib/dayBoundary";
 import { useAppStore } from "@/stores/app";
-import type { SettingsTab, SharedEvent } from "@/types";
+import type { SettingsTab } from "@/types";
 
 const ONBOARDING_VERSION = 1;
 
@@ -32,8 +30,6 @@ export default function App() {
 	const openEod = useAppStore((s) => s.openEod);
 	const settingsLoaded = useAppStore((s) => s.settingsLoaded);
 	const setSettingsTab = useAppStore((s) => s.setSettingsTab);
-	const previewEvent = useAppStore((s) => s.previewEvent);
-	const setPreviewEvent = useAppStore((s) => s.setPreviewEvent);
 	const { hasPermission, checkPermission } = usePermission();
 	const { settings } = useSettings();
 	useMemories();
@@ -94,15 +90,6 @@ export default function App() {
 
 	useEffect(() => {
 		if (!window.api) return;
-		return window.api.on("preview:event", (event) => {
-			if (event && typeof event === "object") {
-				setPreviewEvent(event as SharedEvent);
-			}
-		});
-	}, [setPreviewEvent]);
-
-	useEffect(() => {
-		if (!window.api) return;
 		return window.api.on("settings:open-tab", (payload) => {
 			if (typeof payload !== "string") return;
 			const tab =
@@ -110,7 +97,6 @@ export default function App() {
 				payload === "ai" ||
 				payload === "automation" ||
 				payload === "data" ||
-				payload === "social" ||
 				payload === "system"
 					? (payload as SettingsTab)
 					: null;
@@ -119,13 +105,6 @@ export default function App() {
 			setView("settings");
 		});
 	}, [setSettingsTab, setView]);
-
-	useEffect(() => {
-		if (!window.api) return;
-		return window.api.on("navigate:reminders" as never, () => {
-			setView("reminders");
-		});
-	}, [setView]);
 
 	const handleOnboardingComplete = useCallback(() => {
 		setShowOnboarding(false);
@@ -157,7 +136,6 @@ export default function App() {
 						{view === "story" && <StoryView />}
 						{view === "projects" && <ProjectsView />}
 						{view === "addictions" && <AddictionsView />}
-						{view === "reminders" && <RemindersView />}
 						{view === "settings" && <SettingsView />}
 					</main>
 				</div>
@@ -169,10 +147,6 @@ export default function App() {
 					onOpenChange={setCommandPaletteOpen}
 				/>
 				<EndOfDayFlow />
-				<EventPreviewModal
-					event={previewEvent}
-					onClose={() => setPreviewEvent(null)}
-				/>
 			</div>
 		</TooltipProvider>
 	);

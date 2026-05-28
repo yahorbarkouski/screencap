@@ -1,17 +1,11 @@
 import { endOfDay, startOfDay, subDays } from "date-fns";
-import { Calendar, Loader2, RefreshCw } from "lucide-react";
+import { Calendar, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useSettings } from "@/hooks/useSettings";
-import {
-	cn,
-	groupEventsByDate,
-	normalizeProjectName,
-	sharedEventToEvent,
-} from "@/lib/utils";
-import type { Event, GitCommit, SharedProject, SocialIdentity } from "@/types";
+import { cn, groupEventsByDate, limitGroupedItems } from "@/lib/utils";
+import type { Event, GitCommit } from "@/types";
 import {
 	ProgressTimelineGroup,
 	type ProgressTimelineItem,
@@ -22,9 +16,10 @@ type RangePreset = "today" | "7d" | "30d" | "all";
 type ProjectOption = {
 	value: string;
 	label: string;
-	isShared: boolean;
-	roomId?: string;
 };
+
+const PROGRESS_BATCH_SIZE = 120;
+const GIT_COMMITS_PER_REPO_LIMIT = 1000;
 
 function rangeBounds(preset: RangePreset): {
 	startDate?: number;
@@ -57,6 +52,7 @@ export function ProjectProgressView() {
 	const [selectedProject, setSelectedProject] = useState<string | undefined>(
 		undefined,
 	);
+	const [visibleItemCount, setVisibleItemCount] = useState(PROGRESS_BATCH_SIZE);
 	const [isLoading, setIsLoading] = useState(true);
 	const [git, setGit] = useState<{
 		repoCount: number;
@@ -65,60 +61,12 @@ export function ProjectProgressView() {
 		error: string | null;
 	}>({ repoCount: 0, commits: [], isLoading: false, error: null });
 
-	const [sharedProjects, setSharedProjects] = useState<SharedProject[]>([]);
-	const [identity, setIdentity] = useState<SocialIdentity | null>(null);
-	const { settings } = useSettings();
-	const [isSyncing, setIsSyncing] = useState(false);
-
-	useEffect(() => {
-		if (!window.api?.social) return;
-		void window.api.social.getIdentity().then(setIdentity);
-	}, []);
-
-	const fetchSharedProjects = useCallback(async () => {
-		if (!window.api?.sharedProjects) return;
-		try {
-			const projects = await window.api.sharedProjects.list();
-			setSharedProjects(projects);
-		} catch (error) {
-			console.error("Failed to fetch shared projects:", error);
-		}
-	}, []);
-
-	const syncAllSharedProjects = useCallback(async () => {
-		if (!window.api?.sharedProjects) return;
-		setIsSyncing(true);
-		try {
-			await window.api.sharedProjects.syncAll();
-			await fetchSharedProjects();
-		} finally {
-			setIsSyncing(false);
-		}
-	}, [fetchSharedProjects]);
-
-	useEffect(() => {
-		void fetchSharedProjects();
-	}, [fetchSharedProjects]);
-
 	const fetchEvents = useCallback(async () => {
 		if (!window.api) return;
 		setIsLoading(true);
 		try {
 			const { startDate, endDate } = rangeBounds(preset);
-
-			if (selectedProject?.startsWith("shared:")) {
-				const roomId = selectedProject.replace("shared:", "");
-				const sharedEvts = await window.api.sharedProjects.getEvents({
-					roomId,
-					startDate,
-					endDate,
-					limit: 5000,
-				});
-				setAllEvents(sharedEvts.map(sharedEventToEvent));
-				return;
-			}
-
-			const events = await window.api.storage.getUnifiedEvents({
+			const events = await window.api.storage.getEvents({
 				startDate,
 				endDate,
 				projectProgress: true,
@@ -139,38 +87,12 @@ export function ProjectProgressView() {
 	const localProjects = useMemo(() => uniqueProjects(allEvents), [allEvents]);
 
 	const projectOptions = useMemo((): ProjectOption[] => {
-		const options: ProjectOption[] = [];
-		const seenNames = new Set<string>();
-
-		for (const name of localProjects) {
-			const normalized = normalizeProjectName(name);
-			const sharedProject = sharedProjects.find(
-				(sp) => normalizeProjectName(sp.projectName) === normalized,
+		return localProjects
+			.map((name) => ({ value: name, label: name }))
+			.sort((a, b) =>
+				a.value.localeCompare(b.value, undefined, { sensitivity: "base" }),
 			);
-			options.push({
-				value: name,
-				label: sharedProject ? `${name} [shared]` : name,
-				isShared: !!sharedProject,
-				roomId: sharedProject?.roomId,
-			});
-			seenNames.add(normalized);
-		}
-
-		for (const sp of sharedProjects) {
-			if (!seenNames.has(normalizeProjectName(sp.projectName))) {
-				options.push({
-					value: `shared:${sp.roomId}`,
-					label: `${sp.projectName} [shared]`,
-					isShared: true,
-					roomId: sp.roomId,
-				});
-			}
-		}
-
-		return options.sort((a, b) =>
-			a.value.localeCompare(b.value, undefined, { sensitivity: "base" }),
-		);
-	}, [localProjects, sharedProjects]);
+	}, [localProjects]);
 
 	const fetchGit = useCallback(async () => {
 		if (!window.api) {
@@ -180,13 +102,9 @@ export function ProjectProgressView() {
 
 		const { startDate, endDate } = rangeBounds(preset);
 		const startAt = startDate ?? 0;
-		const endAt = endDate ?? 0;
+		const endAt = endDate ?? Date.now();
 
-		const projectsToFetch = selectedProject
-			? selectedProject.startsWith("shared:")
-				? []
-				: [selectedProject]
-			: localProjects;
+		const projectsToFetch = selectedProject ? [selectedProject] : localProjects;
 		if (projectsToFetch.length === 0) {
 			setGit({ repoCount: 0, commits: [], isLoading: false, error: null });
 			return;
@@ -200,7 +118,7 @@ export function ProjectProgressView() {
 						projectName,
 						startAt,
 						endAt,
-						limitPerRepo: 5000,
+						limitPerRepo: GIT_COMMITS_PER_REPO_LIMIT,
 					}),
 				),
 			);
@@ -223,6 +141,7 @@ export function ProjectProgressView() {
 
 	useEffect(() => {
 		if (!selectedProject && projectOptions.length === 1) {
+			setVisibleItemCount(PROGRESS_BATCH_SIZE);
 			setSelectedProject(projectOptions[0].value);
 		}
 	}, [projectOptions, selectedProject]);
@@ -230,6 +149,7 @@ export function ProjectProgressView() {
 	useEffect(() => {
 		const allValues = projectOptions.map((p) => p.value);
 		if (selectedProject && !allValues.includes(selectedProject)) {
+			setVisibleItemCount(PROGRESS_BATCH_SIZE);
 			setSelectedProject(undefined);
 		}
 	}, [projectOptions, selectedProject]);
@@ -239,7 +159,6 @@ export function ProjectProgressView() {
 			kind: "event",
 			timestamp: e.timestamp,
 			event: e,
-			isMe: e.isRemote ? identity?.userId === e.authorUserId : true,
 		}));
 
 		for (const c of git.commits) {
@@ -248,11 +167,15 @@ export function ProjectProgressView() {
 
 		items.sort((a, b) => b.timestamp - a.timestamp);
 		return items;
-	}, [git.commits, allEvents, identity]);
+	}, [git.commits, allEvents]);
 
 	const groupedItems = useMemo(
 		() => groupEventsByDate(timelineItems),
 		[timelineItems],
+	);
+	const visibleGroupedItems = useMemo(
+		() => limitGroupedItems(groupedItems, visibleItemCount),
+		[groupedItems, visibleItemCount],
 	);
 	const showProject = selectedProject == null;
 
@@ -267,24 +190,12 @@ export function ProjectProgressView() {
 				</div>
 
 				<div className="flex items-center gap-2 no-drag pt-2">
-					{sharedProjects.length > 0 && (
-						<Button
-							variant="outline"
-							size="sm"
-							className="h-7 px-2 text-xs gap-1.5"
-							onClick={syncAllSharedProjects}
-							disabled={isSyncing}
-						>
-							<RefreshCw
-								className={cn("h-3.5 w-3.5", isSyncing && "animate-spin")}
-							/>
-							Sync
-						</Button>
-					)}
-
 					<Combobox
 						value={selectedProject}
-						onValueChange={(v) => setSelectedProject(v)}
+						onValueChange={(v) => {
+							setVisibleItemCount(PROGRESS_BATCH_SIZE);
+							setSelectedProject(v);
+						}}
 						placeholder="Project"
 						allLabel="All Projects"
 						searchable
@@ -314,7 +225,10 @@ export function ProjectProgressView() {
 										"h-7 px-2 text-xs",
 										active && "bg-background shadow-sm",
 									)}
-									onClick={() => setPreset(p.key)}
+									onClick={() => {
+										setVisibleItemCount(PROGRESS_BATCH_SIZE);
+										setPreset(p.key);
+									}}
 								>
 									{Icon && <Icon className="h-4 w-4" />}
 									{p.label}
@@ -350,16 +264,32 @@ export function ProjectProgressView() {
 							</p>
 						</div>
 					) : (
-						Array.from(groupedItems.entries()).map(([date, items]) => (
-							<ProgressTimelineGroup
-								key={date}
-								date={date}
-								items={items}
-								showProject={showProject}
-								onUnmark={fetchEvents}
-								avatarSettings={settings.avatar}
-							/>
-						))
+						<>
+							{visibleGroupedItems.entries.map(([date, items]) => (
+								<ProgressTimelineGroup
+									key={date}
+									date={date}
+									items={items}
+									showProject={showProject}
+									onUnmark={fetchEvents}
+								/>
+							))}
+							{visibleGroupedItems.hasMore ? (
+								<div className="flex justify-center">
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() =>
+											setVisibleItemCount(
+												(count) => count + PROGRESS_BATCH_SIZE,
+											)
+										}
+									>
+										Show more
+									</Button>
+								</div>
+							) : null}
+						</>
 					)}
 				</div>
 			</ScrollArea>

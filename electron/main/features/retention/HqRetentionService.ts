@@ -11,7 +11,6 @@ const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 
 const REGULAR_RETENTION_HOURS = 12;
-const SHARED_RETENTION_HOURS = 48;
 const PROGRESS_RETENTION_HOURS = 24;
 const PROGRESS_FALLBACK_DAYS = 7;
 const EOD_BUFFER_HOURS = 24;
@@ -50,7 +49,6 @@ function buildCutoffs(): HqCleanupCutoffs {
 	const now = Date.now();
 	return {
 		regularCutoff: now - REGULAR_RETENTION_HOURS * HOUR_MS,
-		sharedCutoff: now - SHARED_RETENTION_HOURS * HOUR_MS,
 		progressCutoff: now - PROGRESS_RETENTION_HOURS * HOUR_MS,
 		progressFallbackCutoff: now - PROGRESS_FALLBACK_DAYS * DAY_MS,
 		eodBufferMs: EOD_BUFFER_HOURS * HOUR_MS,
@@ -99,7 +97,6 @@ async function runHqCleanup(reason: HqRetentionRunReason): Promise<void> {
 			logger.info("HQ cleanup finished", {
 				reason,
 				regularRetentionHours: REGULAR_RETENTION_HOURS,
-				sharedRetentionHours: SHARED_RETENTION_HOURS,
 				progressFallbackDays: PROGRESS_FALLBACK_DAYS,
 				deleted,
 			});

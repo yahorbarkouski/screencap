@@ -14,28 +14,6 @@ const VALID_SETTINGS: Settings = {
 		captureNow: "Command+Shift+O",
 		captureProjectProgress: "Command+Shift+P",
 		endOfDay: "Command+Shift+E",
-		smartReminder: "Command+Shift+R",
-	},
-	sharing: {
-		includeAppName: true,
-		includeWindowTitle: false,
-		includeContentInfo: true,
-	},
-	social: {
-		dayWrapped: {
-			enabled: false,
-			includeApps: false,
-			includeAddiction: false,
-		},
-		ui: {
-			hideDayWrappedSharingDisabledWarning: false,
-		},
-	},
-	avatar: {
-		pattern: "ascii",
-		backgroundColor: "#0a0a0a",
-		foregroundColor: "#ffffff",
-		asciiChar: "@",
 	},
 	llmEnabled: true,
 	allowVisionUploads: true,
@@ -45,8 +23,6 @@ const VALID_SETTINGS: Settings = {
 	localLlmModel: "llama3.2",
 	autoDetectProgress: true,
 	showDominantWebsites: false,
-	customBackendEnabled: false,
-	customBackendUrl: "",
 };
 
 describe("ipcSetSettingsArgs", () => {
@@ -83,35 +59,8 @@ describe("ipcSetSettingsArgs", () => {
 	});
 
 	it("rejects objects with missing required keys", () => {
-		const { sharing: _, ...settingsWithoutSharing } = VALID_SETTINGS;
-		const result = ipcSetSettingsArgs.safeParse([settingsWithoutSharing]);
-
-		expect(result.success).toBe(false);
-	});
-
-	it("validates social settings structure", () => {
-		const settingsWithInvalidSocial = {
-			...VALID_SETTINGS,
-			social: {
-				dayWrapped: {
-					enabled: "not a boolean",
-					includeApps: false,
-					includeAddiction: false,
-				},
-				ui: { hideDayWrappedSharingDisabledWarning: false },
-			},
-		};
-		const result = ipcSetSettingsArgs.safeParse([settingsWithInvalidSocial]);
-
-		expect(result.success).toBe(false);
-	});
-
-	it("validates sharing settings structure", () => {
-		const settingsWithInvalidSharing = {
-			...VALID_SETTINGS,
-			sharing: { includeAppName: "not a boolean" },
-		};
-		const result = ipcSetSettingsArgs.safeParse([settingsWithInvalidSharing]);
+		const { shortcuts: _, ...settingsWithoutShortcuts } = VALID_SETTINGS;
+		const result = ipcSetSettingsArgs.safeParse([settingsWithoutShortcuts]);
 
 		expect(result.success).toBe(false);
 	});
@@ -175,7 +124,6 @@ describe("ipcSetSettingsArgs", () => {
 				captureNow: null,
 				captureProjectProgress: null,
 				endOfDay: null,
-				smartReminder: null,
 			},
 		};
 		const result = ipcSetSettingsArgs.safeParse([settingsWithNullShortcuts]);

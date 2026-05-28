@@ -1,10 +1,10 @@
 import { useMemo } from "react";
-import type { AvatarSettings, Event, GitCommit } from "@/types";
+import type { Event, GitCommit } from "@/types";
 import { ProgressCard } from "./ProgressCard";
 import { ProgressCommitCard } from "./ProgressCommitCard";
 
 export type ProgressTimelineItem =
-	| { kind: "event"; timestamp: number; event: Event; isMe?: boolean }
+	| { kind: "event"; timestamp: number; event: Event }
 	| { kind: "commit"; timestamp: number; commit: GitCommit };
 
 export function ProgressTimelineGroup({
@@ -12,13 +12,11 @@ export function ProgressTimelineGroup({
 	items,
 	showProject = false,
 	onUnmark,
-	avatarSettings,
 }: {
 	date: string;
 	items: ProgressTimelineItem[];
 	showProject?: boolean;
 	onUnmark?: () => void;
-	avatarSettings?: AvatarSettings;
 }) {
 	const ordered = useMemo(
 		() => [...items].sort((a, b) => b.timestamp - a.timestamp),
@@ -37,9 +35,7 @@ export function ProgressTimelineGroup({
 								event={item.event}
 								showProject={showProject}
 								isLast={idx === ordered.length - 1}
-								onUnmark={item.event.isRemote ? undefined : onUnmark}
-								isMe={item.isMe}
-								avatarSettings={avatarSettings}
+								onUnmark={onUnmark}
 							/>
 						);
 					}

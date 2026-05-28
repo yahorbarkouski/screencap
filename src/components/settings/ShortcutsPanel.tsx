@@ -12,7 +12,6 @@ const DEFAULT_SHORTCUTS: ShortcutSettings = {
 	captureNow: "Command+Shift+O",
 	captureProjectProgress: "Command+Shift+P",
 	endOfDay: "Command+Shift+E",
-	smartReminder: "Alt+Shift+R",
 };
 
 function normalizeKey(key: string): string | null {
@@ -128,13 +127,11 @@ export function ShortcutsPanel({
 				shortcuts.captureProjectProgress,
 			),
 			endOfDay: normalizeAccelerator(shortcuts.endOfDay),
-			smartReminder: normalizeAccelerator(shortcuts.smartReminder),
 		}),
 		[
 			shortcuts.captureNow,
 			shortcuts.captureProjectProgress,
 			shortcuts.endOfDay,
-			shortcuts.smartReminder,
 		],
 	);
 
@@ -152,7 +149,6 @@ export function ShortcutsPanel({
 					"captureNow",
 					"captureProjectProgress",
 					"endOfDay",
-					"smartReminder",
 				];
 				for (const other of keys) {
 					if (other === key) continue;
@@ -226,17 +222,6 @@ export function ShortcutsPanel({
 						<ShortcutInput
 							value={shortcuts.endOfDay}
 							onChange={(v) => update("endOfDay", v)}
-							onRecordingChange={onRecordingChange}
-						/>
-					}
-				/>
-				<SettingsRow
-					title="Smart reminder"
-					description="Capture a screen region and set a reminder"
-					right={
-						<ShortcutInput
-							value={shortcuts.smartReminder}
-							onChange={(v) => update("smartReminder", v)}
 							onRecordingChange={onRecordingChange}
 						/>
 					}

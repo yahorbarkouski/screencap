@@ -41,32 +41,6 @@ function mergeSettings(base: Settings, incoming: unknown): Settings {
 		...(incomingShortcuts ?? {}),
 	};
 
-	const incomingSharing = partial.sharing;
-	next.sharing = {
-		...base.sharing,
-		...(incomingSharing ?? {}),
-	};
-
-	const incomingSocial = partial.social;
-	next.social = {
-		...base.social,
-		...(incomingSocial ?? {}),
-		dayWrapped: {
-			...base.social.dayWrapped,
-			...(incomingSocial?.dayWrapped ?? {}),
-		},
-		ui: {
-			...base.social.ui,
-			...(incomingSocial?.ui ?? {}),
-		},
-	};
-
-	const incomingAvatar = partial.avatar;
-	next.avatar = {
-		...base.avatar,
-		...(incomingAvatar ?? {}),
-	};
-
 	return next;
 }
 

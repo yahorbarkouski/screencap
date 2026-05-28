@@ -11,7 +11,6 @@ import {
 	Loader2,
 	RefreshCw,
 	RotateCcw,
-	Server,
 	Trash2,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -21,7 +20,6 @@ import {
 	SettingsTabHeader,
 } from "@/components/settings/SettingsPrimitives";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { TabsContent } from "@/components/ui/tabs";
 import { Panel } from "@/components/wrapped/Panel";
@@ -239,18 +237,6 @@ export function SystemTab({
 	}>({ status: "idle" });
 	const [showResetConfirm, setShowResetConfirm] = useState(false);
 	const [isResetting, setIsResetting] = useState(false);
-	const [customBackendUrl, setCustomBackendUrl] = useState(
-		settings.customBackendUrl || "",
-	);
-	const [isTestingBackend, setIsTestingBackend] = useState(false);
-	const [backendTestResult, setBackendTestResult] = useState<{
-		success: boolean;
-		error?: string;
-	} | null>(null);
-
-	useEffect(() => {
-		setCustomBackendUrl(settings.customBackendUrl || "");
-	}, [settings.customBackendUrl]);
 
 	useEffect(() => {
 		if (!window.api) return;
@@ -356,29 +342,6 @@ export function SystemTab({
 		setTimeout(() => setCopiedSha(false), 2000);
 	}, [appInfo?.gitSha]);
 
-	const handleSaveBackendUrl = useCallback(async () => {
-		await saveSettings({
-			...settings,
-			customBackendUrl: customBackendUrl.trim(),
-		});
-		setBackendTestResult(null);
-	}, [settings, customBackendUrl, saveSettings]);
-
-	const handleTestBackendConnection = useCallback(async () => {
-		if (!window.api) return;
-		await handleSaveBackendUrl();
-		setIsTestingBackend(true);
-		setBackendTestResult(null);
-		try {
-			const result = await window.api.settings.testBackendConnection();
-			setBackendTestResult(result);
-		} catch (error) {
-			setBackendTestResult({ success: false, error: String(error) });
-		} finally {
-			setIsTestingBackend(false);
-		}
-	}, [handleSaveBackendUrl]);
-
 	const handleCopyLogs = useCallback(async () => {
 		if (!window.api) return;
 		setLogsAction({ status: "copying" });
@@ -474,97 +437,6 @@ export function SystemTab({
 							}
 						/>
 					</SettingsRows>
-				</Panel>
-
-				<Panel
-					title="Custom Backend"
-					meta="Self-hosted server"
-					className="max-w-3xl"
-				>
-					<div className="space-y-4">
-						<SettingsRows>
-							<SettingsRow
-								title="Use custom backend"
-								description="Connect to your own self-hosted server instead of the default"
-								right={
-									<Switch
-										checked={settings.customBackendEnabled}
-										onCheckedChange={(checked) =>
-											updateSetting("customBackendEnabled", checked)
-										}
-									/>
-								}
-							/>
-						</SettingsRows>
-
-						<div
-							className={cn(
-								"space-y-3",
-								!settings.customBackendEnabled &&
-									"opacity-60 pointer-events-none",
-							)}
-						>
-							<div className="space-y-1">
-								<div className="text-xs text-muted-foreground">Server URL</div>
-								<Input
-									value={customBackendUrl}
-									onChange={(e) => setCustomBackendUrl(e.target.value)}
-									placeholder="https://your-backend.vercel.app"
-								/>
-							</div>
-
-							<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-								<Button
-									variant="outline"
-									size="sm"
-									onClick={handleSaveBackendUrl}
-									className="sm:w-[96px]"
-								>
-									Save
-								</Button>
-								<Button
-									variant="secondary"
-									size="sm"
-									onClick={handleTestBackendConnection}
-									disabled={isTestingBackend}
-									className="sm:w-[96px]"
-								>
-									{isTestingBackend ? (
-										<Loader2 className="h-4 w-4 animate-spin" />
-									) : (
-										"Test"
-									)}
-								</Button>
-								<div className="text-xs text-muted-foreground flex items-center gap-1">
-									<Server className="h-3 w-3" />
-									See docs for self-hosting guide
-								</div>
-							</div>
-
-							{backendTestResult && (
-								<div
-									className={cn(
-										"flex items-center gap-2 p-3 rounded-lg text-sm",
-										backendTestResult.success
-											? "bg-green-500/10 text-green-600 dark:text-green-400"
-											: "bg-destructive/10 text-destructive",
-									)}
-								>
-									{backendTestResult.success ? (
-										<>
-											<Check className="h-4 w-4" />
-											Connected to backend
-										</>
-									) : (
-										<>
-											<AlertCircle className="h-4 w-4" />
-											{backendTestResult.error || "Connection failed"}
-										</>
-									)}
-								</div>
-							)}
-						</div>
-					</div>
 				</Panel>
 
 				<Panel
