@@ -36,6 +36,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private var refreshTimer: Timer?
   private var backup: BackupDriver?
   private var metricsTimer: Timer?
+  private var updates: Updates?
+  /// Relaunched by an update: the activation that comes with the relaunch shows no window.
+  private var relaunchedForUpdate = false
   private let launchedAt = Date()
   private let usageAtLaunch = ResourceUsage.now()
 
@@ -67,8 +70,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       panel = PanelController(model: model)
       panel.openMain = { [weak self] in self?.showMain() }
       panel.openSettings = { [weak self] in self?.showSettings() }
-      buildMenu()
       if !viewOnly {
+        if let relaunchedAt = UserDefaults.standard.object(forKey: Updates.relaunchKey) as? Double {
+          UserDefaults.standard.removeObject(forKey: Updates.relaunchKey)
+          relaunchedForUpdate = Date().timeIntervalSince1970 - relaunchedAt < 120
+          Log.ui.info("relaunched after an update to \(Updates.currentVersion, privacy: .public)")
+        }
+        // A bare binary from .build has no bundle to update, and Sparkle would say so in an alert.
+        if Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") != nil {
+          let updates = Updates()
+          updates.start()
+          self.updates = updates
+          model.updates = updates
+        }
         capture.start()
         understanding.start()
         backup = BackupDriver(database: database, location: location, settings: settings)
@@ -80,6 +94,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
           }
         }
       }
+      buildMenu()
       model.refresh()
       refreshTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
         MainActor.assumeIsolated { self?.refreshIfVisible() }
@@ -164,6 +179,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   /// activates the app, and every window the app opens itself is visible before it activates.
   func applicationDidBecomeActive(_ notification: Notification) {
     guard snapshotDirectory == nil else { return }
+    if relaunchedForUpdate, Date().timeIntervalSince(launchedAt) < 30 {
+      relaunchedForUpdate = false
+      return
+    }
     let showing = [mainWindow?.window, settingsWindow, onboardingWindow].contains { $0?.isVisible == true }
     // After the activation that brought the app forward has finished.
     if !showing { DispatchQueue.main.async { self.showMain() } }
@@ -228,6 +247,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     NSApp.activate()
   }
 
+  @objc func checkForUpdates() {
+    updates?.checkOrInstall()
+  }
+
   @objc func focusSearch() {
     showMain()
     NotificationCenter.default.post(name: .focusSearch, object: nil)
@@ -273,6 +296,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let appItem = NSMenuItem()
     let appMenu = NSMenu()
     appMenu.addItem(withTitle: "About Screencap", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+    if updates != nil {
+      appMenu.addItem(withTitle: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "").target = self
+    }
     appMenu.addItem(.separator())
     appMenu.addItem(withTitle: "Settings…", action: #selector(showSettings), keyEquivalent: ",").target = self
     appMenu.addItem(.separator())

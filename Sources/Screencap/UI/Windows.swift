@@ -152,6 +152,9 @@ final class PanelController: NSObject, NSWindowDelegate {
     menu.addItem(.separator())
     menu.addItem(withTitle: "Open Screencap", action: #selector(openMainFromMenu), keyEquivalent: "").target = self
     menu.addItem(withTitle: "Settings…", action: #selector(openSettingsFromMenu), keyEquivalent: ",").target = self
+    if let updates = model.updates {
+      menu.addItem(withTitle: updates.actionTitle ?? "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "").target = self
+    }
     menu.addItem(.separator())
     menu.addItem(withTitle: "Quit Screencap", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
     statusItem.menu = menu
@@ -172,6 +175,7 @@ final class PanelController: NSObject, NSWindowDelegate {
   @objc private func captureNow() { model.captureEngine?.capture(.manual) }
   @objc private func openMainFromMenu() { openMain() }
   @objc private func openSettingsFromMenu() { openSettings() }
+  @objc private func checkForUpdates() { model.updates?.checkOrInstall() }
 
   /// ⌥⌘S anywhere toggles the panel. Carbon hot keys need no Accessibility permission.
   private func registerHotKey() {

@@ -164,6 +164,7 @@ struct SettingsView: View {
           Text("Up to date as of \(last.formatted(date: .omitted, time: .shortened))").font(.caption).foregroundStyle(.secondary)
         }
       }
+      if let updates = model.updates { UpdatesSection(updates: updates) }
     }
     .formStyle(.grouped)
     .frame(minWidth: 520, maxWidth: .infinity, minHeight: 420, maxHeight: .infinity)
@@ -208,5 +209,35 @@ struct SettingsView: View {
     } catch {
       recoveryMessage = String(describing: error)
     }
+  }
+}
+
+/// Sparkle's two switches, the running version and a way to check now.
+struct UpdatesSection: View {
+  @Bindable var updates: Updates
+
+  var body: some View {
+    Section("Updates") {
+      Toggle("Check for updates automatically", isOn: $updates.automaticallyChecks)
+      Toggle("Download and install updates automatically", isOn: $updates.automaticallyInstalls)
+        .disabled(!updates.automaticallyChecks)
+      HStack {
+        Text("Screencap \(Updates.currentVersion)")
+        Spacer()
+        Button(updates.actionTitle ?? "Check Now") { updates.checkOrInstall() }
+          .disabled(updates.actionTitle == nil && !updates.canCheck)
+      }
+      Text(caption).font(.caption).foregroundStyle(.secondary)
+    }
+  }
+
+  var caption: String {
+    if case .ready = updates.state {
+      return "The update installs the next time your screen locks, or when you quit Screencap."
+    }
+    let installs = updates.automaticallyInstalls && updates.automaticallyChecks
+      ? "Updates install while your screen is locked." : "Screencap asks before it installs an update."
+    guard let last = updates.lastCheck else { return installs }
+    return "\(installs) Last checked \(last.formatted(.relative(presentation: .named)))."
   }
 }

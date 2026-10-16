@@ -1,0 +1,51 @@
+name: Appcast
+
+# Publishing a release (or editing its notes later) attaches appcast.xml to it: the update zip's versions, address and
+# EdDSA signature, the release notes as HTML, and a signature over the feed. The app reads
+# releases/latest/download/appcast.xml, so it sees an update once the release is published and latest; drafts and
+# pre-releases reach nobody. The private key is the SPARKLE_ED_PRIVATE_KEY secret (see RELEASING.md).
+on:
+  release:
+    types: [published, edited]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: appcast-${{ github.event.release.tag_name }}
+  cancel-in-progress: true
+
+jobs:
+  appcast:
+    # The Electron releases (v1.x) have their own updater and no Screencap 2 zip.
+    if: ${{ !startsWith(github.event.release.tag_name, 'v1.') }}
+    runs-on: macos-26
+    timeout-minutes: 15
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Write and attach the appcast
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+          NOTES: ${{ github.event.release.body }}
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          if [ -z "$SPARKLE_ED_PRIVATE_KEY" ]; then
+            echo "::error::The SPARKLE_ED_PRIVATE_KEY secret is missing; see RELEASING.md"
+            exit 1
+          fi
+          VERSION="${TAG#v}"
+          ZIP="Screencap-$VERSION.zip"
+          mkdir -p build/appcast
+          gh release download "$TAG" --pattern "$ZIP" --dir build/appcast
+          # GitHub renders the notes as it does on the release page.
+          printf '%s' "$NOTES" | jq -Rs '{text: ., mode: "gfm", context: env.GITHUB_REPOSITORY}' \
+            | gh api markdown --input - > build/appcast/notes.html
+          scripts/appcast.sh "build/appcast/$ZIP" \
+            "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/$ZIP" \
+            build/appcast/appcast.xml build/appcast/notes.html
+          gh release upload "$TAG" build/appcast/appcast.xml --clobber

@@ -3,7 +3,7 @@ import Security
 
 /// Generic-password items in the login keychain.
 public enum Keychain {
-  public static let service = "com.screencaping.app"
+  public static let service = StoreLocation.appIdentifier
 
   public enum Account: String, Sendable {
     case openRouterKey = "openrouter-api-key"

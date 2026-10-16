@@ -62,6 +62,7 @@ final class AppModel {
   var captureEngine: CaptureEngine?
   var understanding: UnderstandingDriver?
   var backup: BackupDriver?
+  var updates: Updates?
 
   // Navigation
   var day: Date = Calendar.current.startOfDay(for: Date())

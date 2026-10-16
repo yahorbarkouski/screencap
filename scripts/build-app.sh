@@ -9,6 +9,12 @@ IDENTITY="${SCREENCAP_SIGNING_IDENTITY:-Developer ID Application: Yahor Barkousk
 VERSION="${SCREENCAP_VERSION:-0.1.0}"
 # The build number updaters compare: the commit count, which only grows.
 BUILD="${SCREENCAP_BUILD:-$(git rev-list --count HEAD 2>/dev/null || echo 1)}"
+# Sparkle reads updates from the appcast attached to the latest published GitHub release, and installs only what is
+# signed with the private half of this key (the maintainer's Keychain and the SPARKLE_ED_PRIVATE_KEY secret; see
+# RELEASING.md). The update test builds under its own identifier, feed and key: scripts/update-test.sh.
+BUNDLE_ID="${SCREENCAP_BUNDLE_ID:-com.screencaping.app}"
+FEED_URL="${SCREENCAP_FEED_URL:-https://github.com/yahorbarkouski/screencap/releases/latest/download/appcast.xml}"
+ED_PUBLIC_KEY="${SCREENCAP_ED_PUBLIC_KEY:-x5rTm9SbjOVsZ5fLTKAdYnCXTtVYshoxsqqPZCiCVc0=}"
 # A release needs Apple's secure timestamp, which notarization checks; local builds skip the round trip.
 TIMESTAMP="--timestamp=none"
 if [ "${SCREENCAP_TIMESTAMP:-0}" = 1 ]; then TIMESTAMP="--timestamp"; fi
@@ -19,9 +25,14 @@ BIN="$(swift build -c release --scratch-path .build/app --show-bin-path)"
 
 APP=build/Screencap.app
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Helpers" "$APP/Contents/Resources"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Helpers" "$APP/Contents/Resources" "$APP/Contents/Frameworks"
 cp "$BIN/Screencap" "$APP/Contents/MacOS/Screencap"
 cp "$BIN/screencap-ocr" "$APP/Contents/Helpers/screencap-ocr"
+# Sparkle, without what only building against it or a sandboxed app needs: its XPC services launch the installer
+# from inside a sandbox, and Screencap is not sandboxed.
+SPARKLE="$APP/Contents/Frameworks/Sparkle.framework"
+ditto "$BIN/Sparkle.framework" "$SPARKLE"
+rm -rf "$SPARKLE"/{XPCServices,Headers,PrivateHeaders,Modules} "$SPARKLE"/Versions/B/{XPCServices,Headers,PrivateHeaders,Modules}
 # The icon is Icon Composer's layered format. actool compiles it into Assets.car, which macOS 26 draws in Liquid Glass
 # with its dark, clear and tinted looks, and into AppIcon.icns for whatever still reads the flat file.
 # actool hands the work to a long-lived helper that resolves relative paths against its own working directory,
@@ -38,7 +49,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleIdentifier</key><string>com.screencaping.app</string>
+  <key>CFBundleIdentifier</key><string>${BUNDLE_ID}</string>
   <key>CFBundleName</key><string>Screencap</string>
   <key>CFBundleDisplayName</key><string>Screencap</string>
   <key>CFBundleExecutable</key><string>Screencap</string>
@@ -52,11 +63,21 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
   <key>NSScreenCaptureUsageDescription</key><string>Screencap captures your screen to build your private activity timeline.</string>
   <key>NSHumanReadableCopyright</key><string>© 2026 Yahor Barkouski</string>
+  <key>SUFeedURL</key><string>${FEED_URL}</string>
+  <key>SUPublicEDKey</key><string>${ED_PUBLIC_KEY}</string>
+  <key>SUEnableAutomaticChecks</key><true/>
+  <key>SUAutomaticallyUpdate</key><true/>
+  <key>SURequireSignedFeed</key><true/>
+  <key>SUVerifyUpdateBeforeExtraction</key><true/>
 </dict>
 </plist>
 PLIST
 
 codesign --force --options runtime "$TIMESTAMP" --identifier com.screencaping.app.ocr --sign "$IDENTITY" "$APP/Contents/Helpers/screencap-ocr"
+# Inside out, as Sparkle's documentation orders it: its installer tool, its progress app, then the framework.
+codesign --force --options runtime "$TIMESTAMP" --sign "$IDENTITY" "$SPARKLE/Versions/B/Autoupdate"
+codesign --force --options runtime "$TIMESTAMP" --sign "$IDENTITY" "$SPARKLE/Versions/B/Updater.app"
+codesign --force --options runtime "$TIMESTAMP" --sign "$IDENTITY" "$SPARKLE"
 codesign --force --options runtime "$TIMESTAMP" --sign "$IDENTITY" "$APP"
-codesign --verify --strict "$APP"
+codesign --verify --deep --strict "$APP"
 echo "built $APP ($(du -sh "$APP" | cut -f1))"

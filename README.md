@@ -90,7 +90,7 @@ Screenshots are 1024 px JPEGs of the screen you are working on. Of a page's addr
 
 **Agents.** Screen text can hold instructions written for whoever reads it, so allow only agents you trust to read your history ([Agents](#agents)). The Agents switch in Settings is a consent setting for agent apps.
 
-**The app.** Releases are signed with a Developer ID, run under the hardened runtime with no entitlement exceptions, and are notarized by Apple. Screencap has no analytics, crash reporting or update check; it connects only to OpenRouter, your bucket and the sites whose icons it shows.
+**The app.** Releases are signed with a Developer ID, run under the hardened runtime with no entitlement exceptions, and are notarized by Apple. Screencap has no analytics or crash reporting. Once a day it downloads its update feed from `github.com`; the request names Screencap's version and carries nothing else about you or your Mac. Otherwise it connects only to OpenRouter, your bucket and the sites whose icons it shows. The feed and every update are signed with the project's private key, and Screencap installs an update only when that signature checks out and the new app carries the same Developer ID signature as the running one.
 
 **Reporting a problem.** If you find a security issue, report it privately through the repository's Security tab (Report a vulnerability), so it can be fixed before it is public.
 
@@ -103,6 +103,8 @@ Screenshots are 1024 px JPEGs of the screen you are working on. Of a page's addr
 <p align="center"><img src="docs/readme/onboarding.png" width="560" alt="Onboarding: allowing screen recording"></p>
 
 The AI models cost under $2 a month on your OpenRouter key if you use your Mac eight hours a day, five days a week; a measured 6.5-hour day cost 6 cents.
+
+**Updates.** Screencap checks for a new version once a day and downloads it in the background. It installs the update the next time your screen locks, which takes a second or two, and opens Screencap again; if you quit Screencap first, it installs then. To install it right away, click the arrow button that appears in the menu bar panel, or choose Restart to Update from the menu bar icon's right-click menu. Settings → Updates turns automatic checks or automatic installs off; with installs off, Screencap shows the update and asks first. Screencap 2.0.0 cannot update itself: if you have it, download the latest release once by hand.
 
 ## Backup
 

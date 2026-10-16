@@ -118,6 +118,9 @@ struct PanelView: View {
         .fixedSize(horizontal: false, vertical: true)
       Spacer(minLength: 8)
       Text(durationText(model.today.activeMinutes)).font(.mono(12)).foregroundStyle(Theme.ink4).padding(.trailing, 2)
+      if let updates = model.updates, let title = updates.actionTitle {
+        RoundIconButton(systemName: "arrow.down", size: 26, dot: Theme.exact) { updates.checkOrInstall() }.help(title)
+      }
       RoundIconButton(systemName: "magnifyingglass", size: 26) {
         search.isOpen = true
         fieldFocused = true

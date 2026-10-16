@@ -6,6 +6,14 @@ import os
 /// The app's store sits in `~/Library/Application Support/com.screencaping.app`, apart from v1's `screencap` folder
 /// (APFS is case-insensitive, so a `Screencap` folder would be v1's). Replays and tests use their own roots.
 public struct StoreLocation: Sendable, Hashable {
+  /// `com.screencaping.app`. A build made under another identifier that starts with it, such as the update test's
+  /// `com.screencaping.app.updatetest`, keeps its own store and Keychain items under that identifier.
+  public static let appIdentifier: String = {
+    let base = "com.screencaping.app"
+    guard let own = Bundle.main.bundleIdentifier, own.hasPrefix(base + ".") else { return base }
+    return own
+  }()
+
   public let root: URL
 
   public init(root: URL) {
@@ -14,7 +22,7 @@ public struct StoreLocation: Sendable, Hashable {
 
   public static var standard: StoreLocation {
     let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-    return StoreLocation(root: support.appendingPathComponent("com.screencaping.app", isDirectory: true))
+    return StoreLocation(root: support.appendingPathComponent(appIdentifier, isDirectory: true))
   }
 
   public var databaseURL: URL { root.appendingPathComponent("screencap.sqlite") }

@@ -49,6 +49,8 @@ struct OutlinePillStyle: ButtonStyle {
 struct RoundIconButton: View {
   let systemName: String
   var size: CGFloat = 30
+  /// A small dot at the top right, for something waiting behind the button.
+  var dot: Color?
   let action: () -> Void
   @State private var hovering = false
 
@@ -59,6 +61,9 @@ struct RoundIconButton: View {
         .foregroundStyle(hovering ? Theme.ink : Theme.ink3)
         .frame(width: size, height: size)
         .background(Circle().fill(Theme.wash).opacity(hovering ? 1 : 0.7))
+        .overlay(alignment: .topTrailing) {
+          if let dot { Circle().fill(dot).frame(width: size * 0.26, height: size * 0.26).offset(x: -size * 0.04, y: size * 0.04) }
+        }
     }
     .buttonStyle(.plain)
     .onHover { hovering = $0 }
