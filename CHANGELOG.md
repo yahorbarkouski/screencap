@@ -1,3 +1,10 @@
+# [1.36.0](https://github.com/yahorbarkouski/screencap/compare/v1.35.0...v1.36.0) (2026-10-16)
+
+
+### Features
+
+* point users to Screencap 2 once it is released ([c796a54](https://github.com/yahorbarkouski/screencap/commit/c796a5404bc94933e4f6fb527fd21f4817071f97))
+
 # [1.35.0](https://github.com/yahorbarkouski/screencap/compare/v1.34.0...v1.35.0) (2026-05-23)
 
 
