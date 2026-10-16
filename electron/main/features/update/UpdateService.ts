@@ -11,6 +11,7 @@ import { setIsQuitting } from "../../app/lifecycle";
 import { setTrayUpdateReady } from "../../app/tray";
 import { createLogger } from "../../infra/log";
 import { broadcast } from "../../infra/windows";
+import { findSuccessor, offerSuccessor } from "./SuccessorNotice";
 
 const logger = createLogger({ scope: "Update" });
 
@@ -133,6 +134,18 @@ export function checkForUpdates(): void {
 
 	if (state.status === "checking" || state.status === "downloading") {
 		logger.info("Already checking or downloading");
+		return;
+	}
+
+	void checkSuccessorThenUpdates();
+}
+
+async function checkSuccessorThenUpdates(): Promise<void> {
+	const successor = await findSuccessor();
+	if (successor) {
+		logger.info("Screencap 2 is the latest release:", successor.version);
+		updateState({ status: "not_available", lastCheckedAt: Date.now() });
+		void offerSuccessor(successor);
 		return;
 	}
 

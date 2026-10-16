@@ -5,6 +5,7 @@ export {
 	getOriginalsDir,
 	getScreenshotsDir,
 	getSettingsPath,
+	getSuccessorNoticePath,
 	getTempCapturesDir,
 	getThumbnailsDir,
 } from "./paths";

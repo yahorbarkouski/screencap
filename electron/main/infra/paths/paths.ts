@@ -26,6 +26,10 @@ export function getSettingsPath(): string {
 	return join(getUserDataPath(), "settings.json");
 }
 
+export function getSuccessorNoticePath(): string {
+	return join(getUserDataPath(), "successor-notice.json");
+}
+
 export function getScreenshotsDir(): string {
 	return ensureDir(join(getUserDataPath(), "screenshots"));
 }

@@ -1,4 +1,4 @@
-import { app, Menu, nativeImage, screen, Tray } from "electron";
+import { app, Menu, nativeImage, screen, shell, Tray } from "electron";
 import {
 	startScheduler,
 	stopScheduler,
@@ -13,6 +13,7 @@ let trayMenu: Menu | null = null;
 let quitCallback: (() => void) | null = null;
 let unreadCount = 0;
 let updateReady = false;
+let successorUrl: string | null = null;
 
 const logger = createLogger({ scope: "Tray" });
 
@@ -76,6 +77,15 @@ export function setTrayUnreadCount(count: number): void {
 	}
 }
 
+export function setTraySuccessorUrl(url: string): void {
+	successorUrl = url;
+	if (!trayMenu) return;
+	for (const id of ["successor", "successor-separator"]) {
+		const item = trayMenu.getMenuItemById(id);
+		if (item) item.visible = true;
+	}
+}
+
 function updateTrayMenu(isPaused: boolean): void {
 	if (!trayMenu) return;
 
@@ -124,6 +134,19 @@ export function createTray(onQuit: () => void): Tray {
 	logger.info("Tray created", { platform: process.platform });
 
 	trayMenu = Menu.buildFromTemplate([
+		{
+			label: "Get Screencap 2…",
+			id: "successor",
+			visible: successorUrl !== null,
+			click: () => {
+				if (successorUrl) void shell.openExternal(successorUrl);
+			},
+		},
+		{
+			type: "separator",
+			id: "successor-separator",
+			visible: successorUrl !== null,
+		},
 		{
 			label: "Open Screencap",
 			click: () => showMainWindow(),
