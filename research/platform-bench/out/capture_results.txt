@@ -1,0 +1,21 @@
+preflight screen capture access: true  replayd pid: 706
+SCShareableContent first fetch: 21.2ms displays=1 windows=9 apps=5
+SCShareableContent (on-screen windows)       wall_med=18.0ms p90=20.5ms self_cpu=0.8ms self_mJ=2.13 replayd_cpu=0.6ms replayd_mJ=1.27
+display 1: points 1728x1117, native 3456x2234, scale 2
+captureImage native 3456x2234                wall_med=42.1ms p90=49.6ms self_cpu=0.8ms self_mJ=1.82 replayd_cpu=4.6ms replayd_mJ=11.91
+captureImage 1x points 1728x1117             wall_med=40.8ms p90=45.1ms self_cpu=0.5ms self_mJ=1.24 replayd_cpu=4.5ms replayd_mJ=12.16
+captureImage 1280w 1280x827                  wall_med=37.6ms p90=42.9ms self_cpu=0.6ms self_mJ=1.35 replayd_cpu=4.8ms replayd_mJ=12.79
+captureImage 256w probe 256x165              wall_med=38.7ms p90=42.2ms self_cpu=0.5ms self_mJ=1.26 replayd_cpu=4.5ms replayd_mJ=11.86
+captureImage 64w probe 64x41                 wall_med=38.0ms p90=46.0ms self_cpu=0.6ms self_mJ=1.25 replayd_cpu=4.5ms replayd_mJ=12.26
+captureImage 1x, excluding 5 apps            wall_med=36.8ms p90=39.3ms self_cpu=0.8ms self_mJ=2.00 replayd_cpu=6.3ms replayd_mJ=12.58
+SCScreenshotConfiguration.supportedContentTypes: ["public.heic", "public.png", "public.jpeg"]
+captureScreenshot(26) 1x sdr CGImage         wall_med=37.6ms p90=40.1ms self_cpu=0.4ms self_mJ=0.83 replayd_cpu=4.7ms replayd_mJ=12.41
+captureScreenshot(26) 1x -> HEIC file        wall_med=38.0ms p90=41.5ms self_cpu=0.6ms self_mJ=1.34 replayd_cpu=4.9ms replayd_mJ=12.81
+  SCK-written 1x HEIC size: 0 KB
+  bothSDRAndHDR: sdr=3456x2234 bpc16 hdr=nil
+captureImage(in: rect) full display          wall_med=18.6ms p90=20.2ms self_cpu=0.4ms self_mJ=0.98 replayd_cpu=3.2ms replayd_mJ=10.75
+SCStream start+first frame+stop 1x           wall_med=48.0ms p90=61.1ms self_cpu=1.2ms self_mJ=2.54 replayd_cpu=10.6ms replayd_mJ=30.14
+dHash from native CGImage (CGContext downscale to 9x8): median 0.00ms
+dHash from 64w probe: median 0.002ms  hash(native)=33832facaddcd83b hash(probe)=aa171723172be1f5
+replayd idle baseline over 1.5s: cpu=44.7ms energy=4.40mJ
+bench process phys_footprint at end: 10 MB

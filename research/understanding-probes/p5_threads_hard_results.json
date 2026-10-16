@@ -1,0 +1,602 @@
+[
+{
+"model": "typesafe/jev-1.13",
+"truth": "H02",
+"pred": "H02",
+"p": 1,
+"p_truth": 1,
+"conf": 1,
+"ms": 346.9,
+"err": null
+},
+{
+"model": "typesafe/jev-1.13",
+"truth": "H03",
+"pred": "H03",
+"p": 1,
+"p_truth": 1,
+"conf": 1,
+"ms": 325.8,
+"err": null
+},
+{
+"model": "typesafe/jev-1.13",
+"truth": "H01",
+"pred": "H01",
+"p": 0.99,
+"p_truth": 0.99,
+"conf": 0.99,
+"ms": 292.8,
+"err": null
+},
+{
+"model": "typesafe/jev-1.13",
+"truth": "H05",
+"pred": "H05",
+"p": 0.99,
+"p_truth": 0.99,
+"conf": 0.99,
+"ms": 286.7,
+"err": null
+},
+{
+"model": "typesafe/jev-1.13",
+"truth": "H07",
+"pred": "H07",
+"p": 1,
+"p_truth": 1,
+"conf": 1,
+"ms": 297.4,
+"err": null
+},
+{
+"model": "typesafe/jev-1.13",
+"truth": "H06",
+"pred": "H06",
+"p": 1,
+"p_truth": 1,
+"conf": 1,
+"ms": 283.1,
+"err": null
+},
+{
+"model": "typesafe/jev-1.13",
+"truth": "H09",
+"pred": "H09",
+"p": 0.94,
+"p_truth": 0.94,
+"conf": 0.93,
+"ms": 290.1,
+"err": null
+},
+{
+"model": "typesafe/jev-1.13",
+"truth": "H11",
+"pred": "H11",
+"p": 0.99,
+"p_truth": 0.99,
+"conf": 0.99,
+"ms": 790.7,
+"err": null
+},
+{
+"model": "typesafe/jev-1.13",
+"truth": "H10",
+"pred": "H10",
+"p": 1,
+"p_truth": 1,
+"conf": 1,
+"ms": 293.3,
+"err": null
+},
+{
+"model": "typesafe/jev-1.13",
+"truth": "H08",
+"pred": "H08",
+"p": 0.98,
+"p_truth": 0.98,
+"conf": 0.98,
+"ms": 270.8,
+"err": null
+},
+{
+"model": "typesafe/jev-1.13",
+"truth": "H05",
+"pred": "H05",
+"p": 0.95,
+"p_truth": 0.95,
+"conf": 0.95,
+"ms": 297.4,
+"err": null
+},
+{
+"model": "typesafe/jev-1.13",
+"truth": "NEW",
+"pred": "NEW",
+"p": 0.96,
+"p_truth": 0.96,
+"conf": 0.96,
+"ms": 262.6,
+"err": null
+},
+{
+"model": "perplexity/pplx-decider-v1.1-27b",
+"truth": "H02",
+"pred": "H02",
+"p": 1.0,
+"p_truth": 1.0,
+"conf": 0.9998129757279248,
+"ms": 368.2,
+"err": null
+},
+{
+"model": "perplexity/pplx-decider-v1.1-27b",
+"truth": "H03",
+"pred": "H03",
+"p": 0.999,
+"p_truth": 0.999,
+"conf": 0.9989649157294123,
+"ms": 344.6,
+"err": null
+},
+{
+"model": "perplexity/pplx-decider-v1.1-27b",
+"truth": "H01",
+"pred": "H01",
+"p": 1.0,
+"p_truth": 1.0,
+"conf": 0.9998440533853243,
+"ms": 348.5,
+"err": null
+},
+{
+"model": "perplexity/pplx-decider-v1.1-27b",
+"truth": "H05",
+"pred": "H05",
+"p": 1.0,
+"p_truth": 1.0,
+"conf": 0.9996883668526096,
+"ms": 371.2,
+"err": null
+},
+{
+"model": "perplexity/pplx-decider-v1.1-27b",
+"truth": "H07",
+"pred": "H07",
+"p": 1.0,
+"p_truth": 1.0,
+"conf": 0.9994587409833031,
+"ms": 454.6,
+"err": null
+},
+{
+"model": "perplexity/pplx-decider-v1.1-27b",
+"truth": "H06",
+"pred": "H06",
+"p": 1.0,
+"p_truth": 1.0,
+"conf": 0.9997108613935396,
+"ms": 381.2,
+"err": null
+},
+{
+"model": "perplexity/pplx-decider-v1.1-27b",
+"truth": "H09",
+"pred": "H09",
+"p": 0.998,
+"p_truth": 0.998,
+"conf": 0.9975007471895598,
+"ms": 398.5,
+"err": null
+},
+{
+"model": "perplexity/pplx-decider-v1.1-27b",
+"truth": "H11",
+"pred": "H11",
+"p": 0.999,
+"p_truth": 0.999,
+"conf": 0.9991738514307658,
+"ms": 393.2,
+"err": null
+},
+{
+"model": "perplexity/pplx-decider-v1.1-27b",
+"truth": "H10",
+"pred": "H10",
+"p": 0.984,
+"p_truth": 0.984,
+"conf": 0.9828187528216107,
+"ms": 461.9,
+"err": null
+},
+{
+"model": "perplexity/pplx-decider-v1.1-27b",
+"truth": "H08",
+"pred": "H08",
+"p": 0.998,
+"p_truth": 0.998,
+"conf": 0.9981729471153564,
+"ms": 356.4,
+"err": null
+},
+{
+"model": "perplexity/pplx-decider-v1.1-27b",
+"truth": "H05",
+"pred": "H05",
+"p": 0.998,
+"p_truth": 0.998,
+"conf": 0.9975854860606747,
+"ms": 354.9,
+"err": null
+},
+{
+"model": "perplexity/pplx-decider-v1.1-27b",
+"truth": "NEW",
+"pred": "NEW",
+"p": 0.987,
+"p_truth": 0.987,
+"conf": 0.9855566515182924,
+"ms": 408.3,
+"err": null
+},
+{
+"model": "openai/gpt-6-luna-decisions",
+"truth": "H02",
+"pred": "H02",
+"p": 0.98,
+"p_truth": 0.98,
+"conf": 0.98,
+"ms": 299.5,
+"err": null
+},
+{
+"model": "openai/gpt-6-luna-decisions",
+"truth": "H03",
+"pred": "H03",
+"p": 0.99,
+"p_truth": 0.99,
+"conf": 0.99,
+"ms": 181.2,
+"err": null
+},
+{
+"model": "openai/gpt-6-luna-decisions",
+"truth": "H01",
+"pred": "H01",
+"p": 1,
+"p_truth": 1,
+"conf": 1,
+"ms": 345.8,
+"err": null
+},
+{
+"model": "openai/gpt-6-luna-decisions",
+"truth": "H05",
+"pred": "H05",
+"p": 0.9,
+"p_truth": 0.9,
+"conf": 0.89,
+"ms": 282.6,
+"err": null
+},
+{
+"model": "openai/gpt-6-luna-decisions",
+"truth": "H07",
+"pred": "H07",
+"p": 0.87,
+"p_truth": 0.87,
+"conf": 0.86,
+"ms": 277.3,
+"err": null
+},
+{
+"model": "openai/gpt-6-luna-decisions",
+"truth": "H06",
+"pred": "H06",
+"p": 0.97,
+"p_truth": 0.97,
+"conf": 0.97,
+"ms": 515.8,
+"err": null
+},
+{
+"model": "openai/gpt-6-luna-decisions",
+"truth": "H09",
+"pred": "H09",
+"p": 0.9,
+"p_truth": 0.9,
+"conf": 0.89,
+"ms": 285.7,
+"err": null
+},
+{
+"model": "openai/gpt-6-luna-decisions",
+"truth": "H11",
+"pred": "H12",
+"p": 0.89,
+"p_truth": 0.08,
+"conf": 0.88,
+"ms": 286.3,
+"err": null
+},
+{
+"model": "openai/gpt-6-luna-decisions",
+"truth": "H10",
+"pred": "H10",
+"p": 0.97,
+"p_truth": 0.97,
+"conf": 0.97,
+"ms": 1043.2,
+"err": null
+},
+{
+"model": "openai/gpt-6-luna-decisions",
+"truth": "H08",
+"pred": "H08",
+"p": 0.81,
+"p_truth": 0.81,
+"conf": 0.79,
+"ms": 278.3,
+"err": null
+},
+{
+"model": "openai/gpt-6-luna-decisions",
+"truth": "H05",
+"pred": "H05",
+"p": 0.69,
+"p_truth": 0.69,
+"conf": 0.66,
+"ms": 297.6,
+"err": null
+},
+{
+"model": "openai/gpt-6-luna-decisions",
+"truth": "NEW",
+"pred": "NEW",
+"p": 0.96,
+"p_truth": 0.96,
+"conf": 0.96,
+"ms": 270.5,
+"err": null
+},
+{
+"model": "inception/mercury-decide",
+"truth": "H02",
+"pred": "H02",
+"p": 0.999,
+"p_truth": 0.999,
+"conf": 0.9993168524452419,
+"ms": 499.8,
+"err": null
+},
+{
+"model": "inception/mercury-decide",
+"truth": "H03",
+"pred": "H03",
+"p": 0.971,
+"p_truth": 0.971,
+"conf": 0.9684985217632432,
+"ms": 429.5,
+"err": null
+},
+{
+"model": "inception/mercury-decide",
+"truth": "H01",
+"pred": "H01",
+"p": 0.999,
+"p_truth": 0.999,
+"conf": 0.9993167701163561,
+"ms": 437.7,
+"err": null
+},
+{
+"model": "inception/mercury-decide",
+"truth": "H05",
+"pred": "H05",
+"p": 0.999,
+"p_truth": 0.999,
+"conf": 0.9993047678048476,
+"ms": 614.6,
+"err": null
+},
+{
+"model": "inception/mercury-decide",
+"truth": "H07",
+"pred": "H07",
+"p": 1.0,
+"p_truth": 1.0,
+"conf": 0.9996250336330917,
+"ms": 463.5,
+"err": null
+},
+{
+"model": "inception/mercury-decide",
+"truth": "H06",
+"pred": "H06",
+"p": 1.0,
+"p_truth": 1.0,
+"conf": 0.9995705754997496,
+"ms": 1064.1,
+"err": null
+},
+{
+"model": "inception/mercury-decide",
+"truth": "H09",
+"pred": "H09",
+"p": 0.89,
+"p_truth": 0.89,
+"conf": 0.8806698637253196,
+"ms": 542.3,
+"err": null
+},
+{
+"model": "inception/mercury-decide",
+"truth": "H11",
+"pred": "H11",
+"p": 0.999,
+"p_truth": 0.999,
+"conf": 0.9994188201286249,
+"ms": 695.3,
+"err": null
+},
+{
+"model": "inception/mercury-decide",
+"truth": "H10",
+"pred": "H10",
+"p": 0.971,
+"p_truth": 0.971,
+"conf": 0.9683552882828229,
+"ms": 640.7,
+"err": null
+},
+{
+"model": "inception/mercury-decide",
+"truth": "H08",
+"pred": "H08",
+"p": 0.998,
+"p_truth": 0.998,
+"conf": 0.9982898170301976,
+"ms": 706.1,
+"err": null
+},
+{
+"model": "inception/mercury-decide",
+"truth": "H05",
+"pred": "H05",
+"p": 0.988,
+"p_truth": 0.988,
+"conf": 0.9868134084247089,
+"ms": 445.8,
+"err": null
+},
+{
+"model": "inception/mercury-decide",
+"truth": "NEW",
+"pred": "NEW",
+"p": 1.0,
+"p_truth": 1.0,
+"conf": 0.9995984812089014,
+"ms": 457.8,
+"err": null
+},
+{
+"model": "cloudflare/clef-flash",
+"truth": "H02",
+"pred": "H02",
+"p": 0.964,
+"p_truth": 0.964,
+"conf": 0.9613,
+"ms": 315.8,
+"err": null
+},
+{
+"model": "cloudflare/clef-flash",
+"truth": "H03",
+"pred": "H03",
+"p": 0.953,
+"p_truth": 0.953,
+"conf": 0.949,
+"ms": 478.1,
+"err": null
+},
+{
+"model": "cloudflare/clef-flash",
+"truth": "H01",
+"pred": "H01",
+"p": 0.912,
+"p_truth": 0.912,
+"conf": 0.9051,
+"ms": 339.2,
+"err": null
+},
+{
+"model": "cloudflare/clef-flash",
+"truth": "H05",
+"pred": "H05",
+"p": 0.975,
+"p_truth": 0.975,
+"conf": 0.9731,
+"ms": 324.6,
+"err": null
+},
+{
+"model": "cloudflare/clef-flash",
+"truth": "H07",
+"pred": "H07",
+"p": 0.975,
+"p_truth": 0.975,
+"conf": 0.9728,
+"ms": 862.8,
+"err": null
+},
+{
+"model": "cloudflare/clef-flash",
+"truth": "H06",
+"pred": "H06",
+"p": 0.96,
+"p_truth": 0.96,
+"conf": 0.9154,
+"ms": 690.7,
+"err": null
+},
+{
+"model": "cloudflare/clef-flash",
+"truth": "H09",
+"pred": "H09",
+"p": 0.981,
+"p_truth": 0.981,
+"conf": 0.9789,
+"ms": 345.4,
+"err": null
+},
+{
+"model": "cloudflare/clef-flash",
+"truth": "H11",
+"pred": "H11",
+"p": 0.982,
+"p_truth": 0.982,
+"conf": 0.9618,
+"ms": 341.2,
+"err": null
+},
+{
+"model": "cloudflare/clef-flash",
+"truth": "H10",
+"pred": "H10",
+"p": 0.958,
+"p_truth": 0.958,
+"conf": 0.9111,
+"ms": 299.8,
+"err": null
+},
+{
+"model": "cloudflare/clef-flash",
+"truth": "H08",
+"pred": "H08",
+"p": 0.928,
+"p_truth": 0.928,
+"conf": 0.9223,
+"ms": 401.6,
+"err": null
+},
+{
+"model": "cloudflare/clef-flash",
+"truth": "H05",
+"pred": "H05",
+"p": 0.916,
+"p_truth": 0.916,
+"conf": 0.9086,
+"ms": 354.8,
+"err": null
+},
+{
+"model": "cloudflare/clef-flash",
+"truth": "NEW",
+"pred": "H01",
+"p": 0.755,
+"p_truth": 0.144,
+"conf": 0.7343,
+"ms": 347.7,
+"err": null
+}
+]

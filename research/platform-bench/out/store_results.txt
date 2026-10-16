@@ -1,0 +1,9 @@
+inserted 100000 captures (+FTS5) in 9.0 s (90 us each incl. text generation); db 323 MB
+single capture row commit (WAL, synchronous=NORMAL): median 23 us
+FTS5 MATCH 'ujih' top-20 by bm25: median 7.98 ms (20 rows)
+FTS5 MATCH 'cvelgpi ebydwxw' top-20 by bm25: median 0.29 ms (20 rows)
+FTS5 MATCH '"ehsbkn hehcfer"' top-20 by bm25: median 1.35 ms (20 rows)
+FTS5 MATCH 'uhmdcjgfu*' top-20 by bm25: median 0.55 ms (20 rows)
+brute-force cosine top-10 over 10000 x 512 float32 (19 MB): median 0.13 ms
+brute-force cosine top-10 over 100000 x 512 float32 (195 MB): median 1.10 ms
+brute-force cosine top-10 over 100000 x 768 float32 (292 MB): median 1.45 ms

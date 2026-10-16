@@ -1,0 +1,1 @@
+idle shell over 90 s: cpu 81.7 ms (0.091% of one core), energy 119.4 mJ, pkg-idle wakeups 0, interrupt wakeups 124, footprint 12 MB; AX events 120 -> 0 debounced context checks, activations 0

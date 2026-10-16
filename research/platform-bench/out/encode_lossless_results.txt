@@ -1,0 +1,52 @@
+inputs: 8 files, source mean 6563.6 KB, source decode median 16.0 ms
+variant | median KB | mean KB | enc median ms | enc cpu median ms | dec median ms | OCR word recall vs lossless/source
+native 3456w | png | 3759.1 | 4313.3 | 93.2 | 89.7 | 51.1 | -
+native 3456w | jpeg q0.6 | 699.0 | 703.0 | 16.4 | 16.4 | 13.4 | pooled 95.4% of 1100 words, per-image median 96.1%
+native 3456w | jpeg q0.8 | 972.0 | 997.8 | 18.0 | 18.0 | 13.1 | pooled 95.6% of 1100 words, per-image median 96.5%
+native 3456w | heic q0.4 | 227.3 | 225.8 | 49.7 | 16.0 | 29.9 | pooled 94.2% of 1100 words, per-image median 96.5%
+native 3456w | heic q0.6 | 363.4 | 371.8 | 49.1 | 15.1 | 29.9 | pooled 94.9% of 1100 words, per-image median 96.1%
+native 3456w | heic q0.8 | 479.3 | 501.9 | 49.4 | 15.3 | 30.1 | pooled 95.5% of 1100 words, per-image median 96.1%
+native 3456w | avif q0.4 | 169.7 | 157.9 | 136.9 | 1172.2 | 36.2 | pooled 93.8% of 1100 words, per-image median 95.2%
+native 3456w | avif q0.6 | 277.7 | 262.4 | 157.2 | 1412.9 | 34.0 | pooled 96.3% of 1100 words, per-image median 96.1%
+native 3456w | webp q60 | 236.0 | 237.6 | 269.4 | 258.8 | 21.7 | pooled 95.4% of 1100 words, per-image median 98.2%
+native 3456w | webp q80 | 328.5 | 330.1 | 257.6 | 258.7 | 25.3 | pooled 97.0% of 1100 words, per-image median 98.2%
+half 1728w | png | 1093.0 | 1239.2 | 50.2 | 50.1 | 14.1 | -
+half 1728w | jpeg q0.6 | 234.5 | 230.8 | 4.2 | 4.2 | 4.8 | pooled 94.7% of 1090 words, per-image median 96.1%
+half 1728w | jpeg q0.8 | 332.4 | 332.6 | 4.9 | 4.9 | 3.9 | pooled 95.9% of 1090 words, per-image median 96.1%
+half 1728w | heic q0.4 | 85.8 | 85.9 | 30.9 | 9.0 | 12.0 | pooled 93.7% of 1090 words, per-image median 96.9%
+half 1728w | heic q0.6 | 135.3 | 136.6 | 30.5 | 8.8 | 13.3 | pooled 94.5% of 1090 words, per-image median 96.5%
+half 1728w | heic q0.8 | 177.3 | 184.0 | 30.5 | 8.9 | 13.6 | pooled 95.8% of 1090 words, per-image median 96.9%
+half 1728w | avif q0.4 | 62.3 | 61.4 | 82.2 | 253.7 | 16.1 | pooled 92.9% of 1090 words, per-image median 94.3%
+half 1728w | avif q0.6 | 105.3 | 103.8 | 85.4 | 265.4 | 15.6 | pooled 95.1% of 1090 words, per-image median 95.6%
+half 1728w | webp q60 | 87.3 | 86.3 | 69.4 | 69.4 | 7.0 | pooled 93.6% of 1090 words, per-image median 94.7%
+half 1728w | webp q80 | 118.7 | 120.1 | 73.0 | 73.0 | 8.1 | pooled 95.2% of 1090 words, per-image median 96.5%
+1280w | png | 653.0 | 659.4 | 28.3 | 28.3 | 8.1 | -
+1280w | jpeg q0.6 | 148.7 | 138.6 | 2.5 | 2.5 | 2.9 | pooled 94.0% of 1604 words, per-image median 94.6%
+1280w | jpeg q0.8 | 210.8 | 198.1 | 3.0 | 3.0 | 2.3 | pooled 96.7% of 1604 words, per-image median 96.9%
+1280w | heic q0.4 | 54.3 | 54.9 | 24.3 | 6.6 | 8.4 | pooled 93.6% of 1604 words, per-image median 93.8%
+1280w | heic q0.6 | 85.0 | 83.9 | 23.8 | 6.6 | 7.9 | pooled 95.9% of 1604 words, per-image median 95.6%
+1280w | heic q0.8 | 111.8 | 110.3 | 23.9 | 6.6 | 8.6 | pooled 97.2% of 1604 words, per-image median 97.7%
+1280w | avif q0.4 | 38.6 | 39.6 | 32.9 | 112.4 | 10.1 | pooled 92.5% of 1604 words, per-image median 92.5%
+1280w | avif q0.6 | 66.5 | 64.4 | 36.8 | 125.0 | 10.4 | pooled 94.8% of 1604 words, per-image median 92.9%
+1280w | webp q60 | 54.3 | 53.8 | 40.3 | 40.3 | 4.1 | pooled 93.4% of 1604 words, per-image median 94.6%
+1280w | webp q80 | 74.3 | 73.6 | 42.5 | 42.5 | 4.9 | pooled 95.0% of 1604 words, per-image median 96.5%
+native 2560w | png | 2289.6 | 1388.5 | 112.8 | 112.7 | 32.3 | -
+native 2560w | jpeg q0.6 | 513.2 | 343.0 | 10.0 | 10.1 | 8.2 | pooled 98.7% of 523 words, per-image median 99.6%
+native 2560w | jpeg q0.8 | 718.6 | 469.0 | 11.9 | 11.9 | 7.5 | pooled 99.4% of 523 words, per-image median 99.6%
+native 2560w | heic q0.4 | 204.3 | 125.8 | 43.2 | 16.1 | 19.0 | pooled 98.7% of 523 words, per-image median 99.1%
+native 2560w | heic q0.6 | 302.1 | 184.0 | 45.1 | 15.6 | 18.9 | pooled 99.2% of 523 words, per-image median 99.8%
+native 2560w | heic q0.8 | 383.2 | 231.8 | 42.7 | 15.6 | 17.3 | pooled 99.6% of 523 words, per-image median 99.8%
+native 2560w | avif q0.4 | 163.7 | 100.8 | 42.7 | 391.5 | 20.7 | pooled 97.5% of 523 words, per-image median 99.1%
+native 2560w | avif q0.6 | 244.4 | 149.9 | 46.3 | 443.2 | 18.8 | pooled 98.3% of 523 words, per-image median 99.1%
+native 2560w | webp q60 | 205.5 | 126.5 | 155.9 | 155.8 | 15.5 | pooled 97.9% of 523 words, per-image median 98.7%
+native 2560w | webp q80 | 271.3 | 165.9 | 162.1 | 162.1 | 17.9 | pooled 98.3% of 523 words, per-image median 98.7%
+half 1280w | png | 733.0 | 443.3 | 29.8 | 29.8 | 7.9 | -
+half 1280w | jpeg q0.6 | 188.1 | 126.6 | 2.9 | 2.9 | 3.3 | pooled 96.9% of 523 words, per-image median 98.2%
+half 1280w | jpeg q0.8 | 264.4 | 175.2 | 3.4 | 3.4 | 2.4 | pooled 98.3% of 523 words, per-image median 99.1%
+half 1280w | heic q0.4 | 86.9 | 54.7 | 23.5 | 6.2 | 8.1 | pooled 96.7% of 523 words, per-image median 97.6%
+half 1280w | heic q0.6 | 122.9 | 76.6 | 24.1 | 6.3 | 10.4 | pooled 98.3% of 523 words, per-image median 99.1%
+half 1280w | heic q0.8 | 153.3 | 94.8 | 23.2 | 5.8 | 8.5 | pooled 98.7% of 523 words, per-image median 99.3%
+half 1280w | avif q0.4 | 65.0 | 40.8 | 38.7 | 108.9 | 11.2 | pooled 96.4% of 523 words, per-image median 97.8%
+half 1280w | avif q0.6 | 94.4 | 59.4 | 41.5 | 123.8 | 9.9 | pooled 97.7% of 523 words, per-image median 98.9%
+half 1280w | webp q60 | 82.9 | 51.3 | 44.8 | 44.8 | 5.3 | pooled 96.4% of 523 words, per-image median 97.1%
+half 1280w | webp q80 | 109.4 | 67.2 | 47.3 | 47.2 | 6.2 | pooled 97.1% of 523 words, per-image median 97.8%

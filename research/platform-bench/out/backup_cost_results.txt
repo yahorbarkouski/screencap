@@ -1,0 +1,19 @@
+frames/day: 1-min 654, 2-min 402
+
+GB per month uploaded
+  1x HEIC q0.6           1-min:  2.22 GB raw,  1.56 GB deduped
+  1x HEIC q0.6           2-min:  1.37 GB raw,  0.96 GB deduped
+  1280w WebP (old app)   1-min:  1.10 GB raw,  0.77 GB deduped
+  1280w WebP (old app)   2-min:  0.68 GB raw,  0.47 GB deduped
+  native HEIC q0.6       1-min:  6.03 GB raw,  4.22 GB deduped
+  native HEIC q0.6       2-min:  3.71 GB raw,  2.60 GB deduped
+
+Monthly bill after 12 months of 1-min, 1x HEIC, deduped (stored GB grows linearly, nothing deleted)
+  S3 Standard    stored  18.7 GB: storage $ 0.43/mo, PUTs per-frame $0.060/mo vs hourly packs $0.0011/mo; full restore $ 0.00
+  S3 Glacier IR  stored  18.7 GB: storage $ 0.07/mo, PUTs per-frame $0.238/mo vs hourly packs $0.0044/mo; full restore $ 0.56 (per-frame objects near/below 128 KB min billable size)
+  R2 Standard    stored  18.7 GB: storage $ 0.13/mo, PUTs per-frame $0.000/mo vs hourly packs $0.0010/mo; full restore $ 0.00
+  B2             stored  18.7 GB: storage $ 0.06/mo, PUTs per-frame $0.000/mo vs hourly packs $0.0000/mo; full restore $ 0.00
+  Wasabi         stored  18.7 GB: storage $ 7.99/mo, PUTs per-frame $0.000/mo vs hourly packs $0.0000/mo; full restore $ 0.00
+
+objects/month per-frame: 11,903; hourly packs: 218
+S3 Intelligent-Tiering monitoring on per-frame objects after 12 months: $0.36/mo (objects <128 KB are never tiered)

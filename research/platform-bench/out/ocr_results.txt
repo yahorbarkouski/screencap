@@ -1,0 +1,30 @@
+[webp1280] 30 images, sizes ["1280x720", "1280x827", "1280x828"]
+cold first accurate request: 510.2 ms
+cold first fast request: 60.0 ms
+fast, no LC      wall med 22.7 p90 41.6 ms | cpu med 21.6 ms | energy med 80.0 mJ | chars med 0 | footprint 338 MB
+fast, LC         wall med 19.2 p90 35.9 ms | cpu med 13.4 ms | energy med 56.7 mJ | chars med 0 | footprint 339 MB
+accurate, no LC  wall med 214.4 p90 312.7 ms | cpu med 319.5 ms | energy med 1055.9 mJ | chars med 1224 | footprint 479 MB
+accurate, LC     wall med 356.1 p90 567.0 ms | cpu med 1105.4 ms | energy med 3129.1 mJ | chars med 1222 | footprint 493 MB
+fast word recall vs accurate: mean 6.8% min 0.0%; accurate+LC vs accurate: mean 87.8%
+accurate OCR text bytes per image: median 1353 mean 1322
+[native3456] 6 images, sizes ["3456x2234"]
+cold first accurate request: 713.5 ms
+cold first fast request: 53.3 ms
+fast, no LC      wall med 46.7 p90 101.6 ms | cpu med 49.5 ms | energy med 208.7 mJ | chars med 0 | footprint 283 MB
+fast, LC         wall med 37.7 p90 73.0 ms | cpu med 37.0 ms | energy med 185.4 mJ | chars med 0 | footprint 283 MB
+accurate, no LC  wall med 257.2 p90 302.7 ms | cpu med 446.7 ms | energy med 1456.3 mJ | chars med 1813 | footprint 293 MB
+accurate, LC     wall med 457.3 p90 559.8 ms | cpu med 1478.2 ms | energy med 4640.5 mJ | chars med 1815 | footprint 309 MB
+fast word recall vs accurate: mean 0.0% min 0.0%; accurate+LC vs accurate: mean 94.3%
+accurate OCR text bytes per image: median 1840 mean 1447
+[half1728] 6 images, sizes ["1728x1117"]
+cold first accurate request: 645.9 ms
+cold first fast request: 36.1 ms
+fast, no LC      wall med 26.0 p90 32.0 ms | cpu med 26.7 ms | energy med 104.8 mJ | chars med 0 | footprint 294 MB
+fast, LC         wall med 25.9 p90 31.7 ms | cpu med 25.7 ms | energy med 108.9 mJ | chars med 0 | footprint 295 MB
+accurate, no LC  wall med 261.4 p90 306.8 ms | cpu med 456.5 ms | energy med 1466.1 mJ | chars med 1816 | footprint 320 MB
+accurate, LC     wall med 450.5 p90 573.2 ms | cpu med 1711.1 ms | energy med 4806.3 mJ | chars med 1809 | footprint 321 MB
+fast word recall vs accurate: mean 0.0% min 0.0%; accurate+LC vs accurate: mean 95.5%
+accurate OCR text bytes per image: median 1839 mean 1449
+[lang] 2 images, sizes ["2560x1655"]
+accurate languages: ["en-Latn-US", "fr-Latn-FR", "it-Latn-IT", "de-Latn-DE", "es-Latn-ES", "pt-Latn-BR", "zh-Hans-CN", "zh-Hant-TW", "yue-Hans-CN", "yue-Hant-HK", "ko-Kore-KR", "ja-Jpan-JP", "ru-Cyrl-RU", "uk-Cyrl-UA", "th-Thai-TH", "vi-Latn-VT", "ar-Arab-SA", "ars-Arab-SA", "tr-Latn-TR", "id-Latn-ID", "cs-Latn-CZ", "da-Latn-DK", "nl-Latn-NL", "no-Latn-NO", "nn-Latn-NO", "nb-Latn-NO", "ms-Latn-MY", "pl-Latn-PL", "ro-Latn-RO", "sv-Latn-SE"]
+fast languages: ["en-Latn-US", "fr-Latn-FR", "it-Latn-IT", "de-Latn-DE", "es-Latn-ES", "pt-Latn-BR"]

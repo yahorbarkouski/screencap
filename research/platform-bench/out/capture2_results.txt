@@ -1,0 +1,8 @@
+captureScreenshot fileURL: output.fileURL=nil exists=false size=-1 sdr=true
+probe 64x40 capture median 39.5ms; dHash+64x40 gray median 90.4us
+consecutive probes (screen as-is, 0.3s apart): hamming=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] mad=["0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00"]
+hash+thumb from native 3456x2234 CGImage: median 9us
+round 0: idle  replayd=22.3ms WindowServer=11830.0ms self=7.0ms over 32s
+round 0: 30cap replayd=244.0ms WindowServer=11420.0ms self=23.3ms over 32s
+round 1: idle  replayd=20.1ms WindowServer=6360.0ms self=3.5ms over 32s
+round 1: 30cap replayd=225.4ms WindowServer=8810.0ms self=21.8ms over 32s

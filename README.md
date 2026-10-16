@@ -1,544 +1,141 @@
 # Screencap
 
-To understand where your day went
+Screencap is a lightweight, macOS-native activity memory for you and your agents, built on [smart capture](#how-it-works) and [System-1 models](https://arxiv.org/abs/2502.12470). It runs in the background on under 1% of one CPU core and about 30 MB of memory.
 
-A macOS desktop app that captures screenshots, windows and apps (both background and foreground) on a schedule and transforms them into a timeline, daily summaries, project milestones, and addiction tracking.
-Screencap answers the questions like:
+**[Download the latest release](../../releases/latest)** · macOS 26 on Apple Silicon
 
-- *What did I actually do today?*
-- *How long did I really work?*
-- *Am I spending too much time on Chess?*
-- *What progress did I make on my project?*
-- *What actual progress on project X has been made since September?*
+![Screencap's window: the pointer runs along the Day page's strip, where each moment shows its screenshot, then opens Timeline, Threads and one thread's page](docs/readme/window.gif)
 
-The idea behind this opensource is to inspire as many forks as possible. The project is fully free to use, encouraging everyone to customise and build their own Screencaps.
-Project started as a background project tracker, as we all tend to have zero-to-little screenshots from projects we worked on for months. Then addiction tracker came in, Spotify background context, End Of Day flow, and the activity popup.
+## Your day in 3 ways
 
-[Download](https://github.com/yahorbarkouski/screencap/releases) · [Homebrew Tap](https://github.com/yahorbarkouski/homebrew-tap) · [Changelog](CHANGELOG.md) · [Security](docs/security.md) · [Local LLM](docs/local-llm.md)
+**Day** sums up the day in a few words and lays it out as one strip, coloured by thread. Move the pointer along the strip to see what was on screen at any point. Below the strip, each of the day's threads shows its key moments. A moment is one stretch of work on one thing, shown by its best screenshot and a short title.
 
----
+**Timeline** gives each thread its own column, with time running down the page, so work you kept going in parallel sits side by side.
+
+![The Timeline page](docs/readme/timeline.png)
+
+**Threads** shows every thread of the past week with a cover picture, the time it took and when in the day it happened. If Screencap grouped something wrong, rename or merge a thread from its right-click menu.
+
+![The Threads page](docs/readme/threads.png)
+
+Click a thread to see all its moments, day by day, newest first.
+
+![A thread's page](docs/readme/thread.png)
+
+## Find anything you saw
+
+The search box at the top of the window finds moments by any word that was on screen. Click a moment to see its screenshots, the text on screen and the page or app it was in; one more click opens that page or app again. From there you can move the moment to another thread or delete it.
+
+![A moment opened beside the Day page](docs/readme/inspector.png)
+
+## The menu bar
+
+Click Screencap's icon in the menu bar, or press ⌥⌘S in any app, to see today at a glance: the day's strip and its threads, most time first.
+
+<p align="center"><img src="docs/readme/popup.gif" width="600" alt="The menu-bar panel: the pointer runs along the day strip, rests on two threads, opens a moment on the Day page, then searches for kyoto"></p>
+
+- The strip works as on the Day page; click a point to open that moment there.
+- Point at a thread to light up its time on the strip. Click it to open the thread's page.
+- Start typing as soon as the panel opens to search everything you have seen. Each result shows the whole screen with your words marked.
+
+Right-click the icon to pause capture for 30 minutes, an hour or until tomorrow, to take a screenshot now, or to open Settings: the apps to leave out, text-only mode, site icons, appearance, agent access and backup.
+
+## Agents
+
+Your AI agents, such as Claude Code, Claude Desktop, Cursor and Codex, can look things up in Screencap when you ask them something that depends on what you saw or did: "what was the article about borrowing I read on Tuesday?", "write my standup from yesterday", "where did I leave off on the Kyoto plan?". They read your history through a server built into the app that speaks [MCP](https://modelcontextprotocol.io), the protocol agents use to reach outside tools, and they can only read.
+
+Agent access is off until you turn it on in Settings, under Agents. There you choose whether agents may see screenshots, connect an agent with one click, and see which agent read what. To connect Claude Code from Terminal:
+
+```bash
+/Applications/Screencap.app/Contents/MacOS/Screencap mcp install claude-code
+```
+
+An agent sends what it reads to its own AI provider. [docs/agents.md](docs/agents.md) lists the tools and how to connect any other MCP client.
+
+## How it works
+
+- **Smart capture: it captures when your screen settles.** Screencap takes a screenshot when you have stayed on a page for 10 seconds, when the screen stops changing for 10 seconds after a click or scroll or for 3 seconds after you type, and at least once a minute. It drops screenshots that repeat the one before; a 10-hour day takes about 100 MB of disk.
+- **It reads the screen on your Mac.** Apple's on-device text recognition reads the text in your screenshots, so search works offline.
+- **It sorts the day by asking small questions.** A System-1 model answers short questions about your screenshots and screen text, such as "does a new activity start here?" and "which thread is this?", and another model writes the titles of moments and the names of threads.
+
+## Security
+
+Screencap keeps a record of what was on your screen, which can include your messages, documents and accounts. It keeps that record on your Mac and sends out only what sorting the day needs; each claim below can be checked in the code.
+
+**On your Mac.** Screenshots, screen text and history live in `~/Library/Application Support/com.screencaping.app`, readable by your user account alone. Screencap does not encrypt them itself; FileVault encrypts the disk, which protects them while the Mac is off. While you are logged in, any app running as you can read this folder, as it can read your documents, so run only software you trust. Time Machine copies the folder unless you exclude it, and a moment you delete stays in older Time Machine backups.
+
+**Never captured.** Screencap never captures password managers (1Password, Bitwarden, Apple Passwords, KeePassXC, LastPass, Dashlane, Proton Pass and others) or their web vaults, the browsers' own password pages, apps you exclude in Settings, the screen while a password field has focus (macOS secure input) or while the Mac is locked, and its own windows. For these moments it stores only the time and the reason. If your password manager is missing from the list, add it in Settings.
+
+**Private windows.** Before each capture, Screencap reads every browser window's accessibility attributes, leaves private windows out of the screenshot, and skips the capture when one is in front. It recognises the marker Chrome, Brave, Safari and Firefox write into a private window's title, in English and the other languages their source code lists, and the accessibility identifier Arc and Dia give a private window. These markers come from the browsers' source code and other developers' reports. Edge, Vivaldi and Opera, Safari in languages other than English and Swedish, and Firefox's "Never remember history" mode are not recognised yet; if you browse privately in one of them, add that browser to the excluded apps.
+
+**Secrets on screen.** Before screen text, window titles and page paths are stored, Screencap replaces API keys and tokens (OpenRouter, OpenAI, Anthropic, AWS, GitHub, GitLab, Slack, Stripe, Google, npm), private keys, JSON web tokens, long random strings, its own recovery key, and card numbers and IBANs that pass their check digits with `[hidden]`. A screenshot whose text held one is never sent to a model. Masking goes by shape, so it misses a password typed as an ordinary word and a short code such as a six-digit sign-in code; the screenshot itself is kept on your Mac.
+
+**What goes to the AI models.** Requests go to `openrouter.ai` over HTTPS with your key, and OpenRouter forwards them only to providers that keep no copy of a request and never train on one (its zero data retention routing). OpenRouter itself keeps no prompts or answers unless you turn on logging in your OpenRouter account; it keeps counts such as tokens and cost. Under that routing OpenAI's text model, which writes captions, runs on Azure, whose content filter refuses about 2 in 100 caption requests; those moments show no caption. Each kind of request carries the following:
+
+| Request | What it sends | When |
+|---|---|---|
+| Is this a new activity? | Up to 12 lines of time, app, window title (100 characters), site and new screen text (220 characters); the screenshots on either side of the change. When the answer is yes, a second look with up to 8 captures on each side and one screenshot from each | About once a minute while you work |
+| Caption and title | Up to 6 captures' app, title, site and screen text (300 characters); one screenshot | When a moment ends |
+| Which thread? | The moment's screen text and caption; the name, description and three recent captions of each thread from the last 30 days, and your corrections; one or two screenshots | When a moment ends |
+| Thread names, merges, the day's headline | Captions, thread names and descriptions; no screenshots | When a thread grows, nightly, and when you open a day |
+| Thread cover | The thread's name and up to five screenshots cut to the window, 640 px | When the Threads page shows a thread whose cover is not chosen yet |
+
+Screenshots are 1024 px JPEGs of the screen you are working on. Of a page's address only the site leaves your Mac, though window titles, which often name the page, do. Text-only mode in Settings sends no screenshots at all; the rest of the table still applies. Captions and thread names that models write from your screen are stored as one line of at most 280 characters, so a page cannot plant a long instruction that is sent again for weeks.
+
+**Site icons.** A thread on a website shows that site's icon, fetched once from the site itself, which shows the site one request from your Mac. The request carries no cookies, and only small images in an icon format are read. Turn Show site icons off in Settings to send nothing.
+
+**Keys.** Your OpenRouter key, your bucket's secret and the backup encryption key are kept in the macOS Keychain on this Mac, never synced to iCloud; another app can read them only if macOS asks you and you allow it. Copying the recovery key marks it concealed, so clipboard managers that honour the mark keep no copy.
+
+**Deleting.** Deleting a moment removes its screenshots, screen text, search entries and model answers from your Mac, and its screenshots from the backup; the database overwrites deleted rows with zeros, and a new backup snapshot, taken right away, replaces the one that held them. Thread names and the day's headline written before the delete keep their wording until they are written again.
+
+**Agents.** Screen text can hold instructions written for whoever reads it, so allow only agents you trust to read your history ([Agents](#agents)). The Agents switch in Settings is a consent setting for agent apps.
+
+**The app.** Releases are signed with a Developer ID, run under the hardened runtime with no entitlement exceptions, and are notarized by Apple. Screencap has no analytics, crash reporting or update check; it connects only to OpenRouter, your bucket and the sites whose icons it shows.
+
+**Reporting a problem.** If you find a security issue, report it privately through the repository's Security tab (Report a vulnerability), so it can be fixed before it is public.
 
 ## Install
 
-### Homebrew
+1. Download the disk image from the [latest release](../../releases/latest), open it, and drag Screencap to Applications.
+2. Open Screencap. It asks for Screen Recording, to take screenshots, and for Accessibility, to read window titles and page addresses and to recognise private browser windows.
+3. Paste a key from [OpenRouter](https://openrouter.ai/keys), a service that sells access to many AI models through one key; Screencap uses it to sort your day. Choose whether the models may see screenshots or text only. Without a key, Screencap still captures and searches, and it sorts your day once you add one.
+
+<p align="center"><img src="docs/readme/onboarding.png" width="560" alt="Onboarding: allowing screen recording"></p>
+
+The AI models cost under $2 a month on your OpenRouter key if you use your Mac eight hours a day, five days a week; a measured 6.5-hour day cost 6 cents.
+
+## Backup
+
+Screencap can keep a copy of your screenshots and history in a storage bucket you own: Amazon S3, Cloudflare R2, Backblaze B2 or any other S3-compatible service. Turn it on in Settings, pick the provider, and enter the bucket, its region (the account ID for R2) and an access key. Check connection lists the bucket to test them and writes nothing.
+
+- Each screenshot uploads soon after it is taken. Once a day the last seven days of history upload again, and once a week a snapshot of the whole database.
+- Everything is encrypted on your Mac with AES-256-GCM before it uploads. The provider stores only ciphertext; it can see the object names, which carry dates, their sizes and when they arrived.
+- The first backup into an empty bucket creates the key. Copy its recovery key from Settings into your password manager. Another Mac needs it to restore or continue the backup, and without it nobody can read the backup, you included.
+- Give Screencap an access key that reaches only this bucket, with permission to list, read, write and delete objects.
+- If the bucket keeps old versions of objects (S3 versioning or object lock), those versions keep what you delete in Screencap until they expire.
+
+To restore onto another Mac, set up the same bucket in Settings and paste the recovery key there. Then quit Screencap, move its data folder aside, rebuild it from the bucket, and open Screencap again:
 
 ```bash
-brew install --cask yahorbarkouski/tap/screencap
+mv ~/Library/Application\ Support/com.screencaping.app ~/Library/Application\ Support/com.screencaping.app-before-restore
+/Applications/Screencap.app/Contents/MacOS/Screencap restore --to ~/Library/Application\ Support/com.screencaping.app
 ```
 
-Or, if you prefer to add the tap first:
+Once the restored history looks right, delete the `com.screencaping.app-before-restore` folder.
+
+## Build from source
+
+With Xcode 26 installed:
 
 ```bash
-brew tap yahorbarkouski/tap
-brew install --cask screencap
+scripts/verify.sh       # builds and runs the tests
+scripts/build-app.sh    # builds and signs build/Screencap.app
 ```
 
-## Features Summary
-
-### Timeline
-
-![Timeline view](docs/screenshots/timeline-view.png)
-
-Time period (day), visualized as a stream of events
-
-- **Each card is an event** — multiple captures with the same context and similar pixels merge into one time window
-- **Rich context extraction** — app name, window title, browser URL, media playing, and per-app lower contexts like VS Code workspace
-- **Fully editable** — relabel events, dismiss captures, copy screenshots, create per-app or per-website automation rules, mark as progress or addiction (by default done automatically via llms)
-
-### Day Wrapped
-
-The tray widget "what happened today?" with quick actions and different views available.
-
-
-<table>
-<tr>
-<td colspan="2" align="center">
-
-![Apps](docs/screenshots/day-wrapped-widget-apps.png)
-
-**Apps View** - see which apps and websites dominated each time slot
-
-</td>
-</tr>
-<tr>
-<td width="50%" align="center">
-
-![Categories](docs/screenshots/day-wrapped-widget-categories.png)
-
-**Categories** - what categories dominated
-
-</td>
-<td width="50%" align="center">
-
-![Addictions](docs/screenshots/day-wrapped-widget-addictions.png)
-
-**Addictions** - confirmed signals highlighted
-
-</td>
-</tr>
-</table>
-
-Quick actions:
-
-- **Capture now** — trigger an immediate capture
-- **Capture project progress** — save a milestone with a caption (screenshots active window and waits for a comment. would want to double-down and add loom-like view support one day)
-
-### Journal
-
-![Daily journal](docs/screenshots/summary-journal.png)
-
-To turn your day into a narrative
-
-- **Dayline visualization** — see your entire day at a glance with category colors
-- **Breakdown metrics** — active time, focus percentage, longest streak, top apps/sites/projects
-- **End of Day** — optional LLM-powered daily recap (or the one from End of Day flow below)
-- **Manual journaling** — write reflections, embed event screenshots, create custom sections
-
-### End of Day Flow
-
-A guided ritual to close your day intentionally, guides you through:
-
-1. **Summary** — metrics and dayline visualization
-2. **Progress Review** — confirm or promote potential milestones
-3. **Addictions Review** — acknowledge or dismiss flagged events
-4. **Write** — compose custom sections with embedded event screenshots
-
-
-|                                          Summary                                          |
-|:-----------------------------------------------------------------------------------------:|
-|              ![End of Day Summary](docs/screenshots/end-of-day-squares.png)               |
-|               active time, focus, progress milestones, addiction episodes.                |
-
-
-|                           Write                            |
-|:----------------------------------------------------------:|
-| ![End of Day Write](docs/screenshots/end-of-day-write.png) |
-| to  compose with embedded screenshots and custom sections. | 
-
-
-
-
-### Addictions
-
-Define behaviors you want to track, then measure. Bullet chess in my case:) But is thought for games and porn too, so tricky events are well-covered.
-
-
-| Overview | Example: Speed Chess |
-|:---:|:---:|
-| ![Addiction journal](docs/screenshots/addiction-journal.png) | ![Speed Chess Addiction](docs/screenshots/speedchess-addiction.png) |
-| Calendar heatmap, streak counter, and episode timeline. See patterns across weeks. | Track specific behaviors like bullet chess. The AI detects candidates, you confirm episodes. |
-
-
-- **Create rules** — define what counts as an addiction
-- **AI detection** — the LLM surfaces candidates based on content (either image OCR or image itself + Accessibility context)
-- **Calendar view** — see patterns across weeks
-- **Streak tracking** — visualize consecutive clean days
-- **Episode timeline** — drill into specific incidents with screenshots
-
-### Project Progress
-
-![Project progress](docs/screenshots/project-progress-2.png)
-
-A dedicated timeline for milestones and momentum.
-
-- **Automatic detection** — AI identifies progress-worthy captures
-- **Manual milestones** — `⌘⇧P` to capture and caption a moment
-- **Git integration** — link local repositories to see commits alongside work sessions
-- **Multi-project filtering** — track progress across all projects or focus on one
-
-### Context Providers
-
-Screencap extracts rich context from your active window:
-
-
-| Provider          | What it captures                                         |
-| ----------------- | -------------------------------------------------------- |
-| Native macOS APIs | Frontmost app, window title, fullscreen state            |
-| Safari            | Current URL, page title                                  |
-| Chromium browsers | Current URL, page title (Chrome, Arc, Brave, Edge, etc.) |
-| Spotify           | Track name, artist, album art                            |
-| Cursor/VS Code    | Workspace path, project name                             |
-
-
-With accessibility + automation permissions, we can get pretty much precise context
-
-### LLM Classification
-
-When enabled, events go through a multi-step classification pipeline:
-
-1. **Cache reuse** — instant match by fingerprint + context
-2. **Local retrieval** — match against your own history
-3. **Local LLM** — Ollama, LM Studio, or any OpenAI-compatible server
-4. **Cloud text** — OpenRouter with context + OCR (no images)
-5. **Cloud vision** — OpenRouter with screenshots (if enabled)
-6. **Fallback** — baseline classification from context alone
-
-Classification output:
-
-- **Category** — Work, Study, Leisure, Social, Chores, Unknown
-- **Project** — detected project name
-- **Caption** — human-readable description
-- **Addiction candidate** — potential matches against your rules
-- **Progress detection** — milestone-worthy content
-
-
-### Automation Rules
-
-Fine-grained control over capture and classification:
-
-
-| Rule               | Effect                                   |
-| ------------------ | ---------------------------------------- |
-| **Skip capture**   | Don't screenshot this app/website at all |
-| **Skip AI**        | Capture locally but never send to LLM    |
-| **Force category** | Always assign Work/Study/etc.            |
-| **Force project**  | Always tag captures with a project       |
-
-
-Create rules from any event card or in Settings->Automation.
-
----
-
-## Privacy & Security
-
-Local-first overall, but for LLM classification both local and remote (openrouter/openai) options are available.
-
-
-
-### What stays local
-
-- SQLite database under `~/Library/Application Support/Screencap/`
-- All screenshots (thumbnails + originals)
-- Settings and encryption keys (Keychain-encrypted)
-
-### What can go to the network (opt-in)
-
-
-| Feature         | Data sent          | Where                                                   |
-| --------------- | ------------------ |---------------------------------------------------------|
-| Cloud AI        | Context + OCR text | OpenRouter/OpenAI                                       |
-| Cloud Vision    | Screenshot images  | OpenRouter/OpenAI (if enabled)                          |
-| Auto-updates    | Version check      | GitHub Releases                                         |
-
-
----
-
-## Install
-
-### Requirements
-
-- macOS 13+ (Ventura or later)
-- Screen Recording permission (required)
-- Accessibility permission (recommended)
-- Automation permissions (recommended)
-
-### Download
-
-1. Grab the latest DMG from [Releases](https://github.com/yahorbarkouski/screencap/releases)
-2. Open the DMG and drag `Screencap.app` to Applications
-3. Launch — the onboarding wizard guides you through permissions and setup
-
-### Permissions
-
-
-| Permission                 | Purpose                           | Required?   |
-| -------------------------- | --------------------------------- | ----------- |
-| Screen Recording           | Capture screenshots               | Yes         |
-| Accessibility              | Read window titles                | Recommended |
-| Built-in macOS APIs         | Identify focused window           | Enabled automatically |
-| Automation -> Browsers      | Read URLs from Safari/Chrome/etc. | Recommended |
-| Automation -> Media apps    | Capture Spotify track info        | Optional    |
-
-
----
-
-## First Run
-
-The onboarding wizard walks you through:
-
-1. **Screen Recording** — grant the core permission
-2. **Accessibility** — enable rich window context
-3. **Automation** — allow per-app context extraction
-4. **AI Setup** — choose Cloud, Local, or Disabled
-5. **First Capture** — see what Screencap captures
-
-After onboarding:
-
-- Capture interval is set in **Settings -> Capture**
-- Retention period is set in **Settings -> Data**
-- Global shortcuts are customizable in **Settings -> Capture -> Shortcuts**
-
----
-
-## Shortcuts
-
-
-| Action                   | Default | Notes                              |
-| ------------------------ | ------- | ---------------------------------- |
-| Command palette          | `⌘K`    | Quick access to any view or action |
-| Capture now              | `⌘⇧O`   | Immediate screenshot               |
-| Capture project progress | `⌘⇧P`   | Opens caption popup for milestone  |
-| End of Day               | `⌘⇧E`   | Open the journal flow              |
-
-
-All shortcuts are configurable in **Settings -> Capture -> Shortcuts**.
-
----
-
-## How Capture Works
-
-Screencap uses dominant activity scheduling:
-
-1. **Sample context every second** — which app, window, URL is in focus
-2. **Wait for stability** — context must be stable for ~10 seconds
-3. **Capture candidate** — take a multi-display screenshot
-4. **Keep the dominant** — at the end of the interval, save the most representative capture
-5. **Merge similar events** — captures with same context + similar pixels become one event
-
-This means:
-
-- Quick app switches don't produce captures
-- You get one clean event per sustained activity
-- Storage usage stays reasonable
-
-The overall capturing algo is still in very rough and can be very much improved
-
----
-
-## LLM Configuration
-
-### Cloud LLM (OpenRouter / OpenAI)
-
-Screencap uses OpenRouter by default, but any OpenAI-compatible API works
-
-1. Get an API key from [openrouter.ai/keys](https://openrouter.ai/keys) or [platform.openai.com](https://platform.openai.com/api-keys)
-2. **Settings -> AI -> Cloud LLM** -> paste your key
-3. Choose a model (default: `openai/gpt-5-mini`)
-4. Toggle **Allow vision uploads** if you want image-based classification
-
-OpenRouter gives you access to many models (Claude, GPT-5, Gemini, open-source) through one API key, so very much recommended
-
-### Local LLM (Ollama / LM Studio)
-
-1. Run a local OpenAI-compatible server
-2. **Settings -> AI -> Local LLM** -> enable and configure:
-- Base URL: `http://localhost:11434/v1` (Ollama) or `http://localhost:1234/v1` (LM Studio)
-- Model: the model name from `/v1/models`
-3. Click **Test** to verify
-
-See [Local LLM Guide](docs/local-llm.md) for detailed setup.
-
-### Disable AI
-
-**Settings -> AI -> Classification -> Off**
-
-Captures still happen, but no LLM calls. Events get basic category from context only.
-
----
-
-## Development
-
-### Requirements
-
-- macOS
-- Node.js 20+
-- npm
-
-### Setup
-
-```bash
-git clone https://github.com/yahorbarkouski/screencap.git
-cd screencap
-npm install
-```
-
-### Run
-
-```bash
-npm run dev
-```
-
-### Test
-
-```bash
-npm test
-```
-
-### Build
-
-```bash
-npm run build
-npm run preview
-```
-
-### Package
-
-```bash
-npx electron-builder --config electron-builder.yml
-```
-
----
-
-## Architecture
-
-```
-screencap/
-├── electron/
-│   ├── main/           # Main process
-│   │   ├── app/        # Window, tray, popup, lifecycle
-│   │   ├── features/   # Capture, AI, context, projects, retention
-│   │   ├── infra/      # Settings, logging, storage
-│   │   └── ipc/        # Secure IPC handlers
-│   ├── preload/        # Context bridge (window.api)
-│   └── shared/         # IPC channels, shared types
-├── src/                # React renderer
-│   ├── components/     # UI components
-│   ├── hooks/          # React hooks
-│   ├── lib/            # Utilities
-│   └── stores/         # Zustand stores
-└── docs/               # Documentation
-```
-
-### Key Services
-
-
-| Service                 | Purpose                            |
-| ----------------------- | ---------------------------------- |
-| `CaptureService`        | Screenshot capture, fingerprinting |
-| `ContextService`        | App/window/URL/media extraction    |
-| `ClassificationService` | AI pipeline orchestration          |
-| `EventService`          | Event creation, merging, storage   |
-
-
----
-
-## MCP Integration (Claude Desktop / Cursor)
-
-Screencap includes a built-in MCP server that exposes your activity data to Claude Desktop, Cursor, and other MCP-compatible tools. The MCP server is bundled with the app and does not require a separate build step.
-
-### Configure Claude Desktop
-
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "screencap": {
-      "command": "/usr/bin/env",
-      "args": [
-        "-u",
-        "ELECTRON_RUN_AS_NODE",
-        "/Applications/Screencap.app/Contents/MacOS/Screencap",
-        "--mcp"
-      ]
-    }
-  }
-}
-```
-
-For detailed documentation, see [MCP Server Guide](docs/mcp-server.md).
-
-
-### Available Tools
-
-| Tool | Description |
-|------|-------------|
-| `query_events` | Query events with filters (date, category, project, app) |
-| `search_events` | Full-text search across captions and window titles |
-| `get_recent_activity` | Quick access to recent events |
-| `get_time_summary` | Category/project time breakdown |
-| `get_app_usage` | App usage statistics |
-| `get_website_usage` | Website usage statistics |
-| `compare_periods` | Compare productivity across two periods |
-| `get_project_progress` | Progress events for a project |
-| `list_projects` | All projects with stats |
-| `get_addiction_stats` | Addiction tracking data |
-| `get_focus_score` | Focus/distraction score for a day |
-| `get_event_image` | Get thumbnail for a specific event |
-
-### Available Resources
-
-| Resource | Description |
-|----------|-------------|
-| `screencap://activity/today` | Today's activity events |
-| `screencap://activity/recent` | Recent 2 hours of activity |
-| `screencap://stats/today` | Today's category breakdown |
-| `screencap://stats/week` | This week's statistics |
-| `screencap://projects` | All projects with stats |
-| `screencap://stories/latest` | Recent daily/weekly stories |
-| `screencap://memories` | User-defined memories |
-| `screencap://eod/today` | Today's end-of-day entry |
-
-### Available Prompts
-
-| Prompt | Description |
-|--------|-------------|
-| `daily_summary` | Summarize activity for a day |
-| `project_status` | Get status of a specific project |
-| `focus_analysis` | Analyze focus and distraction patterns |
-
-### Example Usage
-
-In Claude Desktop or Cursor, you can now ask:
-
-- "What was I working on today?"
-- "How did I spend my time this week?"
-- "Show me progress on the Screencap project"
-- "Am I spending too much time on YouTube?"
-- "Compare my productivity this week vs last week"
-
-The LLM will use the appropriate tools to query your Screencap data and provide insights.
-
----
-
-## Contributing
-
-Read [Security Practices](docs/security.md) before adding new IPC handlers or file access surfaces.
-
-Key principles:
-
-- Treat IPC as a security boundary
-- Validate all renderer inputs with Zod
-- Use the `secureHandle` wrapper for new handlers
-- Prefer allowlists over blocklists
-
----
-
-## Known Limitations and Pitfalls
-
->  **This project is in beta.** Expect rough edges, breaking changes, and behaviors that may surprise you.
-
-### AI Usage Can Spike Unexpectedly
-
-The classification pipeline can make **up to 2 LLM calls per screenshot** (one for general classification, another for addiction verification). There's no rate limiting or cost tracking - if you capture frequently, your API bill can grow fast. Small models work best tho, but be thoughtful about this for a while
-
-**What's needed:** smarter classification logic, caching improvements, and optional cost caps.
-
-### Event Trimming is Time-Based Only
-
-Retention cleanup deletes old data based on time thresholds, not activity relevance. Important events get purged alongside noise if they're past the retention window.
-
-**What's needed:** activity-aware or user-marked retention. Really curious one.
-
-### Hardcoded Thresholds
-
-Many parameters are fixed /theoretically/:
-
-- Fingerprint similarity thresholds
-- Capture stability window (10s)
-- Merge gap for events (~2× capture interval)
-- HQ image retention (12 hours)
-
-These may not fit all workflows and require some good practice to make sense / become dynamic
-
-### macOS Only
-
-The entire context system uses AppleScript, macOS Vision, and Apple-specific APIs
-
-If any of these bother you, PRs are very welcome
-
----
+[docs/development.md](docs/development.md) covers the command-line modes, where data lives and how the code is organised. Studies and measurements behind the design are in [research/](research/); how to release it is in [RELEASING.md](RELEASING.md).
 
 ## License
 
-MIT
+Screencap is open source under the [MIT License](LICENSE).
+
+The screenshots show pages from [Wikipedia](https://en.wikipedia.org) (text and photos under CC BY-SA), [OpenStreetMap](https://www.openstreetmap.org/copyright) (© OpenStreetMap contributors), NASA, Apple Developer, GitHub, [The Rust Programming Language](https://doc.rust-lang.org/book/) and Hacker News, each under its owner's terms.

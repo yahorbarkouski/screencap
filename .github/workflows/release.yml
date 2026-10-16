@@ -1,86 +1,93 @@
 name: Release
 
+# A tag such as v2.0.0 builds Screencap, signs it with the Developer ID certificate, notarizes and staples it, and
+# opens a draft GitHub release with the disk image, the update zip and their checksums; publishing the draft is a
+# person's step. Run it by hand with a version such as 2.0.0-rc1 to check signing and notarization: the files are then
+# kept as a workflow artifact and no release is made. It uses the repository secrets the Electron app's releases
+# already used: APPLE_CERT_P12_BASE64 and APPLE_CERT_P12_PASSWORD to sign, APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD and
+# APPLE_TEAM_ID to notarize.
 on:
   push:
-    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to build, such as 2.0.0-rc1
+        required: true
 
 permissions:
   contents: write
-  issues: write
-  pull-requests: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
-  build-and-release:
-    runs-on: macos-latest
-    env:
-      HAS_MAC_SIGNING_CERT: ${{ secrets.APPLE_CERT_P12_BASE64 != '' }}
+  release:
+    runs-on: macos-26
+    timeout-minutes: 60
+    environment: release
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          persist-credentials: false
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tests
-        run: npm test
-
-      - name: Build Electron app
-        run: npm run build
-
-      - name: Import Code Signing Certificates
-        if: env.HAS_MAC_SIGNING_CERT == 'true'
-        uses: apple-actions/import-codesign-certs@v3
-        with:
-          p12-file-base64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
-          p12-password: ${{ secrets.APPLE_CERT_P12_PASSWORD }}
-          keychain: signing_mac_temp
-          keychain-password: ${{ github.run_id }}-mac-signing
-
-      - name: Package Electron app (dry run)
-        run: npx electron-builder --config electron-builder.yml --publish never
+      - name: Version
         env:
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ env.HAS_MAC_SIGNING_CERT }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-
-      - name: Semantic Release
-        id: semantic
-        uses: cycjimmy/semantic-release-action@v4
-        with:
-          semantic_version: 24
-          extra_plugins: |
-            @semantic-release/changelog@6
-            @semantic-release/git@10
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Pull latest changes
-        if: steps.semantic.outputs.new_release_published == 'true'
+          EVENT: ${{ github.event_name }}
+          TAG: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
-          git pull origin main
+          if [ "$EVENT" = push ]; then VERSION="${TAG#v}"; else VERSION="$INPUT_VERSION"; fi
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::The version must look like 2.0.0 or 2.0.0-rc1, not \"$VERSION\""
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
-      - name: Rebuild with new version
-        if: steps.semantic.outputs.new_release_published == 'true'
-        run: npm run build
-
-      - name: Package and Publish
-        if: steps.semantic.outputs.new_release_published == 'true'
-        run: npx electron-builder --config electron-builder.yml --publish always
+      - name: Import the Developer ID certificate
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ env.HAS_MAC_SIGNING_CERT }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CERTIFICATE: ${{ secrets.APPLE_CERT_P12_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERT_P12_PASSWORD }}
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/release.keychain-db"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          printf '%s' "$CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/certificate.p12" -P "$CERTIFICATE_PASSWORD" -f pkcs12 -k "$KEYCHAIN" \
+            -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/certificate.p12"
+          security find-identity -v -p codesigning "$KEYCHAIN"
+
+      - name: Build, sign, notarize and staple
+        env:
+          SCREENCAP_NOTARY_APPLE_ID: ${{ secrets.APPLE_ID }}
+          SCREENCAP_NOTARY_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          SCREENCAP_NOTARY_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: scripts/release.sh "$VERSION"
+
+      - name: Draft the GitHub release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" --draft --title "Screencap $VERSION" --generate-notes \
+            "build/release/Screencap-$VERSION.dmg" "build/release/Screencap-$VERSION.zip" \
+            "build/release/Screencap-$VERSION.sha256"
+
+      - name: Keep the files of a manual run
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: screencap-${{ env.VERSION }}
+          path: build/release/
+          retention-days: 7
+
+      - name: Remove the keychain
+        if: always()
+        run: security delete-keychain "$RUNNER_TEMP/release.keychain-db" 2>/dev/null || true
