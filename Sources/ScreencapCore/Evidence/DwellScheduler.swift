@@ -5,7 +5,7 @@ import Foundation
 /// A capture follows what the person did: a page once its title or URL has held `viewHold`, the screen once it has
 /// stayed still for `settle` after a key press, click, scroll or page change, the screen `typingPause` after a burst
 /// of typing, and a frame whenever `fallback` has passed since the last capture. On three hours of logged use
-/// (research/smart-capture.md) this caught 97% of the pages held 10 s or more, against 73% for a 60 s timer and a
+/// this caught 97% of the pages held 10 s or more, against 73% for a 60 s timer and a
 /// capture 5 s after each change of app or site, for 128 kept frames an hour against 80.
 ///
 /// Every capture, kept or duplicate, serves the changes before it: a trigger fires only for a change that came after

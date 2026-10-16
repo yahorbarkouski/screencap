@@ -2,7 +2,7 @@ import AppKit
 
 /// The menu bar glyph: the app icon's day strip with the playhead on a moment, as a template image (only its alpha
 /// counts; the menu bar tints it for light, dark and pressed). Drawn on whole points so its edges stay sharp at 1x and
-/// 2x. The icon and the reasons for it are in research/logo/.
+/// 2x.
 enum MenuBarGlyph {
   static let size = NSSize(width: 22, height: 22)
 

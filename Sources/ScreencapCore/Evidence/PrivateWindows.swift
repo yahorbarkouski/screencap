@@ -1,7 +1,7 @@
 import Foundation
 
 /// Which browser windows are private (incognito), from what each browser writes into its windows' accessibility
-/// attributes (research/private-windows.md). Chromium browsers and Safari add a suffix to the accessibility title only,
+/// attributes. Chromium browsers and Safari add a suffix to the accessibility title only,
 /// Firefox adds one to both titles, and Arc and Dia mark the window's accessibility identifier. Markers are matched at
 /// the end of the title, so a normal window showing a page titled "Incognito mode explained" is still captured.
 public enum PrivateWindows {

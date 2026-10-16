@@ -1,4 +1,0 @@
-availability: unavailable(FoundationModels.SystemLanguageModel.Availability.UnavailableReason.appleIntelligenceNotEnabled)
-NLEmbedding.sentenceEmbedding(english): dim 512, median 6287.2 us
-NLContextualEmbedding(english): dim 512, maxSeqLen 256, hasAvailableAssets true, model 5C45D94E-BAB4-4927-94B6-8B5745C46289
-NLContextualEmbedding mean-pooled sentence: median 9.44 ms

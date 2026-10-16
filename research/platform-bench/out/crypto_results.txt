@@ -1,3 +1,0 @@
-frame 136 KB: seal median 0.017 ms (7929 MB/s), overhead 28 bytes
-hourly pack 5 MB: seal median 1.080 ms (4628 MB/s), overhead 28 bytes
-daily pack 60 MB: seal median 7.654 ms (7839 MB/s), overhead 28 bytes

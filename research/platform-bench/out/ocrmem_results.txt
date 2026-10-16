@@ -1,2 +1,0 @@
-footprint MB: base 1, images loaded 11, after 3 accurate OCRs 247, 5 s later 175
-IsSecureEventInputEnabled: median 0 ns, now=false

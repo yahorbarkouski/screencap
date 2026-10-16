@@ -224,8 +224,7 @@ final class CaptureEngine {
   }
 }
 
-/// Window-server event counters since login. Reading them needs no permission and costs about 0.1 µs
-/// (experiments/tools/smart-capture/counter_bench.swift).
+/// Window-server event counters since login. Reading them needs no permission and costs about 0.1 µs.
 struct InputCounts {
   var keys: UInt32
   var clicks: UInt32

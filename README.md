@@ -132,7 +132,7 @@ scripts/verify.sh       # builds and runs the tests
 scripts/build-app.sh    # builds and signs build/Screencap.app
 ```
 
-[docs/development.md](docs/development.md) covers the command-line modes, where data lives and how the code is organised. Studies and measurements behind the design are in [research/](research/); how to release it is in [RELEASING.md](RELEASING.md).
+[docs/development.md](docs/development.md) covers the command-line modes, where data lives and how the code is organised. How to release it is in [RELEASING.md](RELEASING.md).
 
 ## License
 

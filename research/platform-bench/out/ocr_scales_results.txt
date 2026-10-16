@@ -1,5 +1,0 @@
-[scales] 6 images, sizes ["3456x2234"]
-native words: 1100; native accurate latency median 295.0 ms
-  half: 94.5% of native words recovered; accurate latency median 263.5 ms
-  1280w: 90.1% of native words recovered; accurate latency median 256.1 ms
-  1024w: 70.8% of native words recovered; accurate latency median 257.2 ms

@@ -1,6 +1,0 @@
-heic 480w q0.5: mean 13.4 KB median 13.7 KB
-heic 480w q0.6: mean 17.0 KB median 17.5 KB
-heic 640w q0.5: mean 21.5 KB median 21.5 KB
-heic 640w q0.6: mean 27.2 KB median 27.2 KB
-heic 960w q0.5: mean 42.8 KB median 41.8 KB
-heic 960w q0.6: mean 53.9 KB median 52.9 KB

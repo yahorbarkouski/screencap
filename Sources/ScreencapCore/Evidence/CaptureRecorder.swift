@@ -30,8 +30,8 @@ public struct CapturedFrame: @unchecked Sendable {
 }
 
 /// Which evidence frames get their text read. Reading a frame costs about 0.29 s of CPU, and reading every evidence
-/// frame of dwell capture would take the app and its OCR helper to about 1.3% of a core against a 1% budget
-/// (research/smart-capture.md). So an evidence frame is read only when it shows new content against the last frame
+/// frame of dwell capture would take the app and its OCR helper to about 1.3% of a core against a 1% budget.
+/// So an evidence frame is read only when it shows new content against the last frame
 /// read on its display (another view, or at least `changedShare` of the screen changed), and at most `perHour` of
 /// them an hour; the others are kept as pictures.
 public struct EvidenceReading: Sendable {
