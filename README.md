@@ -56,7 +56,7 @@ An agent sends what it reads to its own AI provider. [docs/agents.md](docs/agent
 
 - **Smart capture: it captures when your screen settles.** Screencap takes a screenshot when you have stayed on a page for 10 seconds, when the screen stops changing for 10 seconds after a click or scroll or for 3 seconds after you type, and at least once a minute. It drops screenshots that repeat the one before; a 10-hour day takes about 100 MB of disk.
 - **It reads the screen on your Mac.** Apple's on-device text recognition reads the text in your screenshots, so search works offline.
-- **It sorts the day by asking small questions.** A System-1 model answers short questions about your screenshots and screen text, such as "does a new activity start here?" and "which thread is this?", and another model writes the titles of moments and the names of threads.
+- **It sorts the day by asking small questions.** Perplexity's `pplx-decider-v1.1-27b`, a System-1 model, answers short questions about your screenshots and screen text, such as "does a new activity start here?" and "which thread is this?". OpenAI's `gpt-6-luna` writes the titles of moments and the names of threads. Both run through OpenRouter with [zero data retention](#security).
 
 ## Security
 
@@ -70,7 +70,7 @@ Screencap keeps a record of what was on your screen, which can include your mess
 
 **Secrets on screen.** Before screen text, window titles and page paths are stored, Screencap replaces API keys and tokens (OpenRouter, OpenAI, Anthropic, AWS, GitHub, GitLab, Slack, Stripe, Google, npm), private keys, JSON web tokens, long random strings, its own recovery key, and card numbers and IBANs that pass their check digits with `[hidden]`. A screenshot whose text held one is never sent to a model. Masking goes by shape, so it misses a password typed as an ordinary word and a short code such as a six-digit sign-in code; the screenshot itself is kept on your Mac.
 
-**What goes to the AI models.** Requests go to `openrouter.ai` over HTTPS with your key, and OpenRouter forwards them only to providers that keep no copy of a request and never train on one (its zero data retention routing). OpenRouter itself keeps no prompts or answers unless you turn on logging in your OpenRouter account; it keeps counts such as tokens and cost. Under that routing OpenAI's text model, which writes captions, runs on Azure, whose content filter refuses about 2 in 100 caption requests; those moments show no caption. Each kind of request carries the following:
+**What goes to the AI models.** Requests go to `openrouter.ai` over HTTPS with your key, and OpenRouter forwards them only to providers that keep no copy of a request and never train on one (its zero data retention routing). OpenRouter itself keeps no prompts or answers unless you turn on logging in your OpenRouter account; it keeps counts such as tokens and cost. Under that routing `gpt-6-luna`, which writes captions, runs on Azure, whose content filter refuses about 2 in 100 caption requests; those moments show no caption. Each kind of request carries the following:
 
 | Request | What it sends | When |
 |---|---|---|
