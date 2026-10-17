@@ -81,7 +81,7 @@ An agent sends what it reads to its own AI provider. [docs/agents.md](docs/agent
 - **Smart capture: it captures when your screen settles.** Screencap takes a screenshot when you have stayed on a page for 10 seconds, when the screen stops changing for 10 seconds after a click or scroll or for 3 seconds after you type, and at least once a minute. It drops screenshots that repeat the one before; a 10-hour day takes about 100 MB of disk.
 - **It reads the screen on your Mac.** Apple's on-device text recognition reads the text in your screenshots, so search works offline.
 - **It keeps where each thread happened.** Each screenshot records its app, window title and page address, and the time spent in each is added up for every thread. That is what [Resume](#back-to-where-you-were) brings back.
-- **It sorts the day by asking small questions.** Perplexity's `pplx-decider-v1.1-27b`, a System-1 model, answers short questions about your screenshots and screen text, such as "does a new activity start here?" and "which thread is this?". OpenAI's `gpt-6-luna` writes the titles of moments and the names of threads. Both run through OpenRouter with [zero data retention](#security).
+- **It sorts the day by asking small questions.** Perplexity's `pplx-decider-v1.2`, a System-1 model, answers short questions about your screenshots and screen text, such as "does a new activity start here?" and "which thread is this?". When it can't answer, Perplexity's smaller `pplx-decider-flash-v1.2` does. OpenAI's `gpt-6-luna-decisions` comes after both, once OpenRouter can serve it with zero data retention. OpenAI's `gpt-6-luna` writes the titles of moments and the names of threads. Every request goes through OpenRouter with [zero data retention](#security).
 
 ## Security
 
