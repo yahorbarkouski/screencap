@@ -209,6 +209,28 @@ enum ResumeCommands {
     NSApplication.shared.setActivationPolicy(.accessory)
     NSApp.finishLaunching()
     let database = try location.openDatabase()
+    // --rows prints the palette's rows as it would show them now, with the window in front read as the app reads it,
+    // or at a moment given in seconds since 1970, from the screenshots alone. Each row says how long ago the thread
+    // was seen and, beside it, what its last sorted activity alone would say, so the unsorted minutes' share can be
+    // seen.
+    if let rowsAt = option("--rows") {
+      let model = ResumeModel(database: database, location: location, corrections: nil)
+      let pinned = Double(rowsAt).flatMap { $0 > 1_000_000 ? $0 : nil }
+      let now = pinned ?? Date().timeIntervalSince1970
+      if pinned == nil {
+        let monitor = ContextMonitor()
+        model.front = { monitor.readContext() }
+      }
+      model.reload(now: now)
+      let sorted = try database.latestActivityPerThread()
+      let rows = model.shown
+      for (index, row) in rows.enumerated() {
+        let before = sorted[row.id].map { agoText($0.at, now: now) } ?? "never"
+        let mark = row.id == model.current ? "  (in front now, so last)" : ""
+        print("\(index + 1). \(row.name) · \(agoText(row.lastSeenAt, now: now)) · sorted alone: \(before)\(mark)")
+      }
+      return
+    }
     let controller = ResumePaletteController(database: database, location: location, corrections: nil)
     // --shot shows the real palette where it opens and photographs that part of the screen with a margin, so its
     // edge, corners and shadow can be checked in the light and dark appearance without anyone pressing a key.

@@ -116,6 +116,16 @@ final class ResumePaletteController: NSObject, NSWindowDelegate {
 
   var isShown: Bool { panel.isVisible }
 
+  /// Called each time the palette opens, after it has shown what is stored, so the app can work out each thread's
+  /// places again and the palette can take the result while it is still open.
+  var onOpen: (() -> Void)?
+
+  /// Takes newly worked-out places while the palette is open, keeping the chosen thread chosen.
+  func refreshIfShown() {
+    guard panel.isVisible else { return }
+    model.refresh()
+  }
+
   /// Where the palette is on screen, in global points, for `probe-palette --shot`.
   var frame: NSRect { panel.frame }
 
@@ -141,6 +151,7 @@ final class ResumePaletteController: NSObject, NSWindowDelegate {
     model.reload()
     model.requestFocus()
     model.findSplits()
+    onOpen?()
     let size = ResumePalette.size
     let screen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main
     let frame = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1_440, height: 900)

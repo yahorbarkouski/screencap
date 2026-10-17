@@ -14,6 +14,7 @@ actor ResumeUpkeep {
   /// when a correction moves it, which asks for a rebuild of its own.
   private let days: Double = 3
   private var task: Task<Void, Never>?
+  private var lastPass: Double = 0
 
   init(database: AppDatabase, location: StoreLocation) {
     self.database = database
@@ -41,7 +42,16 @@ actor ResumeUpkeep {
     task = nil
   }
 
+  /// A pass now, over the last few days, unless one ran in the last few seconds: after an understanding pass that
+  /// may have given an activity its thread, and when the palette opens. Waiting for the ten-minute pass left the
+  /// palette that far behind the threads.
+  func refresh() {
+    guard Date().timeIntervalSince1970 - lastPass > 3 else { return }
+    pass(full: false)
+  }
+
   func pass(full: Bool) {
+    lastPass = Date().timeIntervalSince1970
     let since = full ? 0 : Date().timeIntervalSince1970 - days * 86_400
     let sessions = ClaudeSessionIndex.build(since: full ? 0 : since - 86_400, cache: cache)
     do {
