@@ -21,20 +21,22 @@ enum ClaudeWindow {
   static let bundleID = ClaudeSessionIndex.bundleID
 
   /// Puts the conversation named `title` in front, or says why it could not.
+  ///
+  /// Claude comes forward before its sidebar is read. While its window is on another Space, Claude lists no
+  /// windows at all, so the sidebar can be read only once the switch to that Space is done.
   static func select(title: String) -> WindowIndex.Outcome {
     guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first else {
       return .missing
     }
     guard AXIsProcessTrusted() else { return .noPermission }
+    let activated = app.activate()
     let element = application(app)
     guard let row = find(titled: title, in: element) else {
       // Claude renders only the rows scrolled into view, so a conversation further down the list cannot be
-      // pressed. The window still comes forward, which leaves one click rather than a search.
-      return WindowIndex.raise(bundleID: bundleID, title: nil) == .brought ? .windowOnly : .missing
+      // pressed. The window is in front all the same, which leaves one click rather than a search.
+      return activated ? .windowOnly : .missing
     }
-    let pressed = press(row)
-    let activated = app.activate()
-    return pressed && activated ? .brought : .refused
+    return press(row) && activated ? .brought : .refused
   }
 
   /// The app's accessibility element, with the web tree asked for and waited for.

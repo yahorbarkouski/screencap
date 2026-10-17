@@ -62,10 +62,12 @@ enum WindowIndex {
     guard let title, !title.isEmpty else {
       return app.activate() ? .brought : .failed
     }
-    var value: CFTypeRef?
-    guard AXUIElementCopyAttributeValue(element, kAXWindowsAttribute as CFString, &value) == .success,
-      let windows = value as? [AXUIElement]
-    else { return .failed }
+    var windows = listed(element)
+    // A window on another Space is not listed at all. Bringing the app forward moves to the Space its windows are
+    // on, and they are listed once the switch is done.
+    if windows.isEmpty, hasWindows(pid: app.processIdentifier), app.activate() {
+      windows = listed(element, waiting: 1.5)
+    }
     let window = windows.first { candidate in
       guard let found = ContextMonitor.string(candidate, kAXTitleAttribute) else { return false }
       return ThingKey.titlesMatch(found, title)
@@ -74,11 +76,36 @@ enum WindowIndex {
     // whose title follows the channel, chat or page on screen. The app still comes forward, and the outcome says it
     // landed somewhere else rather than counting as the place.
     guard let window else { return app.activate() ? .windowOnly : .refused }
-    // Raising puts the window in front of its app's others; activating brings the app itself forward. A window on
-    // another Space refuses to raise, which is reported rather than worked around.
+    // Raising puts the window in front of its app's others; activating brings the app itself forward.
     let raised = AXUIElementPerformAction(window, kAXRaiseAction as CFString) == .success
     let activated = app.activate()
     return raised && activated ? .brought : .refused
+  }
+
+  /// The app's windows as Accessibility lists them, which is only those on the Space in front, read again every
+  /// tenth of a second for up to `waiting` seconds while there are none.
+  static func listed(_ element: AXUIElement, waiting: TimeInterval = 0) -> [AXUIElement] {
+    let deadline = Date().addingTimeInterval(waiting)
+    while true {
+      var value: CFTypeRef?
+      let windows =
+        AXUIElementCopyAttributeValue(element, kAXWindowsAttribute as CFString, &value) == .success
+        ? value as? [AXUIElement] ?? [] : []
+      if !windows.isEmpty || Date() >= deadline { return windows }
+      // The list fills on the app's own run loop once the Space has switched, so this thread waits rather than spins.
+      Thread.sleep(forTimeInterval: 0.1)
+    }
+  }
+
+  /// Whether the app has an ordinary window on any Space, which the window server knows and Accessibility does not.
+  static func hasWindows(pid: pid_t) -> Bool {
+    guard let windows = CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID)
+      as? [[String: Any]]
+    else { return false }
+    return windows.contains {
+      ($0[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value == pid
+        && ($0[kCGWindowLayer as String] as? NSNumber)?.intValue == 0
+    }
   }
 
   /// What came of trying to bring one thing forward.
@@ -89,7 +116,7 @@ enum WindowIndex {
     case opened
     /// It is not there any more and nothing here knows how to open it.
     case missing
-    /// It exists but would not come forward, which usually means it lives on another Space.
+    /// It exists but would not come forward.
     case refused
     /// The app came forward but the thing inside it could not be reached: Claude renders only the sidebar rows
     /// that are scrolled into view, so a conversation further down the list has no row to press, and Slack's one

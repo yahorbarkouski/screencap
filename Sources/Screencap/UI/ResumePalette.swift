@@ -157,7 +157,7 @@ final class ResumeModel {
         rows.append(
           ResumeRow(
             id: id, name: thread.name.isEmpty ? "Unnamed thread" : thread.name,
-            leftOff: latest[id]?.text ?? "", lastSeenAt: max(thread.lastSeenAt, latest[id]?.at ?? 0, recent[id] ?? 0),
+            leftOff: Self.leftOff(latest[id]?.text, besides: thread.name), lastSeenAt: max(thread.lastSeenAt, latest[id]?.at ?? 0, recent[id] ?? 0),
             scores: plan, preview: frames[id]))
       }
       rows.sort { $0.lastSeenAt > $1.lastSeenAt }
@@ -173,6 +173,15 @@ final class ResumeModel {
       rows = []
       note = "Could not read your history: \(error.localizedDescription)"
     }
+  }
+
+  /// Where a thread was left off, or nothing when that only says the thread's name again: an activity that is all
+  /// of its thread is often given the thread's own name, and the line under the name would repeat it.
+  static func leftOff(_ text: String?, besides name: String) -> String {
+    guard let text, text.compare(name, options: [.caseInsensitive, .diacriticInsensitive]) != .orderedSame else {
+      return ""
+    }
+    return text
   }
 
   /// Reloads while the palette is open, keeping the chosen thread chosen when the rows move under it.
