@@ -68,12 +68,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self?.understanding.poke()
         self?.refreshIfVisible()
       }
-      understanding.onChange = { [weak self] in self?.refreshIfVisible() }
+      understanding.onChange = { [weak self] in
+        self?.refreshIfVisible()
+        self?.refreshPlaces()
+      }
       panel = PanelController(model: model)
       // ⌥Space anywhere, or the shortcut Settings names: the threads worked in lately, and return to be put back
       // into one.
       resumePalette = ResumePaletteController(database: database, location: location, corrections: model.corrections)
       resumeUpkeep = ResumeUpkeep(database: database, location: location)
+      resumePalette.onOpen = { [weak self] in self?.refreshPlaces() }
+      resumePalette.model.front = { [weak self] in self?.capture.monitor.current ?? ForegroundContext() }
       applyResume()
       panel.openMain = { [weak self] in self?.showMain() }
       panel.openSettings = { [weak self] in self?.showSettings() }
@@ -227,6 +232,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     case .dark: NSApp.appearance = NSAppearance(named: .darkAqua)
     case .light: NSApp.appearance = NSAppearance(named: .aqua)
     case .system: NSApp.appearance = nil
+    }
+  }
+
+  /// Works out each thread's places again over the last few days, then gives them to the palette if it is open:
+  /// after an understanding pass that changed something, and each time the palette opens.
+  func refreshPlaces() {
+    guard !viewOnly, model.settings.current.resume.isEnabled, let upkeep = resumeUpkeep else { return }
+    Task.detached(priority: .userInitiated) { [weak self] in
+      await upkeep.refresh()
+      await MainActor.run { self?.resumePalette.refreshIfShown() }
     }
   }
 

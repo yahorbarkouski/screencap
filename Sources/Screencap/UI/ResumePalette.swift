@@ -87,6 +87,11 @@ final class ResumeModel {
   private(set) var splitting = false
   /// Site and app icons, fetched once and kept on disk (`PlaceIcons`).
   let icons = PlaceIcons()
+  /// The app, window and page in front, as the capture engine last read them. Nil where nothing reads them, as in the
+  /// probes.
+  @ObservationIgnored var front: (() -> ForegroundContext)?
+  /// The thread being worked in, which the list puts last, or nil when what is in front belongs to no thread.
+  @ObservationIgnored private(set) var current: Int64?
 
   struct ScrollRequest: Equatable {
     var target: ResumeScrollID
@@ -127,6 +132,11 @@ final class ResumeModel {
   ///
   /// The thread being worked in right now goes last: return on it would bring forward what is already in front,
   /// and the thread you mean to go back to is the one you were in before it.
+  ///
+  /// The minutes the understanding has not sorted yet count too: each of their screenshots that shows a place one
+  /// thread owns moves that thread's last-seen time up, and the window in front, or else the newest screenshot, says
+  /// which thread is in front. Without them the palette lagged the screen by the four minutes or so an activity takes
+  /// to be given its thread.
   func reload(now: Double = Date().timeIntervalSince1970) {
     do {
       let bindings = try database.allBindings()
@@ -135,6 +145,9 @@ final class ResumeModel {
       let excluded = try database.exclusions()
       let frames = try database.latestFramePerThread()
       let byThread = Dictionary(grouping: bindings, by: \.threadID)
+      let owners = ResumeFreshness.owners(bindings: bindings, now: now)
+      let unsorted = try unsortedScreens(now: now, things: things)
+      let recent = ResumeFreshness.lastSeen(unsorted, owners: owners)
       var rows: [ResumeRow] = []
       for thread in try database.threadsWithBindings(limit: 60) {
         guard let id = thread.id, let mine = byThread[id] else { continue }
@@ -144,19 +157,56 @@ final class ResumeModel {
         rows.append(
           ResumeRow(
             id: id, name: thread.name.isEmpty ? "Unnamed thread" : thread.name,
-            leftOff: latest[id]?.text ?? "", lastSeenAt: max(thread.lastSeenAt, latest[id]?.at ?? 0),
+            leftOff: latest[id]?.text ?? "", lastSeenAt: max(thread.lastSeenAt, latest[id]?.at ?? 0, recent[id] ?? 0),
             scores: plan, preview: frames[id]))
       }
       rows.sort { $0.lastSeenAt > $1.lastSeenAt }
-      if let current = try currentThread(now: now), let index = rows.firstIndex(where: { $0.id == current }) {
+      let current =
+        unsorted.isEmpty ? try currentThread(now: now) : ResumeFreshness.current(unsorted, owners: owners, now: now)
+      if let current, let index = rows.firstIndex(where: { $0.id == current }) {
         rows.append(rows.remove(at: index))
       }
+      self.current = current
       self.rows = rows
       selection = min(selection, max(0, shown.count - 1))
     } catch {
       rows = []
       note = "Could not read your history: \(error.localizedDescription)"
     }
+  }
+
+  /// Reloads while the palette is open, keeping the chosen thread chosen when the rows move under it.
+  func refresh() {
+    let chosenID = chosen?.id
+    reload(now: now)
+    if let chosenID, let index = shown.firstIndex(where: { $0.id == chosenID }) { selection = index }
+  }
+
+  /// The screenshots since the latest activity whose thread is settled, at most the last hour, each with the place
+  /// it showed, and last the window in front now. A screenshot waits for the screen to change or settle, so pressing
+  /// ⌥Space right after a switch would otherwise find the app you just left. Claude's transcripts are read only when
+  /// one of them is of Claude.
+  private func unsortedScreens(now: Double, things: [Int64: Thing]) throws -> [ResumeFreshness.Seen] {
+    let since = max(try database.latestSettledActivityEnd() ?? 0, now - 3_600)
+    let captures = try database.focusedCaptures(from: since).filter { $0.at <= now }
+    // The engine's observers keep its reading current while it runs; a view-only copy never starts it, so the
+    // reading is used only when its app is the one macOS has in front.
+    var inFront = front?()
+    if inFront?.bundleID != NSWorkspace.shared.frontmostApplication?.bundleIdentifier { inFront = nil }
+    guard !captures.isEmpty || inFront != nil else { return [] }
+    var ids: [String: Int64] = [:]
+    for thing in things.values { if let id = thing.id { ids[thing.key] = id } }
+    let needsSessions =
+      inFront?.bundleID == ClaudeSessionIndex.bundleID
+      || captures.contains { $0.context.bundleID == ClaudeSessionIndex.bundleID }
+    let readers = ThingReaders.standard(
+      sessions: needsSessions ? ClaudeSessionIndex.build(since: since - 86_400, cache: sessionCache) : nil)
+    var seen = captures.map { capture in
+      ResumeFreshness.Seen(at: capture.at, thingID: readers.ref(for: capture).flatMap { ids[$0.key] })
+    }
+    // Screencap's own windows are no place, and say nothing about which thread is in front.
+    if let inFront, let ref = readers.ref(context: inFront, at: now) { seen.append(.init(at: now, thingID: ids[ref.key])) }
+    return seen
   }
 
   /// The thread of what was on screen within the last ten minutes, which is the one being worked in.

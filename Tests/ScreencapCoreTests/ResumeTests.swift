@@ -646,3 +646,70 @@ import Testing
     #expect(ThingKey.parent(of: "claude:abc") == nil)
   }
 }
+
+@Suite struct ResumeFreshnessTests {
+  let now: Double = 1_000_000
+
+  func row(_ thread: Int64, _ thing: Int64, _ seconds: Double) -> ThreadBinding {
+    ThreadBinding(threadID: thread, thingID: thing, dayStart: now, seconds: seconds, captures: 1, activities: 2)
+  }
+
+  /// A place belongs to the thread that holds most of its time; a page shared evenly belongs to nobody.
+  @Test func aPlaceBelongsToTheThreadWithMostOfItsTime() {
+    let owners = ResumeFreshness.owners(
+      bindings: [row(1, 10, 3_000), row(2, 10, 200), row(1, 20, 500), row(2, 20, 500)], now: now)
+    #expect(owners[10] == 1)
+    #expect(owners[20] == nil)
+  }
+
+  /// A thread watched a minute ago, in screenshots no activity holds yet, shows as seen a minute ago.
+  @Test func anUnsortedScreenshotMovesItsThreadsLastSeenTime() {
+    let owners: [Int64: Int64] = [10: 1, 30: 3]
+    let seen = [
+      ResumeFreshness.Seen(at: now - 300, thingID: 10), ResumeFreshness.Seen(at: now - 60, thingID: 10),
+      ResumeFreshness.Seen(at: now - 30, thingID: 99), ResumeFreshness.Seen(at: now - 20, thingID: nil),
+    ]
+    let last = ResumeFreshness.lastSeen(seen, owners: owners)
+    #expect(last == [1: now - 60])
+  }
+
+  /// The thread in front is the owner of the newest place on screen.
+  @Test func theThreadInFrontIsTheOwnerOfTheNewestPlace() {
+    let owners: [Int64: Int64] = [10: 1, 30: 3]
+    let seen = [ResumeFreshness.Seen(at: now - 200, thingID: 10), ResumeFreshness.Seen(at: now - 40, thingID: 30)]
+    #expect(ResumeFreshness.current(seen, owners: owners, now: now) == 3)
+    // Ten minutes on, nothing on screen is recent enough to say.
+    #expect(ResumeFreshness.current(seen, owners: owners, now: now + 700) == nil)
+  }
+
+  /// Moving from a stream to a window no thread owns, such as the Claude window, leaves no thread in front, so the
+  /// stream's thread stays first in the list instead of going last as the one being worked in.
+  @Test func aPlaceNoThreadOwnsLeavesNoThreadInFront() {
+    let owners: [Int64: Int64] = [10: 1]
+    let seen = [ResumeFreshness.Seen(at: now - 60, thingID: 10), ResumeFreshness.Seen(at: now - 5, thingID: 99)]
+    #expect(ResumeFreshness.current(seen, owners: owners, now: now) == nil)
+    let fresh = [ResumeFreshness.Seen(at: now - 60, thingID: 10), ResumeFreshness.Seen(at: now - 5, thingID: nil)]
+    #expect(ResumeFreshness.current(fresh, owners: owners, now: now) == nil)
+  }
+
+  /// Screenshots after the latest settled activity are the unsorted ones: an open activity, or one given its thread
+  /// only provisionally, does not count as settled.
+  @Test func onlyAClosedActivityWithAFinalThreadIsSettled() throws {
+    let (_, database) = try temporaryStore()
+    var thread = ActivityThread(
+      name: "Streams", summary: "", category: .leisure, createdAt: 0, lastSeenAt: 0, activityCount: 1, captions: [])
+    try database.writer.write { db in try thread.insert(db) }
+    for (id, start, open, provisional) in [("a", 1_000.0, false, false), ("b", 2_000.0, false, true), ("c", 3_000.0, true, false)] {
+      try database.insert(
+        Capture(
+          id: id, at: start, trigger: .timer, displayID: 1, isFocusedDisplay: true,
+          context: ForegroundContext(bundleID: "company.thebrowser.dia", appName: "Dia", windowTitle: "x", urlHost: "streams.example", urlPath: "/a"),
+          framePath: nil, thumbPath: nil, pixelWidth: 100, pixelHeight: 100, dHash: 0, duplicateOf: nil, ocrState: .done))
+      _ = try database.insert(
+        Activity(
+          firstCaptureID: id, lastCaptureID: id, startAt: start, endAt: start + 60, captureCount: 1, isOpen: open,
+          threadID: thread.id, isThreadProvisional: provisional))
+    }
+    #expect(try database.latestSettledActivityEnd() == 1_060)
+  }
+}

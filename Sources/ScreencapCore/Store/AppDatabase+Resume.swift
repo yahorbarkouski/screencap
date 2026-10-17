@@ -255,6 +255,16 @@ extension AppDatabase {
     }
   }
 
+  /// When the latest activity whose thread is settled ended: closed, and not a provisional guess. Screenshots after
+  /// it belong to no thread yet (`ResumeFreshness`).
+  public func latestSettledActivityEnd() throws -> Double? {
+    try reader.read { db in
+      try Double.fetchOne(
+        db,
+        sql: "SELECT MAX(endAt) FROM activity WHERE threadID IS NOT NULL AND isOpen = 0 AND isThreadProvisional = 0")
+    }
+  }
+
   /// The newest activity that has a thread. The newest of all is usually still open and not yet given one, so it
   /// cannot say which thread is being worked in.
   public func latestThreadedActivity() throws -> Activity? {
