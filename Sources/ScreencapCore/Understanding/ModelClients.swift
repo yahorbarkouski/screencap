@@ -71,6 +71,19 @@ public enum ModelError: Error, CustomStringConvertible {
   case http(Int, String)
   case malformed(String)
 
+  /// What went wrong in a few words, with no part of the request in it: the HTTP status and the message
+  /// OpenRouter gave, or the kind of answer that could not be read.
+  public var summary: String {
+    switch self {
+    case .missingKey: return "no OpenRouter key"
+    case .http(let status, let body):
+      let message = (try? JSONSerialization.jsonObject(with: Data(body.utf8)) as? [String: Any])
+        .flatMap { $0["error"] as? [String: Any] }.flatMap { $0["message"] as? String }
+      return message.map { "HTTP \(status): \($0)" } ?? "HTTP \(status)"
+    case .malformed: return "an answer the app could not read"
+    }
+  }
+
   public var description: String {
     switch self {
     case .missingKey: "no OpenRouter key"
@@ -83,7 +96,14 @@ public enum ModelError: Error, CustomStringConvertible {
 /// OpenRouter's endpoints: `/api/alpha/decisions` for decision models and chat completions with a strict JSON schema
 /// for the text model.
 public struct OpenRouter: Sendable {
-  public static let decider = "perplexity/pplx-decider-v1.1-27b"
+  /// The decision models, asked in this order: each has the same contract, and the next is asked only when one
+  /// fails. Every request asks for zero data retention, so a model with no such endpoint fails and is passed over.
+  /// On 17 October 2026 Perplexity withdrew v1 and v1.1 the day after v1.2 arrived, and nothing was sorted for
+  /// three hours; that day Luna's decision model had no zero-retention endpoint, so it answers only once it has one.
+  public static let deciders = [
+    "perplexity/pplx-decider-v1.2", "perplexity/pplx-decider-flash-v1.2", "openai/gpt-6-luna-decisions",
+  ]
+  public static let decider = deciders[0]
   public static let writer = "openai/gpt-6-luna"
 
   let key: @Sendable () -> String?
@@ -181,15 +201,32 @@ public struct OpenRouter: Sendable {
 
 public struct OpenRouterDecider: DecisionModel {
   let client: OpenRouter
-  let model: String
+  let models: [String]
 
-  public init(client: OpenRouter, model: String = OpenRouter.decider) {
+  public init(client: OpenRouter, models: [String] = OpenRouter.deciders) {
     self.client = client
-    self.model = model
+    self.models = models
   }
 
   public func decide(state: [StatePart], questions: [(key: String, question: DecisionQuestion)]) async throws
     -> DecisionResult
+  {
+    try await Self.firstAnswer(from: models) { model in try await decide(state: state, questions: questions, model: model) }
+  }
+
+  /// The answer of the first model that gives one. When none does, the first model's error is thrown, since the
+  /// models after it are there only to stand in for it.
+  static func firstAnswer<Answer>(from models: [String], _ ask: (String) async throws -> Answer) async throws -> Answer {
+    var first: Error?
+    for model in models {
+      try Task.checkCancellation()
+      do { return try await ask(model) } catch { first = first ?? error }
+    }
+    throw first ?? ModelError.malformed("no decision model to ask")
+  }
+
+  private func decide(state: [StatePart], questions: [(key: String, question: DecisionQuestion)], model: String)
+    async throws -> DecisionResult
   {
     let questionJSON: [(String, JSONValue)] = questions.map { key, question in
       switch question {

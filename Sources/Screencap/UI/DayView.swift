@@ -115,6 +115,10 @@ struct DayView: View {
         .font(.system(size: 30, weight: .medium)).tracking(-0.5).foregroundStyle(Theme.ink)
         .redacted(reason: model.story == nil && model.isWritingStory ? .placeholder : [])
         .contentTransition(.opacity)
+      if model.isToday, let stopped = model.understanding?.stoppedNote {
+        Text(stopped).font(.ui(13)).foregroundStyle(Theme.ink4).fixedSize(horizontal: false, vertical: true)
+          .padding(.top, 4)
+      }
     }
   }
 

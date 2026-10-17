@@ -19,7 +19,7 @@ enum UnderstandCommand {
     config.concurrency = 12
     if let boundaryThreshold { config.boundaryThreshold = boundaryThreshold }
     let engine = UnderstandingEngine(
-      database: database, location: location, decider: OpenRouterDecider(client: client, model: decider ?? OpenRouter.decider), writer: OpenRouterWriter(client: client),
+      database: database, location: location, decider: OpenRouterDecider(client: client, models: decider.map { [$0] } ?? OpenRouter.deciders), writer: OpenRouterWriter(client: client),
       config: config)
     let now = Date().timeIntervalSince1970
     var passes = 0

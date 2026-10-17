@@ -75,7 +75,8 @@ struct PanelView: View {
       } else if model.today.items.isEmpty {
         if model.isToday, let latest = model.keptCaptures.last {
           // Before the first activity is sorted, the latest screenshot shows that capture works.
-          Text(model.unsortedNote).font(.ui(12.5)).foregroundStyle(Theme.ink6).fixedSize(horizontal: false, vertical: true)
+          Text(model.understanding?.stoppedNote ?? model.unsortedNote).font(.ui(12.5)).foregroundStyle(Theme.ink6)
+            .fixedSize(horizontal: false, vertical: true)
           Screenshot(url: model.frameURL(latest), maxPixels: 900, cornerRadius: 10)
             .aspectRatio(CGFloat(latest.pixelWidth) / CGFloat(max(latest.pixelHeight, 1)), contentMode: .fit)
             .frame(width: Self.inner)
@@ -183,6 +184,10 @@ struct PanelView: View {
     } else {
       ScrollView {
         VStack(spacing: 0) {
+          if let stopped = model.understanding?.stoppedNote {
+            Text(stopped).font(.ui(12)).foregroundStyle(Theme.ink4).fixedSize(horizontal: false, vertical: true)
+              .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 8).padding(.bottom, 8)
+          }
           ForEach(threads) { row in
             ThreadTimeRow(model: model, row: row, maxMinutes: threads.first?.minutes ?? 1) {
               if let id = row.threadID { openThread(id) }

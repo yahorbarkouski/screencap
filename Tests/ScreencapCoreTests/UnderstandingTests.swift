@@ -461,3 +461,47 @@ struct Harness {
     #expect(value.serialized() == #"{"t2":"b","t1":"a\n\"q\"","new":null}"#)
   }
 }
+
+/// The decision models stand in for each other in order, so one withdrawn model does not stop the sorting.
+@Suite struct DeciderFallbackTests {
+  final class Asked: @unchecked Sendable {
+    var models: [String] = []
+  }
+
+  @Test func theNextModelAnswersWhenOneHasNoEndpoint() async throws {
+    let asked = Asked()
+    let answer = try await OpenRouterDecider.firstAnswer(from: ["a", "b", "c"]) { model -> String in
+      asked.models.append(model)
+      if model == "a" { throw ModelError.http(404, #"{"error":{"message":"No endpoints found for a."}}"#) }
+      return "answer from \(model)"
+    }
+    #expect(answer == "answer from b")
+    #expect(asked.models == ["a", "b"])
+  }
+
+  @Test func whenNoModelAnswersTheFirstModelsErrorIsThrown() async {
+    do {
+      _ = try await OpenRouterDecider.firstAnswer(from: ["a", "b"]) { model -> String in
+        throw ModelError.http(model == "a" ? 404 : 503, "")
+      }
+      Issue.record("expected an error")
+    } catch let error as ModelError {
+      #expect(error.summary == "HTTP 404")
+    } catch {
+      Issue.record("unexpected \(error)")
+    }
+  }
+
+  /// Every model asked is a decision model with the same contract, and the first is the one the app is tuned on.
+  @Test func theDecidersAreOrdered() {
+    #expect(OpenRouter.decider == "perplexity/pplx-decider-v1.2")
+    #expect(OpenRouter.deciders == ["perplexity/pplx-decider-v1.2", "perplexity/pplx-decider-flash-v1.2", "openai/gpt-6-luna-decisions"])
+  }
+
+  /// The short reason keeps OpenRouter's message and drops the rest of the body.
+  @Test func anHTTPErrorIsSummarisedByItsMessage() {
+    let body = #"{"error":{"message":"No endpoints found for perplexity/pplx-decider-v1.1-27b.","code":404},"user_id":"user_x"}"#
+    #expect(ModelError.http(404, body).summary == "HTTP 404: No endpoints found for perplexity/pplx-decider-v1.1-27b.")
+    #expect(ModelError.http(502, "<html>").summary == "HTTP 502")
+  }
+}
