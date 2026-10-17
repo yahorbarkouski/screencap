@@ -1,0 +1,20 @@
+{
+  "name": "screencap-resume-demo",
+  "private": true,
+  "description": "The README's Resume demo: a made-up afternoon, first the slow way back to a thread, then with Screencap.",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "stills": "node scripts/stills.mjs",
+    "render": "remotion render src/index.ts Demo out/resume.mp4"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.534",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "remotion": "4.0.534"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.12",
+    "typescript": "5.9.2"
+  }
+}

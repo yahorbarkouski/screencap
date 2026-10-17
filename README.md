@@ -1,6 +1,6 @@
 # Screencap
 
-Screencap is a lightweight, macOS-native activity memory for you and your agents, built on [smart capture](#how-it-works) and [System-1 models](https://arxiv.org/abs/2502.12470). It runs in the background on under 1% of one CPU core and about 30 MB of memory.
+Screencap is a lightweight, macOS-native activity memory for you and your agents, built on [smart capture](#how-it-works) and [System-1 models](https://arxiv.org/abs/2502.12470). It sorts your day into the threads of your work, finds anything you saw, and with ⌥Space [puts you back](#back-to-where-you-were) in any thread you left. It runs in the background on under 1% of one CPU core and about 30 MB of memory.
 
 **[Download the latest release](../../releases/latest)** · macOS 26 on Apple Silicon
 
@@ -8,7 +8,7 @@ Screencap is a lightweight, macOS-native activity memory for you and your agents
 
 ## Your day in 3 ways
 
-**Day** sums up the day in a few words and lays it out as one strip, coloured by thread. Move the pointer along the strip to see what was on screen at any point. Below the strip, each of the day's threads shows its key moments. A moment is one stretch of work on one thing, shown by its best screenshot and a short title.
+**Day** sums up the day in a few words and lays it out as one strip, coloured by thread: the piece of work, chore or pastime each stretch belongs to, which you may come back to over days. Move the pointer along the strip to see what was on screen at any point. Below the strip, each of the day's threads shows its key moments. A moment is one stretch of work on one thing, shown by its best screenshot and a short title.
 
 **Timeline** gives each thread its own column, with time running down the page, so work you kept going in parallel sits side by side.
 
@@ -28,6 +28,30 @@ The search box at the top of the window finds moments by any word that was on sc
 
 ![A moment opened beside the Day page](docs/readme/inspector.png)
 
+## Back to where you were
+
+Screencap sorts your day into threads, the pieces of work you keep coming back to. Coming back to one usually means finding everything it had open again: the Claude Code session in Claude's sidebar, the page among your tabs, the terminal under another window. Resume does that for you. Press ⌥Space in any app, choose a thread and press Return; the thread you were in before is already chosen. Resume selects the session and the page and raises the windows, leaving each where it is.
+
+![A made-up afternoon on a Mac. You fix a bug in three places, a Claude session, a pull request and a terminal, then switch to planning a trip in the same windows. Later, getting the bug fix back without Screencap takes seven steps: the session in Claude's sidebar, the pull request among the tabs, and the terminal under Notes through Mission Control. With Screencap, ⌥Space opens the Resume palette, Tab shows the three places the bug fix had open, and Return brings them back. The trip comes back the same way](docs/readme/resume.gif)
+
+| Key | In the palette |
+|---|---|
+| ↑ ↓, or type | Choose a thread; the preview shows its screen as you left it |
+| Return | Bring it back |
+| Tab | See its places: the pages, sessions and windows Return brings back |
+| ⌘⌫, ⌘Z | Drop a place that doesn't belong to the thread, or put it back |
+| ⌘K | Split a thread that holds two pieces of work, when the palette offers it |
+
+What comes back:
+
+- **Browsers.** In Dia, Chrome and Safari, each page in the tab that holds it, and a page you closed opens again. Firefox can't be scripted, so it only comes forward.
+- **Claude.** The Claude Code session you were in, told apart by when you sent a message in each. A thread spent in an ordinary chat brings back the last Claude Code session you used.
+- **Other apps.** The window you were in, found by its title. Claude Code in a terminal comes back as its terminal window.
+
+When something can't be brought back, such as a Slack channel its one window no longer shows, a note under the menu bar says what. Otherwise Resume shows nothing.
+
+Resume knows a thread's places from the app, window and page [smart capture](#how-it-works) recorded while you worked on it. It keeps those you came back to or stayed in for five minutes, and leaves out any where less than a quarter of your time went to this thread. Of many pages from one part of a site, such as streams, episodes or games, it keeps only the latest. macOS asks once for each browser whether Screencap may control it. Settings → Resume turns Resume off, changes its shortcut and restores dropped places; when another app holds ⌥Space, the palette opens with ⌥⌘R.
+
 ## The menu bar
 
 Click Screencap's icon in the menu bar, or press ⌥⌘S in any app, to see today at a glance: the day's strip and its threads, most time first.
@@ -38,7 +62,7 @@ Click Screencap's icon in the menu bar, or press ⌥⌘S in any app, to see toda
 - Point at a thread to light up its time on the strip. Click it to open the thread's page.
 - Start typing as soon as the panel opens to search everything you have seen. Each result shows the whole screen with your words marked.
 
-Right-click the icon to pause capture for 30 minutes, an hour or until tomorrow, to take a screenshot now, or to open Settings: the apps to leave out, text-only mode, site icons, appearance, agent access and backup.
+Right-click the icon to pause capture for 30 minutes, an hour or until tomorrow, to take a screenshot now, or to open Settings: the apps to leave out, text-only mode, site icons, appearance, Resume, agent access and backup.
 
 ## Agents
 
@@ -56,6 +80,7 @@ An agent sends what it reads to its own AI provider. [docs/agents.md](docs/agent
 
 - **Smart capture: it captures when your screen settles.** Screencap takes a screenshot when you have stayed on a page for 10 seconds, when the screen stops changing for 10 seconds after a click or scroll or for 3 seconds after you type, and at least once a minute. It drops screenshots that repeat the one before; a 10-hour day takes about 100 MB of disk.
 - **It reads the screen on your Mac.** Apple's on-device text recognition reads the text in your screenshots, so search works offline.
+- **It keeps where each thread happened.** Each screenshot records its app, window title and page address, and the time spent in each is added up for every thread. That is what [Resume](#back-to-where-you-were) brings back.
 - **It sorts the day by asking small questions.** Perplexity's `pplx-decider-v1.1-27b`, a System-1 model, answers short questions about your screenshots and screen text, such as "does a new activity start here?" and "which thread is this?". OpenAI's `gpt-6-luna` writes the titles of moments and the names of threads. Both run through OpenRouter with [zero data retention](#security).
 
 ## Security
@@ -88,16 +113,18 @@ Screenshots are 1024 px JPEGs of the screen you are working on. Of a page's addr
 
 **Deleting.** Deleting a moment removes its screenshots, screen text, search entries and model answers from your Mac, and its screenshots from the backup; the database overwrites deleted rows with zeros, and a new backup snapshot, taken right away, replaces the one that held them. Thread names and the day's headline written before the delete keep their wording until they are written again.
 
+**Resume.** To bring a thread's pages back, Screencap asks your browser for the addresses of its open tabs through Apple events, with your permission. To tell which Claude Code session was in front, it reads the session files Claude Code keeps in `~/.claude/projects`, and stores each session's name, the folder it works in and the times you sent a message in a file in Screencap's own data folder. It stores nothing of what was said in a session and writes nothing in `~/.claude`. Nothing Resume reads from your browsers or from Claude Code leaves your Mac. Splitting a thread with ⌘K names the new thread with `gpt-6-luna`, sending what the "Thread names" row of the table above lists.
+
 **Agents.** Screen text can hold instructions written for whoever reads it, so allow only agents you trust to read your history ([Agents](#agents)). The Agents switch in Settings is a consent setting for agent apps.
 
-**The app.** Releases are signed with a Developer ID, run under the hardened runtime with no entitlement exceptions, and are notarized by Apple. Screencap has no analytics or crash reporting. Once a day it downloads its update feed from `github.com`; the request names Screencap's version and carries nothing else about you or your Mac. Otherwise it connects only to OpenRouter, your bucket and the sites whose icons it shows. The feed and every update are signed with the project's private key, and Screencap installs an update only when that signature checks out and the new app carries the same Developer ID signature as the running one.
+**The app.** Releases are signed with a Developer ID, run under the hardened runtime with no exceptions to it, and are notarized by Apple. Their one entitlement lets Screencap send Apple events, which Resume uses to ask a browser for its tabs. Screencap has no analytics or crash reporting. Once a day it downloads its update feed from `github.com`; the request names Screencap's version and carries nothing else about you or your Mac. Otherwise it connects only to OpenRouter, your bucket and the sites whose icons it shows. The feed and every update are signed with the project's private key, and Screencap installs an update only when that signature checks out and the new app carries the same Developer ID signature as the running one.
 
 **Reporting a problem.** If you find a security issue, report it privately through the repository's Security tab (Report a vulnerability), so it can be fixed before it is public.
 
 ## Install
 
 1. Download the disk image from the [latest release](../../releases/latest), open it, and drag Screencap to Applications.
-2. Open Screencap. It asks for Screen Recording, to take screenshots, and for Accessibility, to read window titles and page addresses and to recognise private browser windows.
+2. Open Screencap. It asks for Screen Recording, to take screenshots, and for Accessibility, to read window titles and page addresses and to recognise private browser windows. Then macOS asks, once for each browser you use, whether Screencap may control it, which Resume needs to select the page you left.
 3. Paste a key from [OpenRouter](https://openrouter.ai/keys), a service that sells access to many AI models through one key; Screencap uses it to sort your day. Choose whether the models may see screenshots or text only. Without a key, Screencap still captures and searches, and it sorts your day once you add one.
 
 <p align="center"><img src="docs/readme/onboarding.png" width="560" alt="Onboarding: allowing screen recording"></p>
@@ -140,4 +167,4 @@ scripts/build-app.sh    # builds and signs build/Screencap.app
 
 Screencap is open source under the [MIT License](LICENSE).
 
-The screenshots show pages from [Wikipedia](https://en.wikipedia.org) (text and photos under CC BY-SA), [OpenStreetMap](https://www.openstreetmap.org/copyright) (© OpenStreetMap contributors), NASA, Apple Developer, GitHub, [The Rust Programming Language](https://doc.rust-lang.org/book/) and Hacker News, each under its owner's terms.
+The screenshots and GIFs show pages from [Wikipedia](https://en.wikipedia.org) (text and photos under CC BY-SA), [OpenStreetMap](https://www.openstreetmap.org/copyright) (© OpenStreetMap contributors), NASA, Apple Developer, GitHub, [The Rust Programming Language](https://doc.rust-lang.org/book/) and Hacker News, each under its owner's terms. The Resume GIF is drawn: its people, pages and sessions are made up, and the app and site icons in it belong to their makers.

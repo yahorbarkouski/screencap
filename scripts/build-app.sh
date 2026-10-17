@@ -62,6 +62,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>LSUIElement</key><true/>
   <key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
   <key>NSScreenCaptureUsageDescription</key><string>Screencap captures your screen to build your private activity timeline.</string>
+  <key>NSAppleEventsUsageDescription</key><string>Screencap selects the page a thread was on when you jump back into it.</string>
   <key>NSHumanReadableCopyright</key><string>© 2026 Yahor Barkouski</string>
   <key>SUFeedURL</key><string>${FEED_URL}</string>
   <key>SUPublicEDKey</key><string>${ED_PUBLIC_KEY}</string>
@@ -78,6 +79,18 @@ codesign --force --options runtime "$TIMESTAMP" --identifier com.screencaping.ap
 codesign --force --options runtime "$TIMESTAMP" --sign "$IDENTITY" "$SPARKLE/Versions/B/Autoupdate"
 codesign --force --options runtime "$TIMESTAMP" --sign "$IDENTITY" "$SPARKLE/Versions/B/Updater.app"
 codesign --force --options runtime "$TIMESTAMP" --sign "$IDENTITY" "$SPARKLE"
-codesign --force --options runtime "$TIMESTAMP" --sign "$IDENTITY" "$APP"
+# The hardened runtime blocks Apple events to other apps unless the app says it sends them, and blocks them
+# silently: the send fails with -1743 and macOS shows no consent dialog at all. Resume asks a browser which tabs
+# are open, so it needs this.
+cat > build/Screencap.entitlements <<'ENTITLEMENTS'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.automation.apple-events</key><true/>
+</dict>
+</plist>
+ENTITLEMENTS
+codesign --force --options runtime "$TIMESTAMP" --entitlements build/Screencap.entitlements --sign "$IDENTITY" "$APP"
 codesign --verify --deep --strict "$APP"
 echo "built $APP ($(du -sh "$APP" | cut -f1))"

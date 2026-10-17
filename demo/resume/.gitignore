@@ -1,0 +1,5 @@
+node_modules/
+out/
+# Rendered here by scripts and the app: app icons taken from this Mac's own apps, the stills of each made-up screen,
+# and the palette as the app draws it.
+public/generated/

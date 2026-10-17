@@ -140,18 +140,25 @@ final class PlaceIcons {
 
 extension NSImage {
   /// True when an image's visible pixels are dark and colourless: a black glyph drawn for a light browser tab.
+  /// A dark shape on a transparent ground, which disappears on a dark background unless it is drawn in ink.
+  ///
+  /// The ground has to be there: X's icon is a white X on an opaque black square, mostly dark, and redrawing it in
+  /// one colour turned the whole square that colour and the X with it. So at least a fifth of the icon has to be
+  /// transparent before it counts as a glyph.
   static func isDarkGlyph(_ data: Data) -> Bool {
     guard let rep = NSBitmapImageRep(data: data) else { return false }
-    var visible = 0, dark = 0
+    var sampled = 0, visible = 0, dark = 0
     for x in stride(from: 0, to: rep.pixelsWide, by: 2) {
       for y in stride(from: 0, to: rep.pixelsHigh, by: 2) {
+        sampled += 1
         guard let color = rep.colorAt(x: x, y: y)?.usingColorSpace(.deviceRGB), color.alphaComponent > 0.3 else { continue }
         visible += 1
         let (r, g, b) = (color.redComponent, color.greenComponent, color.blueComponent)
         if max(r, g, b) < 0.35 && max(r, g, b) - min(r, g, b) < 0.12 { dark += 1 }
       }
     }
-    return visible > 0 && Double(dark) / Double(visible) > 0.8
+    let transparent = Double(sampled - visible) / Double(max(sampled, 1))
+    return visible > 0 && transparent >= 0.2 && Double(dark) / Double(visible) > 0.8
   }
 
   /// True when a PNG shows nothing: every pixel transparent, or one colour throughout (some sites serve such a

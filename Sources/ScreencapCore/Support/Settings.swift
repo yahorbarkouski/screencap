@@ -16,6 +16,7 @@ public struct Settings: Sendable, Equatable, Codable {
   public var fetchesSiteIcons = true
   /// What AI agents may read through `Screencap mcp`.
   public var agents = AgentSettings()
+  public var resume = ResumeSettings()
 
   public init() {}
 
@@ -30,6 +31,7 @@ public struct Settings: Sendable, Equatable, Codable {
     appearance = try c.decodeIfPresent(Appearance.self, forKey: .appearance) ?? defaults.appearance
     fetchesSiteIcons = try c.decodeIfPresent(Bool.self, forKey: .fetchesSiteIcons) ?? defaults.fetchesSiteIcons
     agents = try c.decodeIfPresent(AgentSettings.self, forKey: .agents) ?? defaults.agents
+    resume = try c.decodeIfPresent(ResumeSettings.self, forKey: .resume) ?? defaults.resume
   }
 
   /// Password managers are always excluded. Settings asks people to add theirs when it is missing here.
@@ -43,6 +45,56 @@ public struct Settings: Sendable, Equatable, Codable {
 
   public var allExcludedBundleIDs: Set<String> {
     Self.alwaysExcludedBundleIDs.union(excludedBundleIDs)
+  }
+}
+
+/// Resume, the thread switcher.
+public struct ResumeSettings: Sendable, Equatable, Codable {
+  /// Off, the shortcut opens nothing and the places each thread was worked in stop being worked out.
+  public var isEnabled = true
+  /// What opens the palette; nil is ⌥Space.
+  public var shortcut: Shortcut?
+
+  public init() {}
+
+  public init(from decoder: any Decoder) throws {
+    let c = try decoder.container(keyedBy: CodingKeys.self)
+    let defaults = ResumeSettings()
+    isEnabled = try c.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? defaults.isEnabled
+    shortcut = try c.decodeIfPresent(Shortcut.self, forKey: .shortcut)
+  }
+}
+
+/// A key held with modifiers, in the form the system's hot keys take.
+public struct Shortcut: Sendable, Equatable, Codable {
+  /// The virtual key code, as Carbon's `kVK_*` constants name it.
+  public var keyCode: UInt32
+  /// Carbon's modifier flags, `cmdKey` and the rest, which are the values below.
+  public var modifiers: UInt32
+  /// The key as its keycap shows it: "Space", "R", "F5", "←".
+  public var key: String
+
+  public static let command: UInt32 = 0x100
+  public static let shift: UInt32 = 0x200
+  public static let option: UInt32 = 0x800
+  public static let control: UInt32 = 0x1000
+
+  public init(keyCode: UInt32, modifiers: UInt32, key: String) {
+    self.keyCode = keyCode
+    self.modifiers = modifiers
+    self.key = key
+  }
+
+  /// The modifiers in the order macOS writes them, then the key: "⌃⌥R", "⌥Space".
+  public var name: String {
+    let symbols: [(UInt32, String)] = [(Self.control, "⌃"), (Self.option, "⌥"), (Self.shift, "⇧"), (Self.command, "⌘")]
+    return symbols.filter { modifiers & $0.0 != 0 }.map(\.1).joined() + key
+  }
+
+  /// The same, with a key that is a word in lower case, as the palette's keycaps write it: "⌥space".
+  public var keycap: String {
+    let word = key.count > 1 && key.allSatisfy(\.isLetter)
+    return String(name.dropLast(key.count)) + (word ? key.lowercased() : key)
   }
 }
 

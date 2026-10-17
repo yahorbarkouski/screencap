@@ -7,10 +7,13 @@ import SwiftUI
 /// itself once the permission is granted), the key for the models, and where the app lives afterwards.
 struct OnboardingView: View {
   enum Step: Int, CaseIterable {
-    case welcome, screen, accessibility, key, done
+    case welcome, screen, accessibility, automation, key, done
   }
 
   @State var step: Step
+  /// Shows one step on its own and finishes after it, for a permission asked of somebody who was onboarded
+  /// before that permission existed.
+  var onlyStep: Step?
   /// Saves the key and starts understanding with it.
   var saveKey: (String) -> Void
   var finish: () -> Void
@@ -20,6 +23,8 @@ struct OnboardingView: View {
   @State private var key = ""
   @State private var hasKey = OpenRouter.storedKey() != nil
   @State private var textOnly = SettingsStore().current.textOnlyMode
+  @State private var automationSummary = AutomationAccess.summary()
+  @State private var askingAutomation = false
 
   var body: some View {
     VStack(spacing: 0) {
@@ -27,7 +32,7 @@ struct OnboardingView: View {
       content.frame(maxWidth: 380).id(step).transition(.opacity)
       Spacer(minLength: 0)
       HStack(spacing: 6) {
-        ForEach(Step.allCases, id: \.self) { item in
+        ForEach(onlyStep == nil ? Step.allCases : [], id: \.self) { item in
           Capsule().fill(item == step ? Theme.ink : Theme.ink6.opacity(0.4)).frame(width: item == step ? 16 : 6, height: 6)
         }
       }
@@ -76,11 +81,38 @@ struct OnboardingView: View {
         icon: symbol("macwindow"), title: "Read window titles and pages",
         body: "With Accessibility, Screencap knows which document, chat or page was in front, without asking any app.") {
           if accessibilityAllowed {
-            done("Allowed") { go(.key) }
+            done("Allowed") { go(.automation) }
           } else {
             Button("Allow") { AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary) }
               .buttonStyle(PillStyle(prominent: true, height: 34))
-            Button("Not now") { go(.key) }.buttonStyle(PillStyle())
+            Button("Not now") { go(.automation) }.buttonStyle(PillStyle())
+          }
+        }
+    case .automation:
+      page(
+        icon: symbol("arrow.uturn.backward.square"), title: "Jump back into your work",
+        body: "Press \(ResumePaletteController.shortcutName) to pick up a thread where you left it. To put you back on the right page, Screencap asks your browser which tabs are open — macOS will ask you to allow that once per browser.") {
+          if askingAutomation {
+            Text("Answer the dialogs macOS is showing…").font(.ui(13)).foregroundStyle(Theme.ink4)
+          } else {
+            Button("Allow") {
+              askingAutomation = true
+              Task {
+                let states = await AutomationAccess.request()
+                automationSummary = AutomationAccess.outcome(of: states)
+                askingAutomation = false
+              }
+            }
+            .buttonStyle(PillStyle(prominent: true, height: 34))
+            Text(automationSummary).font(.ui(12)).foregroundStyle(Theme.ink5).multilineTextAlignment(.center)
+              .fixedSize(horizontal: false, vertical: true)
+            if !AutomationAccess.anyAllowed(), !AutomationAccess.anyUnasked() {
+              Button("Open System Settings") { AutomationAccess.openSettings() }.buttonStyle(PillStyle())
+            }
+            Button(AutomationAccess.anyAllowed() ? "Continue" : "Not now") {
+              if onlyStep == nil { go(.key) } else { finish() }
+            }
+            .buttonStyle(PillStyle())
           }
         }
     case .key:
@@ -110,7 +142,7 @@ struct OnboardingView: View {
     case .done:
       page(
         icon: Image(nsImage: MenuBarGlyph.image()).renderingMode(.template), title: "Screencap is in your menu bar",
-        body: "Click its icon, or press ⌥⌘S anywhere, to see today. The first threads appear a few minutes after you start working.") {
+        body: "Click its icon, or press ⌥⌘S anywhere, to see today; press \(ResumePaletteController.shortcutName) to jump back into a thread. The first threads appear a few minutes after you start working.") {
           Button("Open today", action: finish).buttonStyle(PillStyle(prominent: true, height: 34))
         }
     }

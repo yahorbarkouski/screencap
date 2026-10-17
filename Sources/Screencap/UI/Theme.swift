@@ -14,6 +14,8 @@ enum Theme {
   static let wash = dynamic(light: 0x17181A, lightAlpha: 0.06, dark: 0xFFFFFF, darkAlpha: 0.07)
   static let washHover = dynamic(light: 0x17181A, lightAlpha: 0.09, dark: 0xFFFFFF, darkAlpha: 0.11)
   static let hairline = dynamic(light: 0x17181A, lightAlpha: 0.12, dark: 0xFFFFFF, darkAlpha: 0.12)
+  /// The chosen row on glass. A wash disappears over a busy screen behind the glass, so this is about twice as strong.
+  static let glassSelection = dynamic(light: 0x17181A, lightAlpha: 0.1, dark: 0xFFFFFF, darkAlpha: 0.15)
   static let page = Color(nsColor: .textBackgroundColor)
   static let onInk = dynamic(light: 0xFFFFFF, dark: 0x17181A)
   static let exact = Color(hex: 0x3B9555)
@@ -74,3 +76,22 @@ func durationText(_ minutes: Double) -> String {
 }
 
 func clockText(_ at: Double) -> String { TimeFormatter().hourMinute(at) }
+
+extension NSGlassEffectView {
+  /// Liquid Glass cut to a rounded rectangle, for a borderless panel that is nothing but the glass.
+  ///
+  /// The glass rounds its own drawing, but in the light appearance it still lays a faint fill over its whole square
+  /// frame, which shows as square corners on a light page and gave the window's shadow a square outline. Clipping
+  /// its layer to the same rounded rectangle leaves nothing outside the shape, so the corners stay round and the
+  /// window shadow follows them.
+  static func rounded(_ radius: CGFloat, content: NSView) -> NSGlassEffectView {
+    let glass = NSGlassEffectView()
+    glass.cornerRadius = radius
+    glass.contentView = content
+    glass.wantsLayer = true
+    glass.layer?.cornerRadius = radius
+    glass.layer?.cornerCurve = .continuous
+    glass.layer?.masksToBounds = true
+    return glass
+  }
+}

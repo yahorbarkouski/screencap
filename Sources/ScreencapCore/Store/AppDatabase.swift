@@ -180,6 +180,43 @@ public final class AppDatabase: Sendable {
     migrator.registerMigration("v5-anchors") { db in
       try db.alter(table: "capture") { t in t.add(column: "isAnchor", .boolean).notNull().defaults(to: true) }
     }
+    // Places worth coming back to, and the time each was on screen while a thread was being worked on.
+    migrator.registerMigration("v6-bindings") { db in
+      try db.create(table: "thing") { t in
+        t.autoIncrementedPrimaryKey("id")
+        t.column("key", .text).notNull().unique()
+        t.column("kind", .text).notNull()
+        t.column("label", .text).notNull()
+        t.column("detail", .text)
+        t.column("bundleID", .text)
+        t.column("firstSeenAt", .double).notNull()
+        t.column("lastSeenAt", .double).notNull()
+      }
+      try db.create(table: "binding") { t in
+        t.column("threadID", .integer).notNull().references("thread", onDelete: .cascade)
+        t.column("thingID", .integer).notNull().references("thing", onDelete: .cascade)
+        t.column("dayStart", .double).notNull()
+        t.column("seconds", .double).notNull()
+        t.column("captures", .integer).notNull()
+        t.primaryKey(["threadID", "thingID", "dayStart"])
+      }
+      // How much of a thing's time belongs to other threads decides whether it is really this thread's.
+      try db.create(index: "binding_thing", on: "binding", columns: ["thingID"])
+    }
+    // How many separate stretches of work a place appeared in: a page visited once and never again is not
+    // somewhere you come back to, however long it was on screen.
+    migrator.registerMigration("v7-binding-activities") { db in
+      try db.alter(table: "binding") { t in t.add(column: "activities", .integer).notNull().defaults(to: 1) }
+    }
+    // Places the person said are not a thread's. Kept apart from `binding`, which a rebuild replaces wholesale.
+    migrator.registerMigration("v8-thing-exclusions") { db in
+      try db.create(table: "thingExclusion") { t in
+        t.column("threadID", .integer).notNull().references("thread", onDelete: .cascade)
+        t.column("thingID", .integer).notNull().references("thing", onDelete: .cascade)
+        t.column("at", .double).notNull()
+        t.primaryKey(["threadID", "thingID"])
+      }
+    }
     return migrator
   }
 }

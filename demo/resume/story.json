@@ -1,0 +1,171 @@
+{
+  "about": "A made-up afternoon for the README's Resume demo. The Remotion scenes draw these threads' screens, and `Screencap resume-story` builds a store from them and draws the palette as the app does. Every name, page and session here is invented.",
+  "now": "2026-10-14T15:30:00+02:00",
+  "screen": {
+    "width": 1024,
+    "height": 640
+  },
+  "threads": [
+    {
+      "id": "tokenizer",
+      "name": "Tokenizer: nested quotes",
+      "leftOff": "Writing the failing test for nested quotes",
+      "minutesAgo": {
+        "a": 100,
+        "b": 0
+      },
+      "still": "public/generated/stills/tokenizer.png",
+      "front": {
+        "x": 12,
+        "y": 34,
+        "width": 520,
+        "height": 594
+      },
+      "places": [
+        {
+          "key": "claude:7f3c2a90-5e1b-4c47-9d0e-1a2b3c4d5e6f",
+          "kind": "session",
+          "label": "Fix tokenizer for nested quotes",
+          "detail": "tokenizer",
+          "bundleID": "com.anthropic.claudefordesktop",
+          "minutes": 26,
+          "activities": 4
+        },
+        {
+          "key": "url:github.com/acme/tokenizer/pull/482",
+          "kind": "tab",
+          "label": "github.com/acme/tokenizer/pull/482",
+          "bundleID": "company.thebrowser.dia",
+          "minutes": 14,
+          "activities": 4
+        },
+        {
+          "key": "win:com.mitchellh.ghostty|tokenizer — cargo test",
+          "kind": "window",
+          "label": "tokenizer — cargo test",
+          "detail": "Ghostty",
+          "bundleID": "com.mitchellh.ghostty",
+          "minutes": 9,
+          "activities": 3
+        }
+      ]
+    },
+    {
+      "id": "roadmap",
+      "name": "Q4 roadmap",
+      "leftOff": "Cutting the search milestone to three goals",
+      "minutesAgo": {
+        "a": 230,
+        "b": 233
+      },
+      "places": [
+        {
+          "key": "url:docs.google.com/document/d/q4-roadmap",
+          "kind": "tab",
+          "label": "docs.google.com/document/d/q4-roadmap",
+          "bundleID": "company.thebrowser.dia",
+          "minutes": 22,
+          "activities": 3
+        }
+      ]
+    },
+    {
+      "id": "async",
+      "name": "Rust async book",
+      "leftOff": "Reading the chapter on pinning",
+      "minutesAgo": {
+        "a": 1420,
+        "b": 1423
+      },
+      "places": [
+        {
+          "key": "url:rust-lang.github.io/async-book/part-reference/pinning.html",
+          "kind": "tab",
+          "label": "rust-lang.github.io/async-book/part-reference/pinning.html",
+          "bundleID": "company.thebrowser.dia",
+          "minutes": 34,
+          "activities": 3
+        }
+      ]
+    },
+    {
+      "id": "kyoto",
+      "name": "Kyoto in April",
+      "leftOff": "Comparing two ryokan near Gion",
+      "minutesAgo": {
+        "a": 0,
+        "b": 2
+      },
+      "still": "public/generated/stills/kyoto.png",
+      "front": {
+        "x": 540,
+        "y": 34,
+        "width": 472,
+        "height": 360
+      },
+      "places": [
+        {
+          "key": "url:en.wikipedia.org/wiki/Gion",
+          "kind": "tab",
+          "label": "en.wikipedia.org/wiki/Gion",
+          "bundleID": "company.thebrowser.dia",
+          "minutes": 16,
+          "activities": 3
+        },
+        {
+          "key": "win:com.apple.Notes|Kyoto in April",
+          "kind": "window",
+          "label": "Kyoto in April",
+          "detail": "Notes",
+          "bundleID": "com.apple.Notes",
+          "minutes": 11,
+          "activities": 3
+        },
+        {
+          "key": "claude:3c1f8e22-9a4b-4d17-8e6f-0b1c2d3e4f5a",
+          "kind": "session",
+          "label": "Plan Kyoto day trips",
+          "detail": "notes",
+          "bundleID": "com.anthropic.claudefordesktop",
+          "minutes": 7,
+          "activities": 2
+        }
+      ]
+    }
+  ],
+  "boards": {
+    "a": {
+      "current": "kyoto"
+    },
+    "b": {
+      "current": "tokenizer"
+    }
+  },
+  "states": [
+    {
+      "name": "a-0",
+      "board": "a",
+      "query": "",
+      "selection": 0,
+      "peeking": false,
+      "place": 0
+    },
+    {
+      "name": "a-0-places",
+      "board": "a",
+      "query": "",
+      "selection": 0,
+      "peeking": true,
+      "place": 0
+    },
+    {
+      "name": "b-0",
+      "board": "b",
+      "query": "",
+      "selection": 0,
+      "peeking": false,
+      "place": 0
+    }
+  ],
+  "toasts": []
+}

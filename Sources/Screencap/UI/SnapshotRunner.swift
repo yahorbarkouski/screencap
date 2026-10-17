@@ -76,6 +76,24 @@ enum SnapshotRunner {
     await render(panel(), size: PanelView.size, to: directory.appendingPathComponent("panel-search-light.png"))
     search.reset()
 
+    let resume = ResumeModel(database: model.database, location: model.location, corrections: nil)
+    resume.reload()
+    func palette() -> some View { ResumePalette(model: resume, resume: {}) }
+    await render(palette(), size: ResumePalette.size, to: directory.appendingPathComponent("resume.png"), dark: true)
+    await render(palette(), size: ResumePalette.size, to: directory.appendingPathComponent("resume-light.png"))
+    // A thread other than the first with a screen to show, so the preview is seen to follow the choice.
+    if let index = resume.shown.indices.dropFirst().first(where: { resume.shown[$0].preview != nil }) {
+      resume.choose(row: index)
+      await render(palette(), size: ResumePalette.size, to: directory.appendingPathComponent("resume-preview.png"), dark: true)
+      resume.choose(row: 0)
+    }
+    resume.togglePeek()
+    await render(palette(), size: ResumePalette.size, to: directory.appendingPathComponent("resume-peek.png"), dark: true)
+    resume.leavePeek()
+    resume.query = String(resume.shown.dropFirst().first?.name.prefix(3) ?? "")
+    await render(palette(), size: ResumePalette.size, to: directory.appendingPathComponent("resume-filtered.png"), dark: true)
+    resume.query = ""
+
     // A screenshot expanded over the main window: the busiest activity of the day, at its middle screenshot.
     if let activity = model.timeline.items.flatMap({ item -> [Activity] in
       if case .session(let s) = item { return s.activities }

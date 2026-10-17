@@ -28,7 +28,10 @@ enum DemoCommand {
     model.section = .threads
     model.refresh()
     for _ in 0..<200 where model.isLoadingCovers { try await Task.sleep(for: .milliseconds(100)) }
+    // The places each made-up thread happened in, for the Resume GIF. No transcripts are read: the made-up day has
+    // no Claude sessions, and the person's own must never reach a store meant for publishing.
+    let places = try BindingBuilder().rebuild(in: database, readers: ThingReaders.standard())
     let frames = try FileManager.default.subpathsOfDirectory(atPath: location.root.appendingPathComponent("Frames").path).filter { $0.hasSuffix(".heic") }
-    print("demo-store: \(result.threadIDs.count) threads, \(model.timeline.items.count) timeline items, \(frames.count) frames, headline \"\(model.story?.headline ?? "none")\", \(model.covers.count) covers")
+    print("demo-store: \(result.threadIDs.count) threads, \(model.timeline.items.count) timeline items, \(frames.count) frames, headline \"\(model.story?.headline ?? "none")\", \(model.covers.count) covers, \(places.things) places")
   }
 }
