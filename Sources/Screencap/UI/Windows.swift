@@ -177,12 +177,19 @@ final class PanelController: NSObject, NSWindowDelegate {
   @objc private func openSettingsFromMenu() { openSettings() }
   @objc private func checkForUpdates() { model.updates?.checkOrInstall() }
 
-  /// ⌥⌘S anywhere toggles the panel. Carbon hot keys need no Accessibility permission.
+  /// ⌥⌘S anywhere toggles the panel; ⌥⌘R, registered by `ResumePaletteController`, opens the resume palette.
+  /// Carbon hot keys need no Accessibility permission.
   private func registerHotKey() {
     var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
     let selfPointer = Unmanaged.passUnretained(self).toOpaque()
-    InstallEventHandler(GetApplicationEventTarget(), { _, _, userData in
-      guard let userData else { return noErr }
+    InstallEventHandler(GetApplicationEventTarget(), { _, event, userData in
+      guard let userData, let event else { return noErr }
+      // Every installed handler sees every hot key, so each answers only to its own.
+      var pressed = EventHotKeyID()
+      GetEventParameter(
+        event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID), nil,
+        MemoryLayout<EventHotKeyID>.size, nil, &pressed)
+      guard pressed.id == 1 else { return noErr }
       let controller = Unmanaged<PanelController>.fromOpaque(userData).takeUnretainedValue()
       MainActor.assumeIsolated { controller.toggle() }
       return noErr

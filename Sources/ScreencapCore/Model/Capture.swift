@@ -63,10 +63,13 @@ public struct ForegroundContext: Codable, Sendable, Hashable {
   /// The app and site: what has to change for a switch capture.
   public var placeKey: String { [bundleID ?? "", urlHost ?? ""].joined(separator: "|") }
 
-  /// Titles such as "(3) YouTube" change with unread counters while the place stays the same.
-  static func stableTitle(_ title: String?) -> String {
+  /// Titles such as "(3) YouTube" or "general (Channel) - Acme - 2 new items - Slack" change with unread counters
+  /// while the place stays the same.
+  public static func stableTitle(_ title: String?) -> String {
     guard let title else { return "" }
-    return title.replacingOccurrences(of: #"^\(\d+\)\s*"#, with: "", options: .regularExpression)
+    return title
+      .replacingOccurrences(of: #"^\(\d+\)\s*"#, with: "", options: .regularExpression)
+      .replacingOccurrences(of: #" - \d+ new items?(?= - )"#, with: "", options: .regularExpression)
   }
 }
 

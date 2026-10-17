@@ -30,6 +30,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private var capture: CaptureEngine!
   private var understanding: UnderstandingDriver!
   private var panel: PanelController!
+  private var resumePalette: ResumePaletteController!
+  private var resumeUpkeep: ResumeUpkeep!
   private var mainWindow: MainWindowController?
   private var settingsWindow: NSWindow?
   private var onboardingWindow: NSWindow?
@@ -68,6 +70,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       }
       understanding.onChange = { [weak self] in self?.refreshIfVisible() }
       panel = PanelController(model: model)
+      // ⌥Space anywhere, or the shortcut Settings names: the threads worked in lately, and return to be put back
+      // into one.
+      resumePalette = ResumePaletteController(database: database, location: location, corrections: model.corrections)
+      resumeUpkeep = ResumeUpkeep(database: database, location: location)
+      applyResume()
       panel.openMain = { [weak self] in self?.showMain() }
       panel.openSettings = { [weak self] in self?.showSettings() }
       if !viewOnly {
@@ -114,6 +121,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
           showMain()
         }
       } else {
+        // After the window the launch puts up, so the ask is not buried behind it.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.askAboutAutomationIfNeeded() }
         if try database.meta("firstLaunch") == nil {
           try database.setMeta("firstLaunch", ISO8601DateFormatter().string(from: Date()))
         }
@@ -221,12 +230,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
   }
 
+  /// Resume runs only while Settings has it on: the shortcut, and the passes that keep each thread's places current.
+  func applyResume() {
+    let wanted = model.settings.current.resume
+    resumePalette.apply(wanted)
+    guard !viewOnly, let upkeep = resumeUpkeep else { return }
+    Task.detached(priority: .utility) {
+      if wanted.isEnabled { await upkeep.start() } else { await upkeep.stop() }
+    }
+  }
+
   @objc func showSettings() {
     if settingsWindow == nil {
       let view = SettingsView(model: model) { [weak self] in
         guard let self else { return }
         self.capture.applySettings()
         self.applyAppearance()
+        self.applyResume()
         Task { await self.understanding.engine.setTextOnly(self.model.settings.current.textOnlyMode) }
         self.understanding.poke()
       }
@@ -256,18 +276,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     NotificationCenter.default.post(name: .focusSearch, object: nil)
   }
 
-  func showOnboarding(from step: OnboardingView.Step) {
+  /// Asks about Automation once, for somebody who was onboarded before Resume existed: without it a resume can
+  /// only raise a browser's window, and the refusal that causes it is silent.
+  func askAboutAutomationIfNeeded() {
+    guard !viewOnly, snapshotDirectory == nil, model.settings.current.resume.isEnabled else { return }
+    guard (try? model.database.meta("onboarded")) != nil else { return }
+    guard (try? model.database.meta("automationAsked")) == nil else { return }
+    // Asked once, whatever the answer: closing the card counts, so it never comes back on every launch. Settings
+    // is where it can be asked again.
+    try? model.database.setMeta("automationAsked", ISO8601DateFormatter().string(from: Date()))
+    guard AutomationAccess.anyUnasked() else { return }
+    showOnboarding(from: .automation, only: .automation)
+  }
+
+  func showOnboarding(from step: OnboardingView.Step, only: OnboardingView.Step? = nil) {
     if onboardingWindow == nil {
       let view = OnboardingView(
         step: step,
+        onlyStep: only,
         saveKey: { [weak self] key in
           _ = Keychain.write(Data(key.utf8), for: .openRouterKey)
           self?.understanding.poke()
         },
         finish: { [weak self] in
           guard let self else { return }
-          try? self.model.database.setMeta("onboarded", ISO8601DateFormatter().string(from: Date()))
+          let now = ISO8601DateFormatter().string(from: Date())
+          try? self.model.database.setMeta("automationAsked", now)
           self.onboardingWindow?.close()
+          guard only == nil else { return }
+          try? self.model.database.setMeta("onboarded", now)
           // The first screenshot right away (Screencap's own windows are left out of it), so today opens on it.
           self.capture.capture(.manual)
           self.showMain()
@@ -285,10 +322,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       }
       onboardingWindow = window
     }
+    // An accessory app that has just become regular does not always take the front on the first ask, and a
+    // permission card nobody can see is worse than none: the window is raised above the others and the app is
+    // activated once the policy change has landed.
     NSApp.setActivationPolicy(.regular)
     onboardingWindow?.center()
+    onboardingWindow?.level = .floating
     onboardingWindow?.makeKeyAndOrderFront(nil)
     NSApp.activate()
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+      NSApp.activate()
+      self?.onboardingWindow?.makeKeyAndOrderFront(nil)
+      self?.onboardingWindow?.level = .normal
+    }
   }
 
   private func buildMenu() {

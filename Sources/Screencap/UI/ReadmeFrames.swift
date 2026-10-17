@@ -1,8 +1,10 @@
 import AppKit
+import CoreImage
+import CoreImage.CIFilterBuiltins
 import ScreencapCore
 import SwiftUI
 
-/// The frames of the README's two GIFs, on the made-up day, each drawn offscreen with a pointer on top and nothing
+/// The frames of the README's GIFs, on the made-up day, each drawn offscreen with a pointer on top and nothing
 /// ever shown on screen. `scripts/readme-shots.py` lays them on the backdrop and makes `window.gif` and `popup.gif`.
 ///
 /// The main window (`window`): the Day page with its strip scrubbed, then Timeline, then Threads, where the pointer

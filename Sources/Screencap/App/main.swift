@@ -12,6 +12,12 @@ import ScreencapCore
 //   Screencap delete-activity --id N [--store DIR]   the inspector's Delete
 //   Screencap not-this-thread --id N [--store DIR]   the inspector's "Not this thread", printing both threads' cards
 //   Screencap demo-store --store DIR --pages DIR  a made-up yesterday on captured public pages, for the README's screenshots
+//   Screencap rebuild-bindings [--since DAYS] [--from-scratch]  how long each place was on screen per thread
+//   Screencap bindings [--thread N | --name TEXT] [--all]   what a resume would bring forward, and what it leaves out
+//   Screencap split-candidates [--apply N]        threads that hold two pieces of work, and splitting one
+//   Screencap resume --thread N | --name TEXT     brings that thread's places to the front (run from the signed app)
+//   Screencap resume-story --spec FILE --out DIR  the palette drawn over the README demo's made-up afternoon
+//   Screencap probe-resume [--out FILE]           what each browser and Claude answer, for diagnosing a resume
 //   Screencap probe-windows --out FILE            what the private-window scanner sees in each browser window, without titles
 //   Screencap mcp [install|uninstall CLIENT|status]  the MCP server agents read the history through, and connecting them
 
@@ -146,6 +152,67 @@ case "not-this-thread":
     }
   }
   RunLoop.main.run()
+case "resume", "probe-resume", "probe-palette":
+  // Bringing a thread's places forward needs the app's own Accessibility and Apple Events grants, so run these
+  // from the signed app: open -n -g build/Screencap.app --args resume --name "tokenizer"
+  Task { @MainActor in
+    do {
+      switch command {
+      case "resume": try ResumeCommands.resume(location: storeLocation(), option: option)
+      case "probe-palette": try await ResumeCommands.probePalette(location: storeLocation(), option: option)
+      default: try await ResumeCommands.probe(option: option)
+      }
+      exit(0)
+    } catch {
+      print("\(command) failed: \(error.localizedDescription)")
+      exit(1)
+    }
+  }
+  RunLoop.main.run()
+case "resume-story":
+  // The README's Resume demo (demo/resume): the palette as the app draws it, over the demo's made-up threads.
+  Task { @MainActor in
+    do {
+      guard let spec = option("--spec"), let out = option("--out") else {
+        print("usage: Screencap resume-story --spec demo/resume/story.json --out DIR")
+        exit(2)
+      }
+      _ = NSApplication.shared
+      NSApp.setActivationPolicy(.prohibited)
+      try await ResumeStory.run(spec: URL(fileURLWithPath: spec), out: URL(fileURLWithPath: out, isDirectory: true))
+      exit(0)
+    } catch {
+      print("resume-story failed: \(error.localizedDescription)")
+      exit(1)
+    }
+  }
+  RunLoop.main.run()
+case "split-candidates":
+  // Threads that hold two pieces of work; with --apply, splitting one names the new thread, which asks a model.
+  Task {
+    do {
+      try await ResumeCommands.splits(location: storeLocation(), option: option)
+      exit(0)
+    } catch {
+      print("split-candidates failed: \(error.localizedDescription)")
+      exit(1)
+    }
+  }
+  RunLoop.main.run()
+case "rebuild-bindings", "bindings":
+  // What each thread's places are, and how long each was on screen: the input a resume ranks.
+  do {
+    if command == "rebuild-bindings" {
+      try ResumeCommands.rebuild(
+        location: storeLocation(), option: option, fromScratch: arguments.contains("--from-scratch"))
+    } else {
+      try ResumeCommands.show(location: storeLocation(), option: option, all: arguments.contains("--all"))
+    }
+    exit(0)
+  } catch {
+    print("\(command) failed: \(error.localizedDescription)")
+    exit(1)
+  }
 case "mcp", "--mcp":
   // `--mcp` is how Screencap v1 registered itself with agent apps; once this app takes v1's place, those entries
   // start the server here instead of a second menu-bar app.

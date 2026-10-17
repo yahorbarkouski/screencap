@@ -1,4 +1,5 @@
 import AppKit
+import Carbon
 import ScreencapCore
 import ServiceManagement
 import SwiftUI
@@ -164,6 +165,7 @@ struct SettingsView: View {
           Text("Up to date as of \(last.formatted(date: .omitted, time: .shortened))").font(.caption).foregroundStyle(.secondary)
         }
       }
+      ResumeSection(database: model.database, location: model.location, resume: $settings.resume)
       if let updates = model.updates { UpdatesSection(updates: updates) }
     }
     .formStyle(.grouped)
@@ -213,6 +215,139 @@ struct SettingsView: View {
 }
 
 /// Sparkle's two switches, the running version and a way to check now.
+/// Resume: what opens it, and which browsers it may ask about their tabs.
+struct ResumeSection: View {
+  let database: AppDatabase
+  let location: StoreLocation
+  @Binding var resume: ResumeSettings
+  @State private var recording = false
+  @State private var keyMonitor: Any?
+  @State private var recordingHint: String?
+  @State private var excluded: [ThingExclusion] = []
+  @State private var automation = AutomationAccess.summary()
+  @State private var asking = false
+  @State private var rebuilt: String?
+
+  var body: some View {
+    Section("Resume") {
+      Toggle("Jump back into a thread", isOn: $resume.isEnabled)
+      if resume.isEnabled {
+        details
+      } else {
+        Text("Off, the shortcut opens nothing and Screencap stops working out the places of each thread.")
+          .font(.caption).foregroundStyle(.secondary)
+      }
+    }
+    .onAppear { excluded = (try? database.excludedPlaces()) ?? [] }
+    .onDisappear { stopRecording() }
+  }
+
+  @ViewBuilder private var details: some View {
+    HStack {
+      Text("Shortcut")
+      Spacer()
+      if resume.shortcut != nil, !recording {
+        Button("Use ⌥Space") { resume.shortcut = nil }
+          .buttonStyle(.borderless)
+      }
+      Button(recording ? "Type the shortcut…" : ResumePaletteController.shortcutName) {
+        recording ? stopRecording() : startRecording()
+      }
+      .font(.mono(12))
+    }
+    if let note = recordingHint ?? ResumeShortcut.shared.problem {
+      Text(note).font(.caption).foregroundStyle(.orange)
+    }
+    HStack {
+      Text(automation).font(.caption).foregroundStyle(.secondary)
+      Spacer()
+      if AutomationAccess.anyUnasked() {
+        Button(asking ? "Asking…" : "Ask") {
+          asking = true
+          Task {
+            let states = await AutomationAccess.request()
+            automation = AutomationAccess.outcome(of: states)
+            asking = false
+          }
+        }
+        .disabled(asking)
+      } else {
+        Button("Open Settings") { AutomationAccess.openSettings() }
+      }
+    }
+    Text(
+      "To put you back on the right page, Screencap asks your browser which tabs are open. Without that it can"
+        + " only bring the browser's window forward."
+    )
+    .font(.caption).foregroundStyle(.secondary)
+    HStack {
+      Text(rebuilt ?? "Places are worked out again every ten minutes.").font(.caption).foregroundStyle(.secondary)
+      Spacer()
+      Button("Rebuild now") {
+        rebuilt = "Working…"
+        let database = database
+        let cache = location.claudeSessionCache
+        Task.detached(priority: .utility) {
+          let sessions = ClaudeSessionIndex.build(cache: cache)
+          let report = try? BindingBuilder().rebuild(
+            in: database, readers: ThingReaders.standard(sessions: sessions))
+          let said = report.map { "\($0.things) places in \($0.threads) threads." } ?? "Could not rebuild."
+          await MainActor.run { rebuilt = said }
+        }
+      }
+    }
+    if !excluded.isEmpty {
+      DisclosureGroup("Places taken out of threads (\(excluded.count))") {
+        ForEach(excluded) { item in
+          HStack {
+            VStack(alignment: .leading, spacing: 1) {
+              Text(item.thing.label).lineLimit(1).truncationMode(.middle)
+              Text("Out of \(item.threadName)").font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            }
+            Spacer()
+            Button("Put back") {
+              guard let thingID = item.thing.id else { return }
+              try? database.include(thingID: thingID, inThread: item.threadID)
+              excluded = (try? database.excludedPlaces()) ?? []
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /// Takes the next key press in this window as the new shortcut. The current one is let go meanwhile, so it can be
+  /// typed without opening the palette; escape leaves things as they were.
+  private func startRecording() {
+    recording = true
+    recordingHint = nil
+    ResumeShortcut.shared.pause(true)
+    keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+      MainActor.assumeIsolated {
+        let bare = event.modifierFlags.intersection([.command, .option, .control, .shift]).isEmpty
+        if bare, Int(event.keyCode) == kVK_Escape {
+          stopRecording()
+        } else if let shortcut = Shortcut(event: event) {
+          resume.shortcut = shortcut == .optionSpace ? nil : shortcut
+          stopRecording()
+        } else {
+          recordingHint = "Hold ⌘, ⌥ or ⌃ with the key, or press escape to keep the shortcut you have."
+        }
+      }
+      return nil
+    }
+  }
+
+  private func stopRecording() {
+    guard recording else { return }
+    if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
+    keyMonitor = nil
+    recording = false
+    recordingHint = nil
+    ResumeShortcut.shared.pause(false)
+  }
+}
+
 struct UpdatesSection: View {
   @Bindable var updates: Updates
 

@@ -39,6 +39,41 @@ public struct Corrections: Sendable {
     return try await move(activityID: activityID, to: answer)
   }
 
+  /// Moves the smaller side of a thread that holds two pieces of work into a thread of its own, and answers with
+  /// the new thread's id.
+  ///
+  /// The new thread is named before anything moves, from the captions of the activities going into it, the way
+  /// `move` names a thread it makes: a thread is otherwise named only when a new activity joins it, and a side split
+  /// off from past work may never be joined again. If the name cannot be written nothing moves, so a failure leaves
+  /// the thread as it was. The thread the side left gets a fresh card too, since what it holds has changed.
+  @discardableResult
+  public func split(_ candidate: ThreadSplitCandidate) async throws -> Int64? {
+    guard candidate.groups.count > 1, let source = try database.thread(id: candidate.threadID) else { return nil }
+    let leaving = try database.activities(threadID: candidate.threadID)
+      .filter { activity in activity.id.map(candidate.groups[1].activityIDs.contains) ?? false }
+      .sorted { $0.startAt < $1.startAt }
+    guard let first = leaving.first, let last = leaving.max(by: { $0.endAt < $1.endAt }) else { return nil }
+
+    var target = ActivityThread(
+      name: "", summary: "", category: source.category, createdAt: first.startAt, lastSeenAt: last.endAt)
+    target.captions = Array(leaving.compactMap(\.caption).filter { !$0.isEmpty }.suffix(ThreadCard.captionMemory))
+    let named = try await engine.refreshedCard(target)
+    target = try await database.writer.write { db in
+      var inserted = named
+      try inserted.insert(db)
+      return inserted
+    }
+
+    for activity in leaving {
+      _ = try database.applyMove(activity: activity, caption: activity.caption ?? "", to: target)
+    }
+    if let remaining = try database.thread(id: candidate.threadID) {
+      try database.applyCard(try await engine.refreshedCard(remaining))
+    }
+    try log(.split, "thread \(candidate.threadID): \(leaving.count) activities into thread \(target.id ?? 0)")
+    return target.id
+  }
+
   /// Folds thread `absorbedID` into `survivorID` and refreshes the survivor's card.
   public func merge(_ absorbedID: Int64, into survivorID: Int64) async throws {
     guard absorbedID != survivorID, let merged = try database.merge([absorbedID], into: survivorID) else { return }
