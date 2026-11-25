@@ -8,10 +8,11 @@ import SwiftUI
 enum AppMain {
   static var delegate: AppDelegate?
 
-  static func run(location: StoreLocation, viewOnly: Bool, snapshotDirectory: URL? = nil) {
+  static func run(location: StoreLocation, viewOnly: Bool, section: MainSection? = nil, snapshotDirectory: URL? = nil) {
     let app = NSApplication.shared
     let delegate = AppDelegate(location: location, viewOnly: viewOnly || snapshotDirectory != nil)
     delegate.snapshotDirectory = snapshotDirectory
+    delegate.section = section
     self.delegate = delegate
     app.delegate = delegate
     app.setActivationPolicy(.accessory)
@@ -26,6 +27,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   let viewOnly: Bool
   /// Render every surface into PNGs here and quit, without showing a window.
   var snapshotDirectory: URL?
+  /// The page a view-only window opens on.
+  var section: MainSection?
   private var model: AppModel!
   private var capture: CaptureEngine!
   private var understanding: UnderstandingDriver!
@@ -72,14 +75,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self?.refreshIfVisible()
         self?.refreshPlaces()
       }
-      panel = PanelController(model: model)
+      // A store being looked at leaves the shortcuts to the app that is capturing.
+      panel = PanelController(model: model, hasHotKey: !viewOnly)
       // ⌥Space anywhere, or the shortcut Settings names: the threads worked in lately, and return to be put back
       // into one.
       resumePalette = ResumePaletteController(database: database, location: location, corrections: model.corrections)
       resumeUpkeep = ResumeUpkeep(database: database, location: location)
       resumePalette.onOpen = { [weak self] in self?.refreshPlaces() }
       resumePalette.model.front = { [weak self] in self?.capture.monitor.current ?? ForegroundContext() }
-      applyResume()
+      if !viewOnly { applyResume() }
       panel.openMain = { [weak self] in self?.showMain() }
       panel.openSettings = { [weak self] in self?.showSettings() }
       if !viewOnly {
@@ -123,6 +127,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.terminate(nil)
           }
         } else {
+          if let section { model.section = section }
           showMain()
         }
       } else {

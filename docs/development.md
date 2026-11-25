@@ -25,13 +25,16 @@ The app binary has a few modes for checks and maintenance (`build/Screencap.app/
 | `replay --data experiments/data --store DIR --export DIR` | Runs the understanding engine over the design experiments' six recorded days and writes `seg.json` and `threads.json` for their scorers; the days are the author's own captures, so they and the scorers are not published |
 | `delete-activity --id N [--store DIR]` | The inspector's Delete: removes the activity's captures and frames and queues their deletion from the backup |
 | `not-this-thread --id N [--store DIR]` | The inspector's "Not this thread": asks the thread question again without the current thread, moves the activity, and prints both threads as the next thread question reads them |
-| `--store DIR --view-only` | Opens the UI on a store without capturing into it |
+| `--store DIR --view-only [--section canvas]` | Opens the UI on a store without capturing into it, on the page named |
 | `--store DIR --snapshot DIR` | Renders every surface to PNGs offscreen and quits; with `SCREENCAP_README=1`, the README's dark window shots instead |
 | `backup-once [--store DIR]` | Writes the day files and a snapshot, then uploads everything due |
 | `restore --to DIR` | Rebuilds a store from the bucket into an empty folder |
 | `compare-stores --store A --restored B` | Compares row counts and frame hashes of two stores |
 | `rebuild-bindings [--since DAYS] [--from-scratch]` | Works out how long each place (a browser tab by address, a Claude session, a window) was on screen while each thread was being worked on. The app does this by itself every ten minutes for the last three days |
 | `bindings [--thread N \| --name TEXT] [--all]` | What a resume would bring forward for a thread, marking with a dot what it leaves out and why |
+| `canvas [--day YYYY-MM-DD]` | A day as the Canvas page groups it: its threads, the things each was about, and how long learning the names and grouping took |
+| `probe-canvas [--day YYYY-MM-DD]` | Drives the real canvas in a window off the screen: skims, opens, drags, zooms, steps between days and finds, checking each, then measures what a frame of zooming costs |
+| `canvas-story --spec FILE --screens DIR --icons DIR --out DIR [--fps N]` | Films the app's window over the made-up days of the README's Canvas demo (`demo/canvas`), frame by frame and offscreen |
 | `split-candidates [--apply N]` | Threads whose activities fall into two groups sharing no place at all, and splitting one: the smaller side moves into a thread of its own, named by the writer model before anything moves (so it needs the OpenRouter key) |
 | `resume --thread N \| --name TEXT` | Brings that thread's places to the front. Needs the app's Accessibility and Apple Events grants, so run it from the signed app: `open -n -g build/Screencap.app --args resume --name tokenizer` |
 | `probe-palette [--out FILE]` | Lays the resume palette's real list out in a window off the screen, over the store, and records its scroll offset after every key, while idle and after a wheel scroll. The list should hold still while the chosen row is in view and never move when nothing is pressed |
@@ -65,6 +68,7 @@ Screenshots of the focused display (1024 px JPEG), window titles, page hosts and
 | `Sources/ScreencapCore/Store` | The GRDB database, its schema and queries, full-text search |
 | `Sources/ScreencapCore/Evidence` | Fingerprints, frame encoding, capture text, the capture gate and recorder, the OCR runner |
 | `Sources/ScreencapCore/Understanding` | Model clients, the questions, the engine, corrections, the day timeline, replay |
+| `Sources/ScreencapCore/Canvas` | What the window titles say sites are called, a day grouped into the things each thread was about, and where they go on the canvas |
 | `Sources/ScreencapCore/Backup` | Encryption key, sealing, SigV4 and the S3 client, the outbox drain, restore |
 | `Sources/ScreencapCore/Agents` | The MCP server, its tools over a read-only store, the access log, connecting agent apps, the skill text |
 | `Sources/ScreencapCore/Resume` | Places and the time spent in them per thread, the ranking, thread splits, and a reader per app under `Providers` |
@@ -90,3 +94,9 @@ demo/resume/render.sh
 ```
 
 To change the timing or the scenes, `npm run studio` in `demo/resume` opens the demo in Remotion's editor. The beats, captions, camera and keys are in `src/script.ts`, the windows in `src/apps.tsx` and `src/desktop.tsx`, and the threads, their places and the palette's states in `story.json`; after changing `story.json`, run `render.sh` again, since the palette is drawn from it.
+
+The Canvas demo, `docs/readme/canvas.webp`, is in `demo/canvas` and shares that project's captions, type and backdrop. It opens on a made-up day piling up into a blur; then every screen flies to its place on the canvas, and from there on it is the app itself, filmed by `Screencap canvas-story`. The days are in `day.json` (what was done, when, and on which made-up page), the pages are drawn in `src/screens`, and `canvas-story` writes both into a throwaway store and works the real window over it: a pointer moves and clicks, and the canvas, the Timeline and the ruler answer as they do on screen. Each part of the film leaves a mark in `manifest.json`, which times the captions in `src/script.ts`; the film's own moves are in `CanvasStory.shoot`. One script renders all of it, and leaves a larger video in `demo/canvas/out`:
+
+```bash
+demo/canvas/render.sh
+```

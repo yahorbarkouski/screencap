@@ -22,7 +22,7 @@ final class PanelController: NSObject, NSWindowDelegate {
   var openMain: () -> Void = {}
   var openSettings: () -> Void = {}
 
-  init(model: AppModel) {
+  init(model: AppModel, hasHotKey: Bool = true) {
     self.model = model
     search = PanelSearch(model: model)
     super.init()
@@ -33,7 +33,7 @@ final class PanelController: NSObject, NSWindowDelegate {
       button.sendAction(on: [.leftMouseUp, .rightMouseUp])
     }
     buildPanel()
-    registerHotKey()
+    if hasHotKey { registerHotKey() }
   }
 
   private func buildPanel() {
@@ -242,14 +242,20 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
       let keyCode = event.keyCode
       let plain = event.modifierFlags.intersection([.command, .option, .control, .shift]).isEmpty
       let number = event.window?.windowNumber
-      let handled = MainActor.assumeIsolated { self?.handle(keyCode: keyCode, plain: plain, windowNumber: number) ?? false }
+      let characters = event.charactersIgnoringModifiers
+      let handled = MainActor.assumeIsolated { self?.handle(keyCode: keyCode, characters: characters, plain: plain, windowNumber: number) ?? false }
       return handled ? nil : event
     }
   }
 
   /// Whether the key was taken (see `watchKeys`).
-  private func handle(keyCode: UInt16, plain: Bool, windowNumber: Int?) -> Bool {
-    guard plain, let model, let window, windowNumber == window.windowNumber else { return false }
+  private func handle(keyCode: UInt16, characters: String?, plain: Bool, windowNumber: Int?) -> Bool {
+    guard let model, let window, windowNumber == window.windowNumber else { return false }
+    // "+" needs Shift on most keyboards.
+    if model.section == .canvas, plain || characters == "+", !(window.firstResponder is NSText) {
+      return model.canvas.handle(keyCode: keyCode, characters: characters)
+    }
+    guard plain else { return false }
     if model.expandedCaptureID != nil {
       switch keyCode {
       case 123: model.step(-1)

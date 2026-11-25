@@ -1,0 +1,4 @@
+node_modules
+out/
+# Rendered here by scripts and the app: every made-up screen, the site icons, and the app's own frames.
+public/generated/

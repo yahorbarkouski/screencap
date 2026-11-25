@@ -218,6 +218,7 @@ import Testing
     let cold = ClaudeSessionIndex.build(root: root, cache: cache)
     let warm = ClaudeSessionIndex.build(root: root, cache: cache)
     #expect(FileManager.default.fileExists(atPath: cache.path))
+    #expect(ClaudeSessionIndex.cached(cache).sessions == warm.sessions)
     #expect(cold.sessions == warm.sessions)
   }
 

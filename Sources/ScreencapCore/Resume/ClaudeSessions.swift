@@ -124,6 +124,12 @@ public struct ClaudeSessionIndex: Sendable {
     return ClaudeSessionIndex(sessions: sessions.sorted { $0.lastPromptAt < $1.lastPromptAt })
   }
 
+  /// The index as it was last read into `cache`, without opening a transcript: what a page that must show at once reads.
+  public static func cached(_ cache: URL) -> ClaudeSessionIndex {
+    let entries = SessionCache.read(from: cache)?.files.values.map { $0.session() } ?? []
+    return ClaudeSessionIndex(sessions: entries.sorted { $0.lastPromptAt < $1.lastPromptAt })
+  }
+
   static let promptMarker = Data("\"type\":\"user\"".utf8)
   static let titleMarker = Data("\"type\":\"custom-title\"".utf8)
 

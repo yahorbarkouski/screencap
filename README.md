@@ -6,13 +6,17 @@ Screencap is a lightweight, macOS-native activity memory for you and your agents
 
 ![Screencap's window: the pointer runs along the Day page's strip, where each moment shows its screenshot, then opens Timeline, Threads and one thread's page](docs/readme/window.gif)
 
-## Your day in 3 ways
+## Your day in 4 ways
 
 **Day** sums up the day in a few words and lays it out as one strip, coloured by thread: the piece of work, chore or pastime each stretch belongs to, which you may come back to over days. Move the pointer along the strip to see what was on screen at any point. Below the strip, each of the day's threads shows its key moments. A moment is one stretch of work on one thing, shown by its best screenshot and a short title.
 
 **Timeline** gives each thread its own column, with time running down the page, so work you kept going in parallel sits side by side.
 
 ![The Timeline page](docs/readme/timeline.png)
+
+**Canvas** lays the day out on one surface you move around like a map. Each thread takes up more room the longer you spent on it, with a picture for each thing you did there: a channel, a document, a conversation, an app. A stream you went back to nine times is one picture, and running the pointer along it shows every visit in order. Click a picture to open it, or a thread's name to come closer. The search box finds things in the day, and T stacks up the days before it.
+
+![A made-up day on a Mac. Windows pile up until the day is a blur; then every screen flies to its place on Screencap's Canvas, grouped by thread. The pointer runs along the picture of a rocket launch and the launch plays from countdown to orbit; a click opens it, with its whole day as a film strip. A thread comes closer, a search for lantern dims everything else, Timeline shows the same day by the hour, and the canvas steps back through four earlier days](docs/readme/canvas.webp)
 
 **Threads** shows every thread of the past week with a cover picture, the time it took and when in the day it happened. If Screencap grouped something wrong, rename or merge a thread from its right-click menu.
 
@@ -167,4 +171,4 @@ scripts/build-app.sh    # builds and signs build/Screencap.app
 
 Screencap is open source under the [MIT License](LICENSE).
 
-The screenshots and GIFs show pages from [Wikipedia](https://en.wikipedia.org) (text and photos under CC BY-SA), [OpenStreetMap](https://www.openstreetmap.org/copyright) (© OpenStreetMap contributors), NASA, Apple Developer, GitHub, [The Rust Programming Language](https://doc.rust-lang.org/book/) and Hacker News, each under its owner's terms. The Resume GIF is drawn: its people, pages and sessions are made up, and the app and site icons in it belong to their makers.
+The screenshots and GIFs show pages from [Wikipedia](https://en.wikipedia.org) (text and photos under CC BY-SA), [OpenStreetMap](https://www.openstreetmap.org/copyright) (© OpenStreetMap contributors), NASA, Apple Developer, GitHub, [The Rust Programming Language](https://doc.rust-lang.org/book/) and Hacker News, each under its owner's terms. The Resume GIF and the Canvas picture are drawn: their people, pages and sessions are made up, and the app icons in them belong to their makers.

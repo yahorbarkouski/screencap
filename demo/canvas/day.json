@@ -1,0 +1,145 @@
+{
+  "about": "The made-up days of the README's Canvas demo. The Remotion scenes draw every screen in them, and `Screencap canvas-story` builds a store from them and draws the app over it. Every name, page, person and session here is invented. A visit is [thread, place, minutes, title]; `cover` is the screen that stands for a place on the canvas; `earlier` is pairs of days before today and how much was captured.",
+  "today": "2026-11-12",
+  "screen": { "width": 1024, "height": 640, "window": { "x": 20, "y": 34, "width": 984, "height": 592 } },
+  "apps": {
+    "dia": { "bundle": "company.thebrowser.dia", "name": "Dia" },
+    "claude": { "bundle": "com.anthropic.claudefordesktop", "name": "Claude" },
+    "ghostty": { "bundle": "com.mitchellh.ghostty", "name": "Ghostty" },
+    "notes": { "bundle": "com.apple.Notes", "name": "Notes" },
+    "calendar": { "bundle": "com.apple.iCal", "name": "Calendar" },
+    "music": { "bundle": "com.apple.Music", "name": "Music" }
+  },
+  "places": {
+    "launch": { "app": "dia", "title": "Halcyon 3 launch · Skycast", "host": "skycast.example", "path": "/live/halcyon-3", "screens": 40, "cover": 20 },
+    "claude-lexer": { "app": "claude", "title": "Claude", "session": "Fix tokenizer for nested quotes", "folder": "tokenizer", "screens": 8 },
+    "pr": { "app": "dia", "title": "Fix nested quotes #482 · GitHub", "host": "github.com", "path": "/acme/tokenizer/pull/482", "screens": 6, "cover": 3 },
+    "terminal": { "app": "ghostty", "title": "tokenizer — cargo test", "screens": 6, "cover": 3 },
+    "grammar": { "app": "dia", "title": "String escapes · Grammar Notes", "host": "grammarnotes.example", "path": "/strings/escapes", "screens": 4, "cover": 1 },
+    "map": { "app": "dia", "title": "Kyoto walk · Atlas", "host": "atlas.example", "path": "/maps/kyoto-walk", "screens": 10, "cover": 7 },
+    "shrine": { "app": "dia", "title": "Fushimi Inari · Wayfarer", "host": "wayfarer.example", "path": "/japan/fushimi-inari", "screens": 5, "cover": 2 },
+    "stay": { "app": "dia", "title": "Ryokan in Gion · Stay", "host": "stay.example", "path": "/kyoto/gion", "screens": 4, "cover": 1 },
+    "notes": { "app": "notes", "title": "Kyoto in April", "screens": 4, "cover": 2 },
+    "claude-kyoto": { "app": "claude", "title": "Claude", "session": "Plan Kyoto day trips", "folder": "notes", "screens": 4 },
+    "easel": { "app": "dia", "title": "Night Market poster · Easel", "host": "easel.example", "path": "/file/night-market", "screens": 14, "cover": 11 },
+    "board": { "app": "dia", "title": "Lantern ideas · Pinwall", "host": "pinwall.example", "path": "/b/lanterns", "screens": 3, "cover": 1 },
+    "roadmap": { "app": "dia", "title": "Q4 roadmap · Pages", "host": "pages.example", "path": "/d/q4-roadmap", "screens": 6, "cover": 3 },
+    "relay": { "app": "dia", "title": "#roadmap · Relay", "host": "relay.example", "path": "/acme/roadmap", "screens": 5, "cover": 3 },
+    "chess": { "app": "dia", "title": "Game against Nora · Openfile", "host": "openfile.example", "path": "/game/nora-12", "screens": 12, "cover": 8 },
+    "flat": { "app": "dia", "title": "Two rooms by the canal · Keyhole", "host": "keyhole.example", "path": "/flat/canal-2", "screens": 4, "cover": 2 },
+    "run": { "app": "dia", "title": "Half marathon plan · Stride", "host": "stride.example", "path": "/plan", "screens": 4, "cover": 2 },
+    "bread": { "app": "dia", "title": "Overnight sourdough · Crumb", "host": "crumb.example", "path": "/overnight", "screens": 3, "cover": 1 },
+    "invoices": { "app": "dia", "title": "Invoices · Ledger", "host": "ledger.example", "path": "/invoices", "screens": 2 },
+    "weather": { "app": "dia", "title": "Saturday · Skylark", "host": "skylark.example", "path": "/week", "screens": 2 },
+    "calendar": { "app": "calendar", "title": "Calendar", "screens": 2 },
+    "music": { "app": "music", "title": "Music", "screens": 3, "cover": 1 }
+  },
+  "threads": {
+    "launch": { "name": "Halcyon 3 launch", "category": "Leisure" },
+    "tokenizer": { "name": "Tokenizer: nested quotes", "category": "Work" },
+    "kyoto": { "name": "Kyoto in April", "category": "Chores" },
+    "poster": { "name": "Night Market poster", "category": "Work" },
+    "roadmap": { "name": "Q4 roadmap", "category": "Work" },
+    "chess": { "name": "Chess with Nora", "category": "Leisure" },
+    "flat": { "name": "Finding a flat", "category": "Chores" },
+    "running": { "name": "Half marathon", "category": "Leisure" },
+    "bread": { "name": "Sourdough", "category": "Leisure" },
+    "money": { "name": "Invoices", "category": "Chores" },
+    "music": { "name": "Listening to records", "category": "Leisure" },
+    "week": { "name": "Planning the week", "category": "Chores" }
+  },
+  "days": [
+    {
+      "back": 0,
+      "runs": [
+        ["09:00", [
+          ["music", "music", 3, "A record to start on"], ["week", "calendar", 4, "Thursday's plan"],
+          ["tokenizer", "claude-lexer", 14, "A failing test first"], ["tokenizer", "pr", 7, "Mira's review"], ["tokenizer", "terminal", 5, "Running the tests"],
+          ["launch", "launch", 9, "Countdown begins"],
+          ["roadmap", "roadmap", 12, "Three goals for search"], ["roadmap", "relay", 8, "What to cut"],
+          ["launch", "launch", 7, "Waiting on the weather"],
+          ["tokenizer", "grammar", 12, "How escapes nest"], ["tokenizer", "claude-lexer", 10, "The escape state"], ["tokenizer", "terminal", 6, "Two tests left"],
+          ["bread", "bread", 2, "Feeding the starter"],
+          ["launch", "launch", 12, "Fuelling"],
+          ["roadmap", "roadmap", 16, "Cutting federated search"], ["roadmap", "relay", 10, "Agreeing on dates"],
+          ["poster", "easel", 15, "Moon and lanterns"],
+          ["launch", "launch", 10, "Crew arm swings back"],
+          ["running", "run", 3, "This week's runs"]
+        ]],
+        ["13:02", [
+          ["chess", "chess", 9, "An Italian opening"],
+          ["launch", "launch", 14, "Holding at ten minutes"],
+          ["tokenizer", "pr", 12, "Answering the review"], ["tokenizer", "claude-lexer", 14, "Fixing the lexer"], ["tokenizer", "terminal", 6, "All green"],
+          ["kyoto", "map", 10, "A walk through Gion"], ["kyoto", "shrine", 8, "The torii trail"], ["kyoto", "stay", 7, "Ryokan by the river"],
+          ["launch", "launch", 26, "Liftoff"],
+          ["poster", "easel", 17, "Setting the title"], ["poster", "board", 8, "Lantern references"],
+          ["kyoto", "claude-kyoto", 9, "Three day trips"], ["kyoto", "notes", 5, "What to book"],
+          ["launch", "launch", 18, "Stage separation"],
+          ["flat", "flat", 8, "Two rooms by the canal"],
+          ["tokenizer", "claude-lexer", 10, "Release note"], ["tokenizer", "pr", 12, "Merged"], ["tokenizer", "terminal", 4, "Tagging 0.9"],
+          ["chess", "chess", 8, "Trading queens"],
+          ["launch", "launch", 12, "In orbit"],
+          ["money", "invoices", 7, "October's invoices"],
+          ["kyoto", "map", 14, "Day by day"], ["kyoto", "stay", 6, "Comparing two rooms"], ["kyoto", "shrine", 6, "When to climb"], ["kyoto", "notes", 5, "The list so far"],
+          ["launch", "launch", 10, "First pictures"],
+          ["poster", "easel", 12, "Final colours"],
+          ["chess", "chess", 9, "A rook ending"],
+          ["running", "run", 4, "Ten slow kilometres"],
+          ["bread", "bread", 5, "Shaping the loaf"],
+          ["flat", "flat", 5, "Asking about the lease"],
+          ["music", "music", 4, "A record to end on"]
+        ]]
+      ]
+    },
+    {
+      "back": 1,
+      "runs": [
+        ["09:20", [
+          ["poster", "board", 14, "Lantern references"], ["poster", "easel", 46, "First sketches"], ["roadmap", "relay", 9, "Morning notes"],
+          ["poster", "easel", 31, "The skyline"], ["chess", "chess", 12, "Game eleven"], ["tokenizer", "pr", 10, "Opening the pull request"]
+        ]],
+        ["13:10", [
+          ["tokenizer", "claude-lexer", 22, "Why quotes nest"], ["tokenizer", "terminal", 9, "Finding the bug"], ["poster", "easel", 24, "Three layouts"],
+          ["kyoto", "shrine", 12, "Reading about the shrine"], ["kyoto", "stay", 8, "First look at rooms"], ["bread", "bread", 7, "Mixing"],
+          ["running", "run", 5, "Rest day"], ["music", "music", 6, "A long record"], ["week", "weather", 3, "Rain by evening"]
+        ]]
+      ]
+    },
+    {
+      "back": 2,
+      "runs": [
+        ["08:50", [
+          ["kyoto", "map", 48, "Where everything is"], ["kyoto", "shrine", 16, "Fushimi Inari"], ["kyoto", "stay", 18, "Gion or Arashiyama"],
+          ["roadmap", "roadmap", 22, "First draft"], ["flat", "flat", 15, "New listings"], ["kyoto", "claude-kyoto", 12, "What fits in a week"]
+        ]],
+        ["13:30", [
+          ["kyoto", "map", 34, "The long walk"], ["kyoto", "notes", 9, "Packing"], ["roadmap", "relay", 14, "Feedback"], ["chess", "chess", 9, "Game ten"],
+          ["money", "invoices", 11, "Receipts"], ["week", "calendar", 4, "Moving things around"], ["music", "music", 3, "Something quiet"]
+        ]]
+      ]
+    },
+    {
+      "back": 3,
+      "runs": [
+        ["09:05", [
+          ["tokenizer", "grammar", 26, "Reading the grammar"], ["tokenizer", "claude-lexer", 38, "Planning the lexer"], ["tokenizer", "terminal", 24, "Benchmarks"],
+          ["roadmap", "relay", 8, "Standup"], ["tokenizer", "pr", 16, "Reviewing Jonas's fix"]
+        ]],
+        ["12:40", [
+          ["chess", "chess", 14, "Game nine"], ["tokenizer", "claude-lexer", 25, "A smaller state machine"], ["flat", "flat", 12, "A viewing on Friday"],
+          ["bread", "bread", 9, "Buying flour"], ["running", "run", 8, "Intervals"], ["week", "weather", 2, "Clear skies"]
+        ]]
+      ]
+    },
+    {
+      "back": 4,
+      "runs": [
+        ["10:10", [
+          ["chess", "chess", 52, "A weekend of games"], ["bread", "bread", 18, "Baking"], ["music", "music", 14, "Records"], ["running", "run", 16, "Twelve kilometres"],
+          ["flat", "flat", 21, "Looking around"], ["kyoto", "shrine", 11, "Dreaming a little"], ["week", "calendar", 3, "Next week"]
+        ]]
+      ]
+    }
+  ],
+  "earlier": [6, 310, 7, 270, 8, 180, 10, 340, 11, 90, 12, 120, 13, 300, 14, 350, 15, 240, 16, 290, 17, 210, 19, 60, 20, 330, 21, 260, 22, 310, 23, 280, 24, 190, 26, 80, 27, 320, 28, 300, 29, 250, 30, 340, 31, 220, 34, 280, 35, 310, 36, 180, 37, 260, 38, 300, 41, 220, 42, 330]
+}

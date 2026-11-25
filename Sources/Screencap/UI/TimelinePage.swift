@@ -50,7 +50,7 @@ struct TimelinePage: View {
 
   func setting<Value: Hashable>(_ label: String, selection: Binding<Value>, options: [(Value, String)]) -> some View {
     HStack(spacing: 8) {
-      Text(label).font(.ui(12)).foregroundStyle(Theme.ink5)
+      Text(label).font(.ui(12)).foregroundStyle(Theme.ink5).lineLimit(1).fixedSize()
       Picker(label, selection: selection) {
         ForEach(options, id: \.0) { value, name in Text(name).tag(value) }
       }

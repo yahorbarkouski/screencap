@@ -71,6 +71,7 @@ struct ShotWindow: View {
     }
     .background(Theme.page)
     .defaultAppStorage(ReadmeShots.defaults)
+    .environment(\.drawnOffscreen, true)
   }
 }
 
@@ -80,6 +81,10 @@ private struct TitleBar: View {
   let model: AppModel
 
   var body: some View {
+    GeometryReader { geo in bar(width: MainView.searchWidth(inWindow: geo.size.width)) }.frame(height: 52)
+  }
+
+  func bar(width: CGFloat) -> some View {
     ZStack {
       HStack(spacing: 4) {
         HStack(spacing: 8) {
@@ -110,11 +115,18 @@ private struct TitleBar: View {
       }
       HStack(spacing: 8) {
         Image(systemName: "magnifyingglass").font(.system(size: 13, weight: .medium)).foregroundStyle(Theme.ink4)
-        Text("Search everything you have seen").font(.ui(13.5)).foregroundStyle(Theme.ink5)
-        Spacer()
-        Text("⌘F").font(.mono(10.5, .semibold)).foregroundStyle(Theme.ink6)
+        if model.query.isEmpty {
+          Text(model.section == .canvas ? "Find on this day" : "Search everything you have seen").font(.ui(13.5)).foregroundStyle(Theme.ink5)
+          Spacer()
+          Text("⌘F").font(.mono(10.5, .semibold)).foregroundStyle(Theme.ink6)
+        } else {
+          Text(model.query).font(.ui(13.5)).foregroundStyle(Theme.ink)
+          Spacer()
+          if model.section == .canvas { Text("All days").font(.ui(12, .medium)).foregroundStyle(Theme.ink4) }
+          Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.ink6)
+        }
       }
-      .padding(.leading, 14).padding(.trailing, 10).frame(width: 520, height: 34)
+      .padding(.leading, 14).padding(.trailing, 10).frame(width: width, height: 34)
       .background(Capsule().fill(Theme.wash))
     }
     .padding(.horizontal, 18).frame(height: 52)

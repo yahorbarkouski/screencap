@@ -5,8 +5,9 @@ struct MainView: View {
   @Bindable var model: AppModel
   @FocusState private var searchFocused: Bool
   @State private var pickingDay = false
+  @State private var windowWidth: CGFloat = 1180
   @Namespace private var segment
-  /// The section the toggle's ink capsule sits on. It slides after a click and jumps with ⌘1, ⌘2 and ⌘3, while the page
+  /// The section the toggle's ink capsule sits on. It slides after a click and jumps with ⌘1 to ⌘4, while the page
   /// itself always changes at once.
   @State private var segmentSection: MainSection = .day
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -15,6 +16,7 @@ struct MainView: View {
     GeometryReader { geo in
       content
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onChange(of: geo.size.width, initial: true) { _, width in windowWidth = width }
         .overlay {
           if model.expandedCaptureID != nil, let activity = model.selectedActivity {
             Lightbox(model: model, activity: activity)
@@ -31,18 +33,21 @@ struct MainView: View {
     .background { shortcuts }
       .toolbar {
         ToolbarItem(placement: .navigation) { navigation }.sharedBackgroundVisibility(.hidden)
-        ToolbarItem(placement: .principal) { searchBox.frame(width: 520) }.sharedBackgroundVisibility(.hidden)
+        ToolbarItem(placement: .principal) { searchBox.frame(width: Self.searchWidth(inWindow: windowWidth)) }.sharedBackgroundVisibility(.hidden)
         ToolbarItem(placement: .primaryAction) { sectionToggle }.sharedBackgroundVisibility(.hidden)
       }
       .onReceive(NotificationCenter.default.publisher(for: .focusSearch)) { _ in searchFocused = true }
   }
 
+  /// The search box gives way in a narrow window, so the day and the pages keep their places either side of it.
+  static func searchWidth(inWindow width: CGFloat) -> CGFloat { min(520, max(220, width - 660)) }
+
   /// The title bar's leading item: the day and its neighbours on the Day page; on a thread's page the way back, and
   /// the thread's name once its large title has scrolled away.
   @ViewBuilder var navigation: some View {
-    if !model.query.isEmpty {
+    if !model.query.isEmpty, model.section != .canvas {
       EmptyView()
-    } else if model.section == .day || model.section == .timeline {
+    } else if model.section == .day || model.section == .timeline || model.section == .canvas {
       dayNav
     } else if let id = model.openThreadID {
       HStack(spacing: 8) {
@@ -63,20 +68,25 @@ struct MainView: View {
     model.titleScrolledAway = false
   }
 
-  /// Keys: ⌘1, ⌘2 and ⌘3 switch pages, ⌘[ and ⌘] step through days, Esc clears the search, closes the inspector or
+  /// Keys: ⌘1 to ⌘4 switch pages, ⌘[ and ⌘] step through days, Esc clears the search, closes the inspector or
   /// leaves a thread's page.
   var shortcuts: some View {
     Group {
       Button("Day") { show(.day) }.keyboardShortcut("1", modifiers: .command)
       Button("Timeline") { show(.timeline) }.keyboardShortcut("2", modifiers: .command)
-      Button("Threads") { show(.threads) }.keyboardShortcut("3", modifiers: .command)
+      Button("Canvas") { show(.canvas) }.keyboardShortcut("3", modifiers: .command)
+      Button("Threads") { show(.threads) }.keyboardShortcut("4", modifiers: .command)
       Button("Previous day") { model.shiftDay(-1) }.keyboardShortcut("[", modifiers: .command)
-        .disabled(model.section == .threads || !model.query.isEmpty)
+        .disabled(model.section == .threads || (!model.query.isEmpty && model.section != .canvas))
       Button("Next day") { model.shiftDay(1) }.keyboardShortcut("]", modifiers: .command)
-        .disabled(model.section == .threads || !model.query.isEmpty || model.isToday)
+        .disabled(model.section == .threads || (!model.query.isEmpty && model.section != .canvas) || model.isToday)
       Button("Back") {
-        if !model.query.isEmpty {
+        if model.section == .canvas, model.canvas.opened != nil {
+          model.canvas.opened = nil
+        } else if !model.query.isEmpty {
           model.query = ""
+        } else if model.section == .canvas {
+          _ = model.canvas.escape()
         } else if model.selectedActivityID != nil {
           model.selectedActivityID = nil
         } else if model.openThreadID != nil {
@@ -130,17 +140,21 @@ struct MainView: View {
   var searchBox: some View {
     HStack(spacing: 8) {
       Image(systemName: "magnifyingglass").font(.system(size: 13, weight: .medium)).foregroundStyle(Theme.ink4)
-      TextField("Search everything you have seen", text: $model.query)
+      TextField(model.section == .canvas ? "Find on this day" : "Search everything you have seen", text: $model.query)
         .textFieldStyle(.plain).font(.ui(13.5)).foregroundStyle(Theme.ink)
         .focused($searchFocused)
-        .onSubmit { try? model.runSearch() }
+        .onSubmit { model.section == .canvas ? model.canvas.view?.showNextFound() : try? model.runSearch() }
         .onChange(of: model.query) { _, value in
-          if value.isEmpty { return }
+          if value.isEmpty || model.section == .canvas { return }
           try? model.runSearch()
         }
       if model.query.isEmpty {
         Text("⌘F").font(.mono(10.5, .semibold)).foregroundStyle(Theme.ink6)
       } else {
+        if model.section == .canvas {
+          Button("All days") { searchAllDays() }.buttonStyle(.plain).font(.ui(12, .medium)).foregroundStyle(Theme.ink4)
+            .help("Search everything you have seen")
+        }
         Button {
           model.query = ""
         } label: {
@@ -152,6 +166,12 @@ struct MainView: View {
     .padding(.leading, 14).padding(.trailing, 10)
     .frame(height: 34)
     .background(Capsule().fill(searchFocused ? Theme.washHover : Theme.wash))
+  }
+
+  /// The same words, over the whole history.
+  func searchAllDays() {
+    model.section = .day
+    try? model.runSearch()
   }
 
   var sectionToggle: some View {
@@ -178,7 +198,7 @@ struct MainView: View {
   }
 
   @ViewBuilder var content: some View {
-    if !model.query.isEmpty {
+    if !model.query.isEmpty, model.section != .canvas {
       SearchView(model: model)
     } else {
       switch model.section {
@@ -198,6 +218,8 @@ struct MainView: View {
             InspectorView(model: model, activity: activity).frame(width: 400)
           }
         }
+      case .canvas:
+        CanvasPage(model: model)
       case .threads:
         if model.openThreadID != nil {
           HStack(spacing: 0) {
