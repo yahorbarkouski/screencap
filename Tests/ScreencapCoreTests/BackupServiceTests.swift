@@ -127,7 +127,8 @@ actor MemoryBucket: ObjectStore {
     let h = try await understoodStore()
     let bucket = MemoryBucket()
     let backup = service(h, bucket)
-    try h.database.enqueueBackup(.rows, objectKey: BackupKeys.rows(day: BackupKeys.day(Self.day)))
+    // Today's file: the snapshot prunes day files from before its seven-day window.
+    try h.database.enqueueBackup(.rows, objectKey: BackupKeys.rows(day: BackupKeys.day(Date().timeIntervalSince1970)))
     try await backup.drain()
     try h.database.enqueueBackup(.snapshot, objectKey: BackupKeys.snapshot(week: BackupKeys.week(Self.day)))
     try await backup.drain()
