@@ -3,7 +3,7 @@ import ScreencapCore
 
 // Screencap runs as the menu-bar app with no arguments; the subcommands are for measured runs and maintenance.
 //
-//   Screencap [--store DIR] [--view-only]       the app; view-only shows a store without capturing into it
+//   Screencap [--store DIR] [--view-only [--section canvas]]  the app; view-only shows a store without capturing into it
 //   Screencap headless --minutes N [--store DIR]  capture and understand without UI, then print a report
 //   Screencap replay --data DIR --store DIR [--export DIR]  run understanding over imported captures
 //   Screencap backup-once [--store DIR]          drain the backup outbox once
@@ -14,6 +14,9 @@ import ScreencapCore
 //   Screencap demo-store --store DIR --pages DIR  a made-up yesterday on captured public pages, for the README's screenshots
 //   Screencap rebuild-bindings [--since DAYS] [--from-scratch]  how long each place was on screen per thread
 //   Screencap bindings [--thread N | --name TEXT] [--all]   what a resume would bring forward, and what it leaves out
+//   Screencap canvas [--day YYYY-MM-DD]           a day as the canvas groups it: its threads and what each was about
+//   Screencap probe-canvas [--day YYYY-MM-DD]     drives the canvas in a window off the screen and checks each gesture
+//   Screencap canvas-story --spec FILE --screens DIR --icons DIR --out DIR   the window filmed over the Canvas demo's made-up days
 //   Screencap split-candidates [--apply N]        threads that hold two pieces of work, and splitting one
 //   Screencap resume --thread N | --name TEXT     brings that thread's places to the front (run from the signed app)
 //   Screencap resume-story --spec FILE --out DIR  the palette drawn over the README demo's made-up afternoon
@@ -213,6 +216,54 @@ case "rebuild-bindings", "bindings":
     print("\(command) failed: \(error.localizedDescription)")
     exit(1)
   }
+case "canvas":
+  do {
+    try CanvasCommand.run(location: storeLocation(), day: option("--day"))
+    exit(0)
+  } catch {
+    print("canvas failed: \(error.localizedDescription)")
+    exit(1)
+  }
+case "canvas-story":
+  // The app's part of the README's Canvas demo (demo/canvas): its window filmed over the demo's made-up days.
+  MainActor.assumeIsolated {
+    _ = NSApplication.shared
+    Task { @MainActor in
+      do {
+        guard let spec = option("--spec"), let screens = option("--screens"), let icons = option("--icons"), let out = option("--out") else {
+          print("usage: Screencap canvas-story --spec demo/canvas/day.json --screens DIR --icons DIR --out DIR [--fps N]")
+          exit(2)
+        }
+        try await CanvasStory.run(
+          spec: URL(fileURLWithPath: spec), screens: URL(fileURLWithPath: screens, isDirectory: true),
+          icons: URL(fileURLWithPath: icons, isDirectory: true), out: URL(fileURLWithPath: out, isDirectory: true),
+          fps: Double(option("--fps") ?? "60") ?? 60)
+        exit(0)
+      } catch {
+        print("canvas-story failed: \(error.localizedDescription)")
+        exit(1)
+      }
+    }
+    NSApplication.shared.run()
+  }
+case "probe-canvas":
+  MainActor.assumeIsolated {
+    _ = NSApplication.shared
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.dateFormat = "yyyy-MM-dd"
+    let day = option("--day").flatMap(formatter.date)
+    Task { @MainActor in
+      do {
+        try await CanvasProbe.run(location: storeLocation(), day: day)
+        exit(0)
+      } catch {
+        print("probe-canvas failed: \(error.localizedDescription)")
+        exit(1)
+      }
+    }
+    NSApplication.shared.run()
+  }
 case "mcp", "--mcp":
   // `--mcp` is how Screencap v1 registered itself with agent apps; once this app takes v1's place, those entries
   // start the server here instead of a second menu-bar app.
@@ -252,5 +303,6 @@ case "backup-once", "restore", "compare-stores":
 default:
   let viewOnly = arguments.contains("--view-only")
   let snapshots = option("--snapshot").map { URL(fileURLWithPath: $0, isDirectory: true) }
-  MainActor.assumeIsolated { AppMain.run(location: storeLocation(), viewOnly: viewOnly, snapshotDirectory: snapshots) }
+  let section = option("--section").flatMap { name in MainSection.allCases.first { $0.rawValue.lowercased() == name } }
+  MainActor.assumeIsolated { AppMain.run(location: storeLocation(), viewOnly: viewOnly, section: section, snapshotDirectory: snapshots) }
 }

@@ -11,6 +11,21 @@ enum SnapshotRunner {
     let size = CGSize(width: 1180, height: 780)
     let busiest = model.timeline.threads.compactMap(\.threadID)
 
+    model.section = .canvas
+    model.canvas.show(model.day)
+    for _ in 0..<60 where model.canvas.day == nil { try? await Task.sleep(for: .milliseconds(250)) }
+    let large = CGSize(width: 1440, height: 848)
+    await render(CanvasPage(model: model), size: large, to: directory.appendingPathComponent("canvas.png"), dark: true)
+    await render(CanvasPage(model: model), size: large, to: directory.appendingPathComponent("canvas-light.png"))
+    if let thread = model.canvas.day?.threads.first, let thing = thread.things.first {
+      model.canvas.open(thing, in: thread, at: thing.cover)
+      await render(CanvasPage(model: model), size: large, to: directory.appendingPathComponent("canvas-open.png"), dark: true)
+      model.canvas.opened = nil
+    }
+    model.canvas.setStacked(true)
+    await render(CanvasPage(model: model), size: large, to: directory.appendingPathComponent("canvas-stacked.png"), dark: true)
+    model.canvas.setStacked(false)
+
     model.section = .day
     await renderWindow(model: model, size: size, to: directory.appendingPathComponent("window.png"))
     await render(MainView(model: model), size: size, to: directory.appendingPathComponent("day.png"))

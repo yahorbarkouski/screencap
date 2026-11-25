@@ -50,6 +50,12 @@ final class PlaceIcons {
     }
   }
 
+  /// Icons for sites that do not exist (the README's demo), which are never fetched.
+  func showcase(_ images: [String: NSImage]) {
+    sites.merge(images) { _, new in new }
+    requested.formUnion(images.keys)
+  }
+
   func appIcon(_ bundleID: String) -> NSImage? {
     if let image = apps[bundleID] { return image }
     guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return nil }

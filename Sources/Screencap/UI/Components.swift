@@ -148,6 +148,18 @@ final class ImageLoader: @unchecked Sendable {
     "\(url.path)#\(maxPixels)#\(crop.map { "\($0.x),\($0.y),\($0.width),\($0.height)" } ?? "")" as NSString
   }
 
+  /// Room for every picture of a drawn film at once.
+  func makeRoom() { cache.totalCostLimit = 4 << 30 }
+
+  /// Decoded here and now, for a frame that is being drawn.
+  func now(_ url: URL, maxPixels: Int, crop: ScreenRect? = nil) -> NSImage? {
+    if let image = cached(url, maxPixels: maxPixels, crop: crop) { return image }
+    guard let cg = FrameEncoder.image(at: url, maxPixels: maxPixels, crop: crop) else { return nil }
+    let image = NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
+    cache.setObject(image, forKey: Self.key(url, maxPixels, crop), cost: cg.width * cg.height * 4)
+    return image
+  }
+
   func cached(_ url: URL, maxPixels: Int, crop: ScreenRect? = nil) -> NSImage? { cache.object(forKey: Self.key(url, maxPixels, crop)) }
 
   func load(_ url: URL, maxPixels: Int, crop: ScreenRect? = nil) async -> NSImage? {

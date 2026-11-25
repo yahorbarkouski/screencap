@@ -20,7 +20,8 @@ struct ParallelTimeline: View {
   let model: AppModel
   var options = TimelineOptions()
   @State private var width: CGFloat = 900
-  @State private var pointer: CGPoint?
+  @State private var hovering: CGPoint?
+  @Environment(\.pinnedTimelinePoint) private var pinned
   /// The part of the timeline the page shows, in its own coordinates. Kept outside the view's state, so scrolling
   /// does not redraw the timeline; the hover card reads it to stay in view.
   @State private var viewport = Viewport()
@@ -37,6 +38,7 @@ struct ParallelTimeline: View {
 
   var body: some View {
     let layout = Layout(model: model, width: width, options: options)
+    let pointer = pinned ?? hovering
     let hovered = pointer.flatMap { layout.activity(at: $0) }
     let lit = hovered?.threadID ?? model.hoveredThreadID
     ZStack(alignment: .topLeading) {
@@ -45,8 +47,8 @@ struct ParallelTimeline: View {
         .contentShape(Rectangle())
         .onContinuousHover { phase in
           switch phase {
-          case .active(let point): pointer = point
-          case .ended: pointer = nil
+          case .active(let point): hovering = point
+          case .ended: hovering = nil
           }
         }
         .onTapGesture(coordinateSpace: .local) { location in
@@ -125,6 +127,18 @@ struct ParallelTimeline: View {
           in: rect.insetBy(dx: 7, dy: 3))
       }
     }
+  }
+}
+
+private struct PinnedTimelinePoint: EnvironmentKey {
+  static let defaultValue: CGPoint? = nil
+}
+
+extension EnvironmentValues {
+  /// Where the pointer is on the timeline, in its own coordinates (offscreen snapshots, which cannot hover).
+  var pinnedTimelinePoint: CGPoint? {
+    get { self[PinnedTimelinePoint.self] }
+    set { self[PinnedTimelinePoint.self] = newValue }
   }
 }
 

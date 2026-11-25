@@ -6,6 +6,7 @@ import SwiftUI
 enum MainSection: String, CaseIterable {
   case day = "Day"
   case timeline = "Timeline"
+  case canvas = "Canvas"
   case threads = "Threads"
 }
 
@@ -59,6 +60,7 @@ final class AppModel {
   let settings: SettingsStore
   var corrections: Corrections?
   let icons = PlaceIcons()
+  let canvas: CanvasModel
   var captureEngine: CaptureEngine?
   var understanding: UnderstandingDriver?
   var backup: BackupDriver?
@@ -66,7 +68,9 @@ final class AppModel {
 
   // Navigation
   var day: Date = Calendar.current.startOfDay(for: Date())
-  var section: MainSection = .day
+  var section: MainSection = .day {
+    didSet { if section != .canvas { canvas.opened = nil } }
+  }
   var query = ""
   var selectedActivityID: Int64?
   var selectedCaptureID: String?
@@ -106,6 +110,7 @@ final class AppModel {
   /// Covers the decision model picked for the Threads page, by thread.
   private(set) var covers: [Int64: Capture] = [:]
   @ObservationIgnored private var coverTask: Task<Void, Never>?
+  @ObservationIgnored private var travelling: Task<Void, Never>?
   @ObservationIgnored private var coverAskedAt: [Int64: Date] = [:]
   /// The open page's large title has scrolled under the title bar, which then shows it inline.
   var titleScrolledAway = false
@@ -122,6 +127,7 @@ final class AppModel {
     self.database = database
     self.location = location
     self.settings = settings
+    canvas = CanvasModel(database: database, location: location)
   }
 
   var dayStart: Double { day.timeIntervalSince1970 }
@@ -175,8 +181,9 @@ final class AppModel {
       current = try database.latestActivity().flatMap { $0.isOpen ? $0 : nil }
       tiles = try loadTiles()
       if section == .threads { loadCovers() }
+      if section == .canvas { canvas.show(day) }
       if let openThreadID { threadActivities = try database.activities(threadID: openThreadID).reversed() }
-      if !query.isEmpty { try runSearch() }
+      if !query.isEmpty, section != .canvas { try runSearch() }
       lastRefresh = Date()
       loadStory()
     } catch {
@@ -437,6 +444,29 @@ final class AppModel {
     selectedCaptureID = nil
     expandedCaptureID = nil
     refresh()
+  }
+
+  /// Goes to a day while something is still moving through days (the canvas's ruler): the day shows at once, and what
+  /// the other pages show of it is loaded once the moving stops.
+  func travel(toDay date: Date) {
+    day = Calendar.current.startOfDay(for: date)
+    selectedActivityID = nil
+    selectedCaptureID = nil
+    expandedCaptureID = nil
+    travelling?.cancel()
+    travelling = Task {
+      try? await Task.sleep(for: .milliseconds(300))
+      if !Task.isCancelled { refresh() }
+    }
+  }
+
+  /// The Day page at a screenshot from the canvas, with its activity open beside it.
+  func showInDay(_ shot: CanvasShot) {
+    query = ""
+    section = .day
+    go(toDay: Date(timeIntervalSince1970: shot.at))
+    guard let activity = try? database.activity(id: shot.activityID) else { return }
+    select(activity, capture: captures(of: activity).first { $0.id == shot.captureID })
   }
 
   func shiftDay(_ delta: Int) {

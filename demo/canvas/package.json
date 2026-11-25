@@ -1,0 +1,9 @@
+{
+  "name": "screencap-canvas-demo",
+  "private": true,
+  "description": "The README's Canvas demo: a made-up day, first as the blur it was, then as Screencap lays it out. It shares demo/resume's engine and its packages (render.sh links its node_modules).",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "./render.sh"
+  }
+}

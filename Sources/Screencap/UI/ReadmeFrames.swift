@@ -82,9 +82,9 @@ enum ReadmeFrames {
 
   /// The centre of a page's button in the title bar, from `TitleBar`'s layout: 18 points in from the window's edge, 3
   /// of padding, and 13 either side of each label.
-  static func toggle(_ section: MainSection) -> CGPoint {
+  static func toggle(_ section: MainSection, inWindow windowWidth: CGFloat = mainSize.width) -> CGPoint {
     let font = NSFont.systemFont(ofSize: 12.5, weight: .medium)
-    var right = mainSize.width - 18 - 3
+    var right = windowWidth - 18 - 3
     for each in MainSection.allCases.reversed() {
       let width = (each.rawValue as NSString).size(withAttributes: [.font: font]).width + 26
       if each == section { return CGPoint(x: right - width / 2, y: titleBar / 2) }
